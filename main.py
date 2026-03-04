@@ -7,3 +7,5 @@ dotenv.load_dotenv()
 app = FastAPI()
 
 app.include_router(health_router)
+
+
