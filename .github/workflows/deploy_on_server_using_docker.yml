@@ -3,8 +3,7 @@ name: docker_deploy
 run-name: Docker build and deploy on server using actions.
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-  TAG: latest
+  REGISTRY: ghcr.io
 
 on:
   push:
@@ -18,6 +17,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -25,8 +25,11 @@ jobs:
       - name: Setup docker buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set lowercase image name
-        run: echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Set lowercase names
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "BACKEND_IMAGE=ghcr.io/${REPO_LC}/backend" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE=ghcr.io/${REPO_LC}/frontend" >> $GITHUB_ENV
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -35,31 +38,50 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN || github.token }}
 
-      - name: Docker meta ( lowercase + tags )
-        id: meta
+      - name: Docker meta backend
+        id: meta_backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.BACKEND_IMAGE }}
           tags: |
             type=raw,value=latest
             type=sha
 
-      - name: Build and push image
+      - name: Docker meta frontend
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_backend.outputs.tags }}
+          labels: ${{ steps.meta_backend.outputs.labels }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
 
       - name: Debug secrets
         run: |
           echo "HOST is set: ${{ secrets.SSH_HOST != '' }}"
           echo "USER is set: ${{ secrets.SSH_USER != '' }}"
           echo "KEY is set: ${{ secrets.SSH_KEY != '' }}"
+          echo "APP_DIR is set: ${{ secrets.APP_DIR != '' }}"
 
-      - name: Deploy via SSH (docker compose pull + up)
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -69,6 +91,7 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.APP_DIR }}"
+            docker login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GHCR_TOKEN || github.token }}"
             docker compose pull
-            docker compose up -d
+            docker compose up -d --remove-orphans
             docker image prune -f
