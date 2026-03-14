@@ -1,84 +1,78 @@
 # ===============================================================
-# CORE WEB FRAMEWORK & SERVER (FastAPI, Uvicorn, Gunicorn)
+# WEB FRAMEWORK & SERVER
 # ===============================================================
-fastapi==0.133.1
-fastapi-cli==0.0.24
-fastapi-cloud-cli==0.14.0
-starlette==0.52.1          # A base ASGI para o FastAPI
-uvicorn==0.41.0            # Servidor de alta performance
-uvloop==0.22.1             # Otimizador de loop de eventos para Uvicorn
-httptools==0.7.1           # Parser HTTP rápido para Uvicorn
-gunicorn==25.1.0           # Gerenciador de processos para produção
-h11==0.16.0                # Implementação do protocolo HTTP/1.1
-websockets==16.0           # Suporte a comunicação em tempo real
+fastapi==0.128.8
+starlette==0.49.3
+uvicorn==0.39.0
+httptools==0.7.1
+websockets==15.0.1
+watchfiles==1.1.1
+anyio==4.12.1
+h11==0.16.0
 
 # ===============================================================
-# DATABASE, ORM & MIGRATIONS (Drivers e Camada de Dados)
+# DATABASE & PERSISTENCE
 # ===============================================================
-mariadb==1.1.14            # Driver nativo para MariaDB
-pymysql                    # Driver puro Python para MySQL/MariaDB (Novo)
-sqlalchemy>=2.0.0          # ORM para mapeamento objeto-relacional (Novo)
-alembic                    # Ferramenta para migrações de banco de dados (Novo)
-greenlet                   # Necessário para SQLAlchemy assíncrono (Novo)
-dnspython==2.8.0           # Resolução de DNS para strings de conexão
+SQLAlchemy==2.0.48
+PyMySQL==1.1.2
+alembic==1.16.5
+greenlet==3.2.4
+Mako==1.3.10
+dnspython==2.7.0
 
 # ===============================================================
-# VALIDATION, SETTINGS & TYPING (Pydantic e Tipagem)
+# SECURITY & AUTHENTICATION
 # ===============================================================
-pydantic==2.12.5           # Validação de dados e Schemas
-pydantic-core==2.41.5
-pydantic-extra-types==2.11.0
-pydantic-settings==2.13.1  # Gestão de configurações e variáveis de ambiente
-email-validator==2.3.0     # Validação de campos de e-mail
-annotated-doc==0.0.4
-annotated-types==0.7.0
+python-jose==3.5.0
+passlib==1.7.4
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+cryptography==46.0.5
+ecdsa==0.19.1
+rsa==4.9.1
+pyasn1==0.6.2
+cffi==2.0.0
+pycparser==2.23
+
+# ===============================================================
+# VALIDATION & SETTINGS
+# ===============================================================
+pydantic==2.12.5
+pydantic_core==2.41.5
+pydantic-settings==2.11.0
+email-validator==2.3.0
+python-dotenv==1.2.1
+
+# ===============================================================
+# UTILS, DOCUMENTS & ASSETS
+# ===============================================================
+fpdf2==2.8.4
+python-multipart==0.0.20
+pillow==11.3.0
+fonttools==4.60.2
+requests==2.32.5
+urllib3==2.6.3
+charset-normalizer==3.4.5
+idna==3.11
+certifi==2026.2.25
+PyYAML==6.0.3
+MarkupSafe==3.0.3
+defusedxml==0.7.1
+
+# ===============================================================
+# TESTING, CLI & TYPING
+# ===============================================================
+pytest==8.4.2
+iniconfig==2.1.0
+pluggy==1.6.0
+exceptiongroup==1.3.1
+tomli==2.4.0
+click==8.1.8
+colorama==0.4.6
+Pygments==2.19.2
+packaging==26.0
+six==1.17.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-
-# ===============================================================
-# SECURITY & AUTHENTICATION (Criptografia e Tokens)
-# ===============================================================
-bcrypt==5.0.0              # Hashing de senhas (versão anterior)
-python-jose[cryptography]  # Implementação de JWT para tokens (Novo)
-passlib[argon2]            # Abstração para hashing de senhas (Novo)
-argon2-cffi                # Algoritmo de hash moderno e seguro (Novo)
-
-# ===============================================================
-# CLI, TERMINAL & LOGGING (Interface e Ferramentas de Linha de Comando)
-# ===============================================================
-click==8.3.1               # Criação de interfaces de linha de comando
-typer==0.24.1              # CLI intuitiva baseada em tipos (usada pelo FastAPI)
-rich==14.3.3               # Formatação de texto rica no terminal
-rich-toolkit==0.19.7
-shellingham==1.5.4         # Detecção de shell para CLIs
-python-dotenv==1.2.1       # Carregamento de arquivos .env
-PyYAML==6.0.3              # Manipulação de arquivos YAML
-
-# ===============================================================
-# TEMPLATING & FRONTEND RENDERING (Jinja e Markdown)
-# ===============================================================
-Jinja2==3.1.6              # Engine de templates HTML
-MarkupSafe==3.0.3          # Escapamento de caracteres para Jinja2
-markdown-it-py==4.0.0      # Parser de Markdown
-mdurl==0.1.2
-Pygments==2.19.2           # Syntax highlighting (coloração de código)
-
-# ===============================================================
-# UTILS, HTTP CLIENTS & MONITORING
-# ===============================================================
-httpx==0.28.1              # Cliente HTTP assíncrono para requests
-httpcore==1.0.9
-urllib3==2.6.3
-certifi==2026.2.25         # Certificados SSL/TLS
-anyio==4.12.1              # Biblioteca de concorrência assíncrona
-watchfiles==1.1.1          # Monitoramento de arquivos (auto-reload)
-python-multipart==0.0.22   # Suporte a formulários e uploads
-sentry-sdk==2.53.0         # Monitoramento de erros e logs em produção
-packaging==26.0
-rignore==0.7.6
-fastar==0.8.0
-
-# ===============================================================
-# TESTING (Testes Automatizados)
-# ===============================================================
-pytest                     # Framework principal de testes (Novo)
+annotated-doc==0.0.4
+annotated-types==0.7.0
