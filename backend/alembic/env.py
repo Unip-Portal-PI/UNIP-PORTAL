@@ -5,17 +5,24 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
+# Adiciona o diretório raiz ao sys.path para que o Python encontre os módulos do projeto
 sys.path.append(dirname(dirname(realpath(__file__))))
 
 from core.config import settings
 from persistence.database import Base
 
+# Importação dos modelos para que o Alembic detecte as tabelas para o Autogenerate
 import persistence.models.user_model
 import persistence.models.event_model
 import persistence.models.internship_model
+import persistence.models.audit_model        
+import persistence.models.enrollment_model   
+import persistence.models.news_model         
 
+# Configuração do Alembic
 config = context.config
 
+# Interpreta o arquivo de log do alembic.ini
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
