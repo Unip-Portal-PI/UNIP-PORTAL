@@ -6,12 +6,16 @@ from sqlalchemy.exc import IntegrityError
 import os
 
 # ==============================================================================
-# IMPORTAÇÃO DE MÓDULOS E ROUTERS
+# IMPORTAÇÃO DE MÓDULOS E ROUTERS 
 # ==============================================================================
-from endpoints import (
-    users, events, internships, news, 
-    admin, enrollments, certificates, student
-)
+from endpoints.users import router as users
+from endpoints.events import router as events
+from endpoints.internships import router as internships
+from endpoints.news import router as news
+from endpoints.admin import router as admin
+from endpoints.enrollment import router as enrollments
+from endpoints.certificates import router as certificates
+from endpoints.student import router as student
 
 # ==============================================================================
 # CONFIGURAÇÕES DE AMBIENTE E SISTEMA DE ARQUIVOS
@@ -112,5 +116,5 @@ def root():
 # ==============================================================================
 if __name__ == "__main__":
     import uvicorn
-    # Inicia o servidor ASGI com recarga automática para desenvolvimento
+    # Ajustado para "api.main:app" para garantir o funcionamento do reload via terminal
     uvicorn.run("api.main:app", host="127.0.0.1", port=8000, reload=True)
