@@ -1,11 +1,10 @@
-import type { NextConfig } from "next";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async redirects() {
     return [
       {
         source: '/',
-        destination: 'app/auth/cadastro/page.tsx',
+        destination: '/auth/cadastro',
         permanent: true, // true para SEO (301), false para temporário (307)
       },
     ]
