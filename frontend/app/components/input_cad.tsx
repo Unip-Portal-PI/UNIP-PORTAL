@@ -1,15 +1,15 @@
-// frontend/app/components/Input.tsx
-import { LucideIcon } from "lucide-react"; // Exemplo usando lucide-react para os ícones
+// frontend/app/components/input_cad.tsx
+import { LucideIcon } from "lucide-react";
 
 interface InputProps {
   label: string;
   type: string;
   placeholder: string;
   id: string;
-  Icon?: LucideIcon; // Opcional, caso queira passar o ícone como componente
+  Icon?: LucideIcon;
 }
 
-export  function InputCad({ label, type, placeholder, id, Icon }: InputProps) {
+export function InputCad({ label, type, placeholder, id, Icon }: InputProps) {
   return (
     <div className="flex flex-col gap-1 w-full">
       <label htmlFor={id} className="font-bold text-sm text-slate-800">
@@ -23,8 +23,8 @@ export  function InputCad({ label, type, placeholder, id, Icon }: InputProps) {
           id={id}
           type={type}
           placeholder={placeholder}
-          className={`w-full border border-slate-300 rounded-md p-2 text-sm outline-none focus:border-blue-500 transition-colors ${
-            Icon ? "pl-10" : "pl-3"
+          className={`w-full bg-blue-100 border border-blue-200 rounded-md p-2 text-sm text-slate-500 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition-colors ${
+            Icon ? "pl-9" : "pl-3"
           }`}
         />
       </div>
