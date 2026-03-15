@@ -1,3 +1,4 @@
+// app/components/navbar.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -5,37 +6,50 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut, User } from "lucide-react";
-
+import { Auth } from "@/app/lib/useAuth";
+import { useLoading } from "@/app/context/LoadingContext";
 const navItems = [
-  { label: "Evento", href: "/home/evento" },
+  { label: "Evento",     href: "/home/evento" },
   { label: "Comunicado", href: "/home/comunicado" },
-  { label: "Gestão", href: "/home/gestor" },
+  { label: "Gestão",     href: "/home/gestor" },
 ];
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen]       = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
   const desktopProfileRef = useRef<HTMLDivElement>(null);
-  const mobileProfileRef = useRef<HTMLDivElement>(null);
+  const mobileProfileRef  = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const router = useRouter();
-  const nome = "Ramon Vaz";
+  const router   = useRouter();
+ const { showLoading } = useLoading();
+  // Pega o nome do usuário autenticado
+  const user = Auth.getUser();
+  const nome = user?.nome ?? "Usuário";
+
   const initials = nome
     .split(" ")
     .slice(0, 2)
     .map((n) => n[0].toUpperCase())
     .join("");
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
       const outsideDesktop = desktopProfileRef.current && !desktopProfileRef.current.contains(target);
-      const outsideMobile = mobileProfileRef.current && !mobileProfileRef.current.contains(target);
+      const outsideMobile  = mobileProfileRef.current  && !mobileProfileRef.current.contains(target);
       if (outsideDesktop && outsideMobile) setProfileOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  function handleLogout() {
+    Auth.logout();
+    setLogoutModal(false);
+    showLoading();                  // ← adicione aqui
+    router.push("/auth/login");
+  }
 
   const AvatarImg = ({ size }: { size: number }) => (
     <img
@@ -73,16 +87,16 @@ export default function Navbar() {
           <Image src="/img/logo_avp.png" alt="AVP Conecta" width={120} height={40} className="object-contain" />
         </Link>
 
-        {/* Nav sempre centralizado */}
         <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm transition-colors ${pathname === item.href
-                ? "font-bold text-slate-900"
-                : "text-slate-500 hover:text-slate-900"
-                }`}
+              className={`text-sm transition-colors ${
+                pathname === item.href
+                  ? "font-bold text-slate-900"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
             >
               {item.label}
             </Link>
@@ -94,7 +108,9 @@ export default function Navbar() {
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-2 focus:outline-none max-w-[220px]"
           >
-            <span className="text-sm text-slate-700 truncate min-w-0">Olá, <strong>{nome}</strong></span>
+            <span className="text-sm text-slate-700 truncate min-w-0">
+              Olá, <strong>{nome}</strong>
+            </span>
             <AvatarImg size={36} />
           </button>
           {profileOpen && <ProfileDropdown />}
@@ -107,7 +123,6 @@ export default function Navbar() {
           <Menu className="w-6 h-6 text-slate-700" />
         </button>
 
-        {/* Logo sempre centralizada */}
         <Link href="/home" className="absolute left-1/2 -translate-x-1/2">
           <Image src="/img/logo_avp_vertical.png" alt="AVP Conecta" width={40} height={10} className="object-contain" />
         </Link>
@@ -134,8 +149,9 @@ export default function Navbar() {
         />
       )}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white z-50 flex flex-col p-6 shadow-xl transition-transform duration-300 md:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white z-50 flex flex-col p-6 shadow-xl transition-transform duration-300 md:hidden ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         <button onClick={() => setMenuOpen(false)} className="self-end mb-4">
           <X className="w-5 h-5 text-slate-600" />
@@ -149,10 +165,11 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className={`px-3 py-2 rounded-md text-sm transition-colors ${pathname === item.href
-                ? "bg-slate-100 font-bold text-slate-900"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                pathname === item.href
+                  ? "bg-slate-100 font-bold text-slate-900"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               {item.label}
             </Link>
@@ -174,15 +191,13 @@ export default function Navbar() {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
           onClick={(e) => { if (e.target === e.currentTarget) setLogoutModal(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl p-4 w-80 flex flex-col items-center gap-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-80 flex flex-col items-center gap-6">
             <div className="flex flex-col items-center gap-2">
-
               <h2 className="text-lg font-bold text-slate-900">Sair da conta</h2>
               <p className="text-sm text-slate-500 text-center">
                 Tem certeza que deseja sair?
               </p>
             </div>
-
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => setLogoutModal(false)}
@@ -191,7 +206,7 @@ export default function Navbar() {
                 Não
               </button>
               <button
-                onClick={() => { setLogoutModal(false); router.push("/auth/cadastro"); }}
+                onClick={handleLogout}
                 className="flex-1 py-2 rounded-lg bg-[#DD0B0B] text-white text-sm font-bold hover:bg-[#AD0000] transition-colors"
               >
                 Sim, sair

@@ -1,5 +1,8 @@
-// frontend/app/components/input_cad.tsx
-import { LucideIcon } from "lucide-react";
+// app/components/input_cad.tsx
+"use client";
+
+import { useState } from "react";
+import { LucideIcon, Eye, EyeOff } from "lucide-react";
 
 interface InputProps {
   label: string;
@@ -7,9 +10,14 @@ interface InputProps {
   placeholder: string;
   id: string;
   Icon?: LucideIcon;
+  erro?: boolean;
 }
 
-export function InputCad({ label, type, placeholder, id, Icon }: InputProps) {
+export function InputCad({ label, type, placeholder, id, Icon, erro }: InputProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <div className="flex flex-col gap-1 w-full">
       <label htmlFor={id} className="font-bold text-sm text-slate-800">
@@ -21,12 +29,25 @@ export function InputCad({ label, type, placeholder, id, Icon }: InputProps) {
         )}
         <input
           id={id}
-          type={type}
+          type={inputType}
           placeholder={placeholder}
-          className={`w-full bg-blue-100 border border-blue-200 rounded-md p-2 text-sm text-slate-500 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition-colors ${
-            Icon ? "pl-9" : "pl-3"
-          }`}
+          className={`w-full border rounded-md p-2 text-sm outline-none transition-colors
+            ${Icon ? "pl-9" : "pl-3"}
+            ${isPassword ? "pr-10" : "pr-3"}
+            ${erro
+              ? "border-red-400 bg-red-50 focus:border-red-500"
+              : "border-slate-300 bg-blue-100 focus:border-blue-500"
+            }`}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        )}
       </div>
     </div>
   );
