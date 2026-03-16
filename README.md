@@ -1,3 +1,3 @@
 📄 Documento do Acervo  
-- [Abrir no Word Online](https://grupoclaudino-my.sharepoint.com/:w:/g/personal/janaelson_silva_armazemparaiba_com_br/IQAfBMvPyjf5SbviliYYTqowARpgHs1En3DhHBUAwCzTcPo?e=8Ccxpq).
+- [Abrir no Word Online](https://docs.google.com/document/d/1b8rwIDecesgvbTs6mMJXoBMP2zP0VKwIDt0sOU5FF2M/edit?usp=sharing).
 - Versão estática: 
