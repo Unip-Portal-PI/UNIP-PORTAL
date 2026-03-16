@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { AtSign, Lock, CheckCircle } from "lucide-react";
 import { InputCad } from "@/app/components/input_cad";
 
@@ -16,6 +17,8 @@ export default function ResetSenha() {
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState(["", "", "", "", ""]);
   const [erroSenha, setErroSenha] = useState("");
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function ResetSenha() {
   }
 
   function handleRedefinirSenha() {
-    const novaSenha    = (document.getElementById("nova-senha") as HTMLInputElement).value;
+    const novaSenha = (document.getElementById("nova-senha") as HTMLInputElement).value;
     const confirmSenha = (document.getElementById("confirm-senha") as HTMLInputElement).value;
 
     if (!novaSenha || novaSenha !== confirmSenha) {
@@ -67,14 +70,14 @@ export default function ResetSenha() {
 
   const Logos = () => (
     <div className="flex items-center justify-center gap-4 mb-6">
-      <Image src="/img/logo_avp.png" alt="AVP Conecta" width={100} height={60} className="object-contain" />
+      <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={100} height={60} className="object-contain" />
       <div className="w-6" />
-      <Image src="/img/logo_unip.png" alt="UNIP" width={100} height={60} className="object-contain" />
+      <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={100} height={60} className="object-contain" />
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-between p-4">
+    <main className="min-h-screen bg-white dark:bg-[#303030] flex flex-col items-center justify-between p-4 transition-colors">
       <div className="flex-1 flex items-center justify-center w-full">
         <div className="w-full md:min-w-[400px] md:max-w-[460px] rounded-2xl p-8 flex flex-col">
 
@@ -83,11 +86,11 @@ export default function ResetSenha() {
             <>
               <Logos />
               <div className="flex flex-col items-center mb-6 gap-2">
-                <div className="bg-slate-100 p-4 rounded-full">
-                  <Lock className="w-8 h-8 text-slate-600" />
+                <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
+                  <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900">Recuperação de senha</h2>
-                <p className="text-sm text-slate-500 text-center">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recuperação de senha</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
                   Informe o e-mail cadastrado, enviaremos um código de recuperação.
                 </p>
               </div>
@@ -108,13 +111,13 @@ export default function ResetSenha() {
                   setEmail(val);
                   handleEnviarEmail();
                 }}
-                className="bg-[#0f0f1e] text-white font-bold py-3 rounded-md hover:bg-slate-800 transition-all text-lg"
+                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Enviar
               </button>
 
               <p className="text-center text-sm mt-6">
-                <Link href="/auth/login" className="text-blue-600 hover:underline">
+                <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline">
                   Voltar ao login
                 </Link>
               </p>
@@ -126,14 +129,14 @@ export default function ResetSenha() {
             <>
               <Logos />
               <div className="flex flex-col items-center mb-6 gap-2">
-                <div className="bg-slate-100 p-4 rounded-full">
-                  <Lock className="w-8 h-8 text-slate-600" />
+                <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
+                  <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 text-center">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white text-center">
                   Informe o código enviado para seu e-mail
                 </h2>
-                <p className="text-sm text-slate-500 text-center">
-                  Enviamos um código para <strong>{email}</strong>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+                  Enviamos um código para <strong className="dark:text-slate-200">{email}</strong>
                 </p>
               </div>
 
@@ -148,20 +151,20 @@ export default function ResetSenha() {
                     value={val}
                     onChange={(e) => handleOtpChange(e.target.value, i)}
                     onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                    className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-300 rounded-lg outline-none focus:border-[#0f0f1e] transition-colors"
+                    className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:border-[#0f0f1e] dark:focus:border-white transition-colors"
                   />
                 ))}
               </div>
 
               <button
                 onClick={handleConfirmarCodigo}
-                className="bg-[#0f0f1e] text-white font-bold py-3 rounded-md hover:bg-slate-800 transition-all text-lg"
+                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Confirmar
               </button>
 
               <p className="text-center text-sm mt-6">
-                <button onClick={() => setEtapa("email")} className="text-blue-600 hover:underline">
+                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline">
                   Voltar
                 </button>
               </p>
@@ -173,10 +176,10 @@ export default function ResetSenha() {
             <>
               <Logos />
               <div className="flex flex-col items-center mb-6 gap-2">
-                <div className="bg-slate-100 p-4 rounded-full">
-                  <Lock className="w-8 h-8 text-slate-600" />
+                <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
+                  <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900">Crie uma nova senha</h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Crie uma nova senha</h2>
               </div>
 
               <div className="flex flex-col gap-4 mb-4">
@@ -201,7 +204,7 @@ export default function ResetSenha() {
 
               <button
                 onClick={handleRedefinirSenha}
-                className="bg-[#0f0f1e] text-white font-bold py-3 rounded-md hover:bg-slate-800 transition-all text-lg"
+                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Confirmar
               </button>
@@ -211,16 +214,16 @@ export default function ResetSenha() {
           {/* ── ETAPA 4: Sucesso ── */}
           {etapa === "sucesso" && (
             <div className="flex flex-col items-center gap-4 py-8">
-              <div className="bg-green-100 p-5 rounded-full">
-                <CheckCircle className="w-12 h-12 text-green-500" />
+              <div className="bg-green-100 dark:bg-green-900/40 p-5 rounded-full">
+                <CheckCircle className="w-12 h-12 text-green-500 dark:text-green-400" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">Senha redefinida!</h2>
-              <p className="text-sm text-slate-500 text-center">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Senha redefinida!</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
                 Sua senha foi redefinida com sucesso.
               </p>
               <button
                 onClick={() => router.push("/auth/login")}
-                className="w-full bg-[#0f0f1e] text-white font-bold py-3 rounded-md mt-4 hover:bg-slate-800 transition-all text-lg"
+                className="w-full bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-4 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Ir para o login
               </button>
@@ -230,7 +233,7 @@ export default function ResetSenha() {
         </div>
       </div>
 
-      <footer className="w-full text-xs text-slate-500 text-center py-4">
+      <footer className="w-full text-xs text-slate-500 dark:text-slate-600 text-center py-4">
         AVP Conecta © {new Date().getFullYear()} – Todos os direitos reservados.
       </footer>
     </main>

@@ -1,8 +1,7 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { LoadingProvider } from "@/app/context/LoadingContext";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AVP Conecta",
-  description: "AVP Conecta é a plataforma de comunicação e gestão de eventos. Centralize avisos, comunicados e eventos acadêmicos em um só lugar, mantendo toda a comunidade universitária sempre informada e conectada.",
+  description: "Portal de Informações AVP",
 };
 
 export default function RootLayout({
@@ -25,11 +24,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt_BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <LoadingProvider>
+    <html lang="pt_BR" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <ThemeProvider attribute="class" defaultTheme="system">
           {children}
-        </LoadingProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
