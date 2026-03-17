@@ -1,6 +1,6 @@
 // app/home/layout.tsx
 import Navbar from "@/app/components/navbar";
-import AuthGuard from "@/app/components/guard/AuthGuard";
+import AuthGuard from "@/app/components/login/guard/AuthGuard";
  
 export default function HomeLayout({ children }: { children: React.ReactNode }) {
   return (

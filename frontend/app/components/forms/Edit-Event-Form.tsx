@@ -16,7 +16,7 @@ import {
 } from "@heroui/react";
 import { IconPhoto, IconX, IconDeviceFloppy } from "@tabler/icons-react";
 import { coursesItems } from "@/lib/types/courses";
-import { EventItem } from "@/lib/types/events";
+import { EventItem } from "@/src/types/events";
 import { parseDate } from "@internationalized/date";
 
 interface EditEventFormProps {

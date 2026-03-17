@@ -1,219 +1,300 @@
+// app/home/eventos/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import { Evento } from "@/lib/types/events";
-import { EVENTOS_MOCK } from "@/lib/data/eventos";
-import { CURSOS, TURNOS } from "@/lib/data/filtros";
+import { useEffect, useState, useMemo } from "react";
+import { IconPlus, IconQrcode, IconAlertCircle, IconCalendarOff } from "@tabler/icons-react";
+import { Evento, Inscricao, UserRole } from "@/src/types/evento";
+import { EventoService, CURSOS, TURNOS, canEdit } from "@/src/service/eventoService";
 
- import { FilterInput } from "@/app/components/filters/FilterInput"; 
- import { FilterSelect } from "@/app/components/filters/FilterSelect"; 
- import { FilterDateRange } from "@/app/components/filters/FilterDateRange";
-
-import {
-  IconSearch,
-  IconCalendar,
-  IconMapPin,
-  IconUsers,
-  IconChevronDown,
-} from "@tabler/icons-react";
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-function vagasRestantes(evento: Evento) {
-  return evento.vagas - evento.inscritos;
-}
-
-function progressColor(evento: Evento) {
-  if (evento.esgotado) return "bg-red-400";
-  const pct = evento.inscritos / evento.vagas;
-  if (pct >= 0.85) return "bg-orange-400";
-  return "bg-green-400";
-}
-
-function turnoColor(turno: string) {
-  if (turno === "Manhã") return "bg-slate-800 text-white";
-  if (turno === "Noite") return "bg-indigo-700 text-white";
-  return "bg-amber-600 text-white";
-}
-
-// ─── Card ─────────────────────────────────────────────────────────────────────
-function EventoCard({ evento }: { evento: Evento }) {
-  const restantes = vagasRestantes(evento);
-  const pct = Math.min((evento.inscritos / evento.vagas) * 100, 100);
-
-  return (
-    <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-sm border flex flex-col overflow-hidden hover:shadow-md transition-shadow">
-      {/* Banner */}
-      <div className="relative">
-        <div className="w-full h-40 bg-[#f5eee8] dark:bg-slate-700 flex items-center justify-center overflow-hidden">
-          {evento.banner ? (
-            <img src={evento.banner} alt={evento.titulo} className="w-full h-full object-cover" />
-          ) : (
-            <img
-              src="/img/banner_test.png"
-              alt="banner padrão"
-              className="w-full h-full object-cover opacity-70"
-            />
-          )}
-        </div>
-
-        {/* Turno badge */}
-        <span className={`absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${turnoColor(evento.turno)}`}>
-          {evento.turno}
-        </span>
-
-        {/* Vagas / Esgotado badge */}
-        <span className={`absolute top-3 right-3 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${evento.esgotado ? "text-red-500" : "text-green-500"}`}>
-          {evento.esgotado ? "Esgotado" : `${restantes} vagas`}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-col flex-1 p-4 gap-3">
-        <div>
-          <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">
-            {evento.curso}
-          </p>
-          <h3 className="text-[15px] font-bold text-slate-900 dark:text-white leading-snug">
-            {evento.titulo}
-          </h3>
-          <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
-            {evento.descricao}
-          </p>
-        </div>
-
-        {/* Meta */}
-        <div className="flex flex-col gap-1.5 text-[12px] text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <IconCalendar size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
-            <span>{evento.data}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <IconMapPin size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
-            <span>{evento.local}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <IconUsers size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
-            <span>{evento.inscritos}/{evento.vagas} inscritos</span>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${progressColor(evento)}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        {/* CTA */}
-        <button
-          disabled={!!evento.esgotado}
-          className={`mt-auto w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${evento.esgotado
-              ? "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-600"
-              : "bg-[#F5C518] hover:bg-[#e0b514] text-slate-900"
-            }`}
-        >
-          {evento.esgotado ? "Esgotado" : "Inscreva-se"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+import { Auth } from "@/src/service/authService";
+import { EventoCard } from "@/app/components/eventos/modal/EventoCard";
+import { ModalInscricao } from "@/app/components/eventos/modal/ModalInscricao";
+import { ModalExcluir } from "@/app/components/eventos/modal/ModalExcluir";
+import { ModalFormEvento } from "@/app/components/eventos/modal/ModalFormEvento";
+import { ModalQRReader } from "@/app/components/eventos/modal/ModalQRReader";
+// import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
+import { FilterInput } from "@/app/components/eventos/filters/FilterInput";
+import { FilterSelect } from "@/app/components/eventos/filters/FilterSelect";
+import { useCameraPermission } from "@/src/hooks/useCameraPermission";
 export default function EventosPage() {
-  const [search, setSearch] = useState("");
-  const [curso, setCurso] = useState("Todos os cursos");
-  const [turno, setTurno] = useState("Todos");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const sessao = Auth.getUser();
+  const role = (sessao?.permission ?? "aluno") as UserRole;
+  const user = {
+    id: sessao?.matricula ?? "",
+    apelido: sessao?.apelido ?? "",
+    nome: sessao?.nome ?? "",
+    matricula: sessao?.matricula ?? "",
+    curso: "",
+    email: sessao?.email ?? "",
+    role,
+  };
 
-  const filtered = useMemo(() => {
-    return EVENTOS_MOCK.filter((e) => {
+  // ── Estado ──────────────────────────────────────────────────────────────────
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erroCarga, setErroCarga] = useState(false);
+
+  // Filtros
+  const [search, setSearch] = useState("");
+  const [curso, setCurso] = useState(CURSOS[0]);
+  const [turno, setTurno] = useState(TURNOS[0]);
+
+  // Modais
+  const [modalInscricao, setModalInscricao] = useState<Evento | null>(null);
+  const [modalExcluir, setModalExcluir] = useState<Evento | null>(null);
+  const [modalForm, setModalForm] = useState<Evento | null | "novo">(null);
+  const [modalQR, setModalQR] = useState<Evento | null>(null);
+  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
+
+  // ── Carga ────────────────────────────────────────────────────────────────────
+  async function carregarEventos() {
+    setLoading(true);
+    setErroCarga(false);
+    try {
+      const data = await EventoService.getAll();
+      setEventos(data);
+    } catch {
+      setErroCarga(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarEventos();
+  }, []);
+
+  // ── Filtros ───────────────────────────────────────────────────────────────────
+  const eventosFiltrados = useMemo(() => {
+    return eventos.filter((e) => {
       const matchSearch =
-        !search || e.titulo.toLowerCase().includes(search.toLowerCase());
-      const matchCurso = curso === "Todos os cursos" || e.curso === curso;
+        search === "" ||
+        e.nome.toLowerCase().includes(search.toLowerCase()) ||
+        e.descricaoBreve.toLowerCase().includes(search.toLowerCase());
+      const matchCurso =
+        curso === "Todos" || e.curso === curso || e.curso === "Todos";
       const matchTurno = turno === "Todos" || e.turno === turno;
       return matchSearch && matchCurso && matchTurno;
     });
-  }, [search, curso, turno, dataInicio, dataFim]);
+  }, [eventos, search, curso, turno]);
 
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function isInscrito(eventoId: string) {
+    return !!EventoService.getMinhaInscricao(eventoId, user.id);
+  }
+
+  // ── Ações ─────────────────────────────────────────────────────────────────────
+  useCameraPermission(role);
+  async function handleInscrever(evento: Evento) {
+    if (evento.tipoInscricao === "externa" && evento.urlExterna) {
+      window.open(evento.urlExterna, "_blank");
+      return;
+    }
+    setModalInscricao(evento);
+  }
+
+  async function handleConfirmarInscricao(evento: Evento): Promise<Inscricao> {
+    const result = await EventoService.inscrever(evento.id, user);
+    await carregarEventos();
+    return result;
+  }
+
+  async function handleSalvarEvento(
+    dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">
+  ) {
+    if (modalForm === "novo") {
+      await EventoService.criar(dados);
+    } else if (modalForm && typeof modalForm !== "string") {
+      await EventoService.editar(modalForm.id, dados);
+    }
+    await carregarEventos();
+    setModalForm(null);
+  }
+
+  async function handleExcluir(evento: Evento) {
+    await EventoService.excluir(evento.id);
+    await carregarEventos();
+  }
+
+  async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
+    const result = await EventoService.confirmarPresenca(qrCode);
+    setPresencasConfirmadas((prev) => {
+      const exists = prev.find((p) => p.id === result.id);
+      return exists ? prev : [...prev, result];
+    });
+    return result;
+  }
+
+  function abrirModalQR(evento: Evento) {
+    const confirmadas = EventoService.getInscricoesEvento(evento.id).filter(
+      (i) => i.presencaConfirmada
+    );
+    setPresencasConfirmadas(confirmadas);
+    setModalQR(evento);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Header */}
-        <div className="mb-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Eventos</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Encontre e inscreva-se nos eventos disponíveis para seu curso.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {eventosFiltrados.length} evento(s) encontrado(s)
           </p>
         </div>
 
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-
-            {/* Linha 1 (md) / coluna 1 (filters): Busca */}
-            <FilterInput
-              label="Procurar"
-              placeholder="Nome do evento..."
-              value={search}
-              onChange={setSearch}
-            />
-
-            {/* Linha 1 (md) / coluna 2 (filters): Curso */}
-            <FilterSelect
-              label="Curso"
-              value={curso}
-              onChange={setCurso}
-              options={CURSOS}
-            />
-
-            {/* Linha 2 (md) / coluna 3 (filters): Turno */}
-            <FilterSelect
-              label="Turno"
-              value={turno}
-              onChange={setTurno}
-              options={TURNOS}
-            />
-
-            {/* Linha 2 (md) / coluna 4 (filters): Período */}
-            <FilterDateRange
-              label="Período"
-              valueInicio={dataInicio}
-              valueFim={dataFim}
-              onChangeInicio={setDataInicio}
-              onChangeFim={setDataFim}
-            />
-
-          </div>
-        </div>
-
-        {/* List header */}
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200">Lista de Eventos</h2>
-          <span className="text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
-            {filtered.length} {filtered.length === 1 ? "evento" : "eventos"}
-          </span>
-        </div>
-
-        {/* Grid */}
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filtered.map((evento) => (
-              <EventoCard key={evento.id} evento={evento} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600">
-            <IconSearch size={40} className="mb-3 opacity-40" />
-            <p className="text-sm font-medium">Nenhum evento encontrado</p>
-            <p className="text-xs mt-1">Tente ajustar os filtros de busca</p>
+        {/* Ações do colaborador/adm */}
+        {canEdit(role) && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setModalForm("novo")}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] hover:bg-blue-700 text-[#252525] text-sm font-bold rounded-xl transition-colors shadow-sm"
+            >
+              <IconPlus size={16} />
+              Novo evento
+            </button>
           </div>
         )}
       </div>
+
+      {/* Filtros */}
+      <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <FilterInput
+            label="Procurar"
+            placeholder="Nome do evento..."
+            value={search}
+            onChange={setSearch}
+          />
+          <FilterSelect
+            label="Curso"
+            value={curso}
+            onChange={setCurso}
+            options={CURSOS}
+          />
+          <FilterSelect
+            label="Turno"
+            value={turno}
+            onChange={setTurno}
+            options={TURNOS}
+          />
+        </div>
+      </div>
+
+      {/* Estado: carregando */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] overflow-hidden animate-pulse"
+            >
+              <div className="h-40 bg-slate-200 dark:bg-[#2a2a2a]" />
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-slate-200 dark:bg-[#2a2a2a] rounded w-3/4" />
+                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
+                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Estado: erro */}
+      {!loading && erroCarga && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+            <IconAlertCircle size={28} className="text-red-500" />
+          </div>
+          <p className="text-slate-600 dark:text-slate-300 font-medium">
+            Falha ao carregar eventos.
+          </p>
+          <button
+            onClick={carregarEventos}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {/* Estado: sem resultados */}
+      {!loading && !erroCarga && eventosFiltrados.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-14 h-14 bg-slate-100 dark:bg-[#2a2a2a] rounded-full flex items-center justify-center">
+            <IconCalendarOff size={28} className="text-slate-400" />
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
+            Nenhum evento encontrado com esses filtros.
+          </p>
+        </div>
+      )}
+
+      {/* Grid de eventos */}
+      {!loading && !erroCarga && eventosFiltrados.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {eventosFiltrados.map((evento) => (
+            <div key={evento.id} className="relative">
+              <EventoCard
+                evento={evento}
+                role={role}
+                isInscrito={isInscrito(evento.id)}
+                onInscrever={handleInscrever}
+                onEditar={(e) => setModalForm(e)}
+                onExcluir={(e) => setModalExcluir(e)}
+              />
+              {/* Botão QR Check-in para colaborador/adm */}
+              {canEdit(role) && (
+                <button
+                  onClick={() => abrirModalQR(evento)}
+                  className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-colors"
+                  title="Leitor QR Code"
+                >
+                  <IconQrcode size={16} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── MODAIS ── */}
+
+      {modalInscricao && (
+        <ModalInscricao
+          evento={modalInscricao}
+          user={user}
+          onConfirmar={() => handleConfirmarInscricao(modalInscricao)}
+          onFechar={() => setModalInscricao(null)}
+        />
+      )}
+
+      {modalExcluir && (
+        <ModalExcluir
+          evento={modalExcluir}
+          onConfirmar={() => handleExcluir(modalExcluir)}
+          onFechar={() => setModalExcluir(null)}
+        />
+      )}
+
+      {modalForm !== null && (
+        <ModalFormEvento
+          evento={modalForm === "novo" ? null : modalForm}
+          onSalvar={handleSalvarEvento}
+          onFechar={() => setModalForm(null)}
+        />
+      )}
+
+      {modalQR && (
+        <ModalQRReader
+          eventoNome={modalQR.nome}
+          onLer={handleQRConfirmar}
+          onFechar={() => setModalQR(null)}
+          presencasConfirmadas={presencasConfirmadas}
+        />
+      )}
     </div>
   );
 }

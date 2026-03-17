@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Menu, X, LogOut, User, Sun, Moon } from "lucide-react";
-import { Auth } from "@/lib/api/useAuth";
+import { Auth } from "@/src/service/authService";
 import { useLoading } from "@/app/context/LoadingContext";
 
 const navItems = [
@@ -34,9 +34,9 @@ export default function Navbar() {
   const { showLoading } = useLoading();
 
   const user = Auth.getUser();
-  const nome = user?.nome ?? "Usuário";
+  const apelido = user?.apelido ?? "Usuário";
 
-  const initials = nome
+  const initials = apelido
     .split(" ")
     .slice(0, 2)
     .map((n) => n[0].toUpperCase())
@@ -73,7 +73,7 @@ export default function Navbar() {
     <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50">
       <button
         onClick={() => { setProfileOpen(false); router.push("/home/perfil"); }}
-        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        className="flex items-center gap-2 w-full px-4 py-3 text-base text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
         <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
         Perfil
@@ -81,7 +81,7 @@ export default function Navbar() {
 
       <button
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        className="flex items-center gap-2 w-full px-4 py-3 text-base text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
         {theme === "dark"
           ? <Sun className="w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -92,7 +92,7 @@ export default function Navbar() {
 
       <button
         onClick={() => { setProfileOpen(false); setLogoutModal(true); }}
-        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+        className="flex items-center gap-2 w-full px-4 py-3 text-base text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
       >
         <LogOut className="w-4 h-4" />
         Logout
@@ -126,7 +126,7 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm transition-colors ${pathname === item.href
+              className={`text-base transition-colors ${pathname === item.href
                 ? "font-bold text-slate-900 dark:text-white"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
@@ -141,8 +141,8 @@ export default function Navbar() {
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-2 focus:outline-none max-w-[220px]"
           >
-            <span className="text-sm text-slate-700 dark:text-slate-300 truncate min-w-0">
-              Olá, <strong>{nome}</strong>
+            <span className="text-base text-slate-700 dark:text-slate-300 truncate min-w-0">
+              Olá, <strong>{apelido}</strong>
             </span>
             <AvatarImg size={36} />
           </button>
@@ -166,8 +166,8 @@ export default function Navbar() {
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-2 focus:outline-none max-w-[140px]"
           >
-            <span className="text-sm text-slate-700 dark:text-slate-300 truncate min-w-0">
-              Olá, <strong>{nome}</strong>
+            <span className="text-base text-slate-700 dark:text-slate-300 truncate min-w-0">
+              Olá, <strong>{apelido}</strong>
             </span>
             <AvatarImg size={32} />
           </button>
@@ -199,7 +199,7 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className={`px-3 py-2 rounded-md text-sm transition-colors ${pathname === item.href
+              className={`px-3 py-2 rounded-md text-base transition-colors ${pathname === item.href
                 ? "bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
@@ -211,7 +211,7 @@ export default function Navbar() {
 
         <button
           onClick={() => { setMenuOpen(false); setLogoutModal(true); }}
-          className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors mt-4"
+          className="flex items-center gap-2 text-base text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors mt-4"
         >
           <LogOut className="w-4 h-4" />
           Logout
@@ -227,20 +227,20 @@ export default function Navbar() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-80 flex flex-col items-center gap-6">
             <div className="flex flex-col items-center gap-2">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Sair da conta</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+              <p className="text-base text-slate-500 dark:text-slate-400 text-center">
                 Tem certeza que deseja sair?
               </p>
             </div>
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => setLogoutModal(false)}
-                className="flex-1 py-2 rounded-lg border-2 border-[#8D8D8D] dark:border-slate-600 text-sm text-[#252525] dark:text-slate-300 hover:bg-[#E2E2E2] dark:hover:bg-slate-700 transition-colors"
+                className="flex-1 py-2 rounded-lg border-2 border-[#8D8D8D] dark:border-slate-600 text-base text-[#252525] dark:text-slate-300 hover:bg-[#E2E2E2] dark:hover:bg-slate-700 transition-colors"
               >
                 Não
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 py-2 rounded-lg bg-[#DD0B0B] text-white text-sm font-bold hover:bg-[#AD0000] transition-colors"
+                className="flex-1 py-2 rounded-lg bg-[#DD0B0B] text-white text-base font-bold hover:bg-[#AD0000] transition-colors"
               >
                 Sim, sair
               </button>

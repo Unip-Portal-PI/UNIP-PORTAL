@@ -9,8 +9,8 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { InputCad } from "@/app/components/input_cad";
 import { Hash, Lock } from "lucide-react";
-import { Auth } from "@/lib/api/useAuth";
-import PublicGuard from "@/app/components/guard/PublicGuard";
+import { Auth } from "@/src/service/authService";
+import PublicGuard from "@/app/components/login/guard/PublicGuard";
 import { useLoading } from "@/app/context/LoadingContext";
 
 export default function Login() {
@@ -19,11 +19,11 @@ export default function Login() {
   const [erro, setErro] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  function handleLogin() {
+  async function handleLogin() {
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
-
-    if (Auth.login(matricula, senha)) {
+    const resultado = await Auth.login(matricula, senha);
+    if (resultado) {
       setErro(false);
       showLoading();
       router.push("/home");
@@ -38,8 +38,8 @@ export default function Login() {
         <div className="flex-1 flex items-center justify-center w-full">
           <div className="w-full md:min-w-[400px] md:max-w-[500px] rounded-2xl p-8 flex flex-col">
 
-                {/* Logos */}
-                <div className="flex items-center justify-center gap-4 mb-2">
+            {/* Logos */}
+            <div className="flex items-center justify-center gap-4 mb-2">
               <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={130} height={80} className="object-contain" />
               <div className="w-10" />
               <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={130} height={80} className="object-contain" />

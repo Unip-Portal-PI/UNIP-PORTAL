@@ -1,0 +1,61 @@
+// src/data/mockUsers.ts
+
+import { Usuario } from "@/src/types/user";
+
+export const MOCK_USUARIOS: Usuario[] = [
+  {
+    matricula: "AD20100342",
+    nome: "Ramon Henrique Vaz Mendonça",
+    apelido: "Ramon",
+    telefone: "86991234875",
+    dataNascimento: "1985-07-22",
+    curso: "admistração",
+    permission: "adm",
+    email: "ramon.mendonca@unip.br",
+    senha: "Adm@2024!",
+  },
+  {
+    matricula: "FI20150089",
+    nome: "Milena Roberta Borges",
+    apelido: "Milena",
+    telefone: "86998761234",
+    dataNascimento: "1990-11-05",
+    curso: "Fiscal",
+    permission: "colaborador",
+    email: "milena.borges@unip.br",
+    senha: "Fisc@1590#",
+  },
+  {
+    matricula: "PR20080215",
+    nome: "Juliano Marcos Bertone Figueira",
+    apelido: "Juliano",
+    telefone: "86994523678",
+    dataNascimento: "1979-03-14",
+    curso: "Ciência da Computação",
+    permission: "colaborador",
+    email: "juliano.bertone@unip.br",
+    senha: "Prof#0801J",
+  },
+  {
+    matricula: "CC20230456",
+    nome: "Larissa Ferreira dos Santos",
+    apelido: "Lari",
+    telefone: "86993312987",
+    dataNascimento: "2004-09-18",
+    curso: "Ciência da Computação",
+    permission: "aluno",
+    email: "larissa.santos@aluno.unip.br",
+    senha: "Lari@2023cc",
+  },
+  {
+    matricula: "AD20220789",
+    nome: "Carlos Eduardo Melo Teixeira",
+    apelido: "Cadu",
+    telefone: "86997845321",
+    dataNascimento: "2001-01-30",
+    curso: "admistração",
+    permission: "aluno",
+    email: "carlos.teixeira@aluno.unip.br",
+    senha: "Cadu#7890!",
+  },
+];

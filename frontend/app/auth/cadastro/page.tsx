@@ -7,7 +7,7 @@ import { User, AtSign, Lock, Hash } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import PublicGuard from "@/app/components/guard/PublicGuard";
+import PublicGuard from "@/app/components/login/guard/PublicGuard";
 
 export default function Cadastro() {
   const router = useRouter();

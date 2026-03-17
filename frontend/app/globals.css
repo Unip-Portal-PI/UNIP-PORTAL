@@ -11,6 +11,8 @@
 [data-theme="light"],
 [data-theme="default"] {
   /* Theme Colors (Light Mode) */
+   /* Font Family */
+  --font: "Roboto", sans-serif;
   --accent: oklch(90.07% 0.1863 98.27);
   --accent-foreground: oklch(15% 0.0300 98.27);
   --background: oklch(97.02% 0.0102 98.27);
@@ -46,15 +48,15 @@
   --radius: 0.5rem;
   --field-radius: 0.75rem;
 
-  /* Font Family */
-  /* Make sure to load Inter font in your app */
-  --font-sans: var(--font-inter);
+ 
+ 
 }
 
 .dark,
 [data-theme="dark"] {
   color-scheme: dark;
   /* Theme Colors (Dark Mode) */
+  --font: "Roboto", sans-serif;
   --accent: oklch(90.07% 0.1863 98.27);
   --accent-foreground: oklch(15% 0.0300 98.27);
   --background: oklch(12.00% 0.0102 98.27);
@@ -94,5 +96,10 @@
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font);
 }
+
+/* @keyframes scan {
+  0%, 100% { transform: translateY(-80px); }
+  50%       { transform: translateY(80px);  }
+} */

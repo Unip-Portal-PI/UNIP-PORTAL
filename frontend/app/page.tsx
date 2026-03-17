@@ -1,10 +1,10 @@
 "use client";
-// app/home/page.tsx
+// app/page.tsx
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "@/lib/api/useAuth";
+import { Auth } from "@/src/service/authService";
 
-export default function Home() {
+export default function Splash() {
   const router = useRouter();
 
   useEffect(() => {
