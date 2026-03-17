@@ -11,21 +11,26 @@ import { Auth } from "@/lib/api/useAuth";
 import { useLoading } from "@/app/context/LoadingContext";
 
 const navItems = [
-  { label: "Evento",     href: "/home/eventos" },
+  { label: "Evento", href: "/home/eventos" },
   { label: "Comunicado", href: "/home/comunicado" },
-  { label: "Gestão",     href: "/home/gestor" },
+  { label: "Gestão", href: "/home/gestor" },
 ];
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen]       = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const desktopProfileRef = useRef<HTMLDivElement>(null);
-  const mobileProfileRef  = useRef<HTMLDivElement>(null);
+  const mobileProfileRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
-  const router   = useRouter();
-  const isDark = theme === "dark";
+  const router = useRouter();
+  const isDark = mounted && theme === "dark";
   const { showLoading } = useLoading();
 
   const user = Auth.getUser();
@@ -41,7 +46,7 @@ export default function Navbar() {
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
       const outsideDesktop = desktopProfileRef.current && !desktopProfileRef.current.contains(target);
-      const outsideMobile  = mobileProfileRef.current  && !mobileProfileRef.current.contains(target);
+      const outsideMobile = mobileProfileRef.current && !mobileProfileRef.current.contains(target);
       if (outsideDesktop && outsideMobile) setProfileOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -100,7 +105,20 @@ export default function Navbar() {
       {/* ── DESKTOP ── */}
       <header className="hidden md:flex items-center justify-between px-8 py-3 shadow-md bg-white dark:bg-[#202020] z-30 relative transition-colors">
         <Link href="/home">
-          <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={120} height={40} className="object-contain" />
+          <>
+            <Image
+              src="/img/logo_avp.png"
+              alt="AVP Conecta"
+              width={120} height={40}
+              className="object-contain dark:hidden"
+            />
+            <Image
+              src="/img/logo_avp_dark.png"
+              alt="AVP Conecta"
+              width={120} height={40}
+              className="object-contain hidden dark:block"
+            />
+          </>
         </Link>
 
         <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
@@ -108,11 +126,10 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm transition-colors ${
-                pathname === item.href
-                  ? "font-bold text-slate-900 dark:text-white"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
+              className={`text-sm transition-colors ${pathname === item.href
+                ? "font-bold text-slate-900 dark:text-white"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
             >
               {item.label}
             </Link>
@@ -140,7 +157,8 @@ export default function Navbar() {
         </button>
 
         <Link href="/home" className="absolute left-1/2 -translate-x-1/2">
-          <Image src={isDark ? "/img/logo_avp_vertical_dark.png" : "/img/logo_avp_vertical.png"} alt="AVP Conecta" width={40} height={10} className="object-contain" />
+          <Image src="/img/logo_avp_vertical.png" alt="AVP Conecta" width={40} height={10} className="object-contain dark:hidden" />
+          <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={40} height={10} className="object-contain hidden dark:block" />
         </Link>
 
         <div className="relative" ref={mobileProfileRef}>
@@ -165,15 +183,15 @@ export default function Navbar() {
         />
       )}
       <aside
-        className={`fixed top-0 left-0 h-full w-60 bg-white dark:bg-[#202020] z-50 flex flex-col px-4 py-6 shadow-xl transition-transform duration-300 md:hidden ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-full w-60 bg-white dark:bg-[#202020] z-50 flex flex-col px-4 py-6 shadow-xl transition-transform duration-300 md:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <button onClick={() => setMenuOpen(false)} className="self-end mb-4">
           <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
         </button>
 
-        <Image src={isDark ? "/img/logo_avp_vertical_dark.png" : "/img/logo_avp_vertical.png"} alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6" />
+        <Image src="/img/logo_avp_vertical.png" alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6 dark:hidden" />
+        <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6 hidden dark:block" />
 
         <nav className="flex flex-col gap-2 flex-1">
           {navItems.map((item) => (
@@ -181,11 +199,10 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className={`px-3 py-2 rounded-md text-sm transition-colors ${
-                pathname === item.href
-                  ? "bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-              }`}
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${pathname === item.href
+                ? "bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
             >
               {item.label}
             </Link>
