@@ -1,8 +1,9 @@
-// src/services/evento.service.ts
+// src/service/evento.service.ts
 
 import { Evento, Inscricao } from "@/src/types/evento";
-import {UserProfile} from "@/src/types/user"
-import { MOCK_EVENTOS, MOCK_INSCRICOES } from "@/src/data/eventoMock";
+import { UserProfile } from "@/src/types/user";
+import { MOCK_EVENTOS } from "@/src/data/eventoMock";
+import { MOCK_INSCRICOES } from "@/src/data/inscricoesMock";
 
 // ─── ESTADO INTERNO (substituído pela API futuramente) ────────────────────────
 
@@ -73,7 +74,7 @@ export const EventoService = {
           );
 
         const nova: Inscricao = {
-          id: `insc_${Date.now()}`,
+          id: `insc_${user.matricula}_${eventoId}_${Date.now()}`,
           eventoId,
           alunoId: user.id,
           alunoNome: user.nome,
@@ -81,7 +82,7 @@ export const EventoService = {
           alunoMatricula: user.matricula,
           dataInscricao: new Date().toISOString(),
           presencaConfirmada: false,
-          qrCode: `QR_${user.id}_${eventoId}_${Date.now()}`,
+          qrCode: `QR_${user.matricula}_${eventoId}`,
         };
         _inscricoes.push(nova);
         const evIdx = _eventos.findIndex((e) => e.id === eventoId);

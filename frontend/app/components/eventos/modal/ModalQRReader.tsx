@@ -21,7 +21,21 @@ interface ModalQRReaderProps {
 }
 
 type Modo = "camera" | "manual";
-type CameraStatus = "idle" | "solicitando" | "ativa" | "negada" | "erro";
+type CameraStatus = "idle" | "solicitando" | "ativa" | "negada" | "erro" | "sem-suporte";
+
+// ✅ Verifica se o browser suporta câmera ANTES de tentar qualquer coisa
+function browserSuportaCamera(): boolean {
+  if (typeof window === "undefined") return false;
+  // Câmera via getUserMedia só funciona em HTTPS (ou localhost)
+  const isSecure =
+    window.location.protocol === "https:" ||
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+  const temMediaDevices =
+    !!navigator.mediaDevices &&
+    typeof navigator.mediaDevices.getUserMedia === "function";
+  return isSecure && temMediaDevices;
+}
 
 export function ModalQRReader({
   eventoNome,
@@ -29,75 +43,22 @@ export function ModalQRReader({
   onFechar,
   presencasConfirmadas,
 }: ModalQRReaderProps) {
-  const [modo, setModo] = useState<Modo>("camera");
+  // ✅ Já começa no modo manual se o browser não suportar câmera
+  const [modo, setModo] = useState<Modo>(() =>
+    browserSuportaCamera() ? "camera" : "manual"
+  );
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
   const [inputManual, setInputManual] = useState("");
   const [resultado, setResultado] = useState<Inscricao | null>(null);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suportaCamera] = useState(browserSuportaCamera);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const scannerRef = useRef<unknown>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const readerDivId = "qr-reader-camera";
 
-  // ── Inicia câmera ──────────────────────────────────────────────────────────
-  const iniciarCamera = useCallback(async () => {
-    setCameraStatus("solicitando");
-    setErro("");
-
-    try {
-      // Importação dinâmica para não quebrar SSR
-      const { Html5Qrcode } = await import("html5-qrcode");
-
-      const html5QrCode = new Html5Qrcode(readerDivId);
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: "environment" }, // câmera traseira
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        async (decodedText) => {
-          // QR Code lido com sucesso
-          await pararCamera();
-          await handleLer(decodedText);
-        },
-        () => {
-          // Frame sem QR Code — ignora silenciosamente
-        }
-      );
-
-      setCameraStatus("ativa");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      if (
-        msg.includes("Permission") ||
-        msg.includes("NotAllowed") ||
-        msg.includes("permission")
-      ) {
-        setCameraStatus("negada");
-        setErro("Permissão de câmera negada. Use o modo manual ou libere nas configurações do browser.");
-      } else {
-        setCameraStatus("erro");
-        setErro("Não foi possível acessar a câmera. Tente o modo manual.");
-      }
-    }
-  }, []);
-  // Dentro do componente, antes do return
-  function qrStyles(id: string) {
-    return `
-  #${id} { width: 100% !important; height: 100% !important; padding: 0 !important; }
-  #${id}__dashboard { display: none !important; }
-  #${id}__scan_region { width: 100% !important; height: 100% !important; border: none !important; box-shadow: none !important; }
-  #${id}__scan_region > img { display: none !important; }
-  #${id}__scan_region > div { display: none !important; }
-  #${id} video { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important; }
-  @keyframes scan {
-    0%, 100% { transform: translateY(-80px); }
-    50%       { transform: translateY(80px); }
-  }
-`;
-  }
+  // ── Para câmera ────────────────────────────────────────────────────────────
   const pararCamera = useCallback(async () => {
     try {
       const scanner = scannerRef.current as {
@@ -105,52 +66,97 @@ export function ModalQRReader({
         stop: () => Promise<void>;
         clear: () => void;
       } | null;
-
       if (scanner?.isScanning) {
         await scanner.stop();
         scanner.clear();
       }
     } catch {
-      // ignora erro ao parar
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      // ignora
     }
     scannerRef.current = null;
     setCameraStatus("idle");
   }, []);
 
-  // Inicia câmera ao abrir no modo câmera
-  useEffect(() => {
-    let cancelado = false;
-  
-    if (modo === "camera") {
-      // Pequeno delay garante que o DOM da div já existe
-      const timer = setTimeout(() => {
-        if (!cancelado) iniciarCamera();
-      }, 50);
-  
-      return () => {
-        cancelado = true;
-        clearTimeout(timer);
-        pararCamera();
-      };
-    } else {
-      pararCamera();
-      setTimeout(() => inputRef.current?.focus(), 100);
+  // ── Inicia câmera ──────────────────────────────────────────────────────────
+  const iniciarCamera = useCallback(async () => {
+    // ✅ Checagem antecipada — evita o erro "Camera streaming not supported"
+    if (!browserSuportaCamera()) {
+      setCameraStatus("sem-suporte");
+      setErro("Câmera não disponível neste browser. Acesse via HTTPS ou use o modo manual.");
+      return;
     }
-  }, [modo]);
 
-  // Para câmera ao fechar modal
+    setCameraStatus("solicitando");
+    setErro("");
+    setResultado(null);
+
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+
+      await pararCamera();
+
+      const html5QrCode = new Html5Qrcode(readerDivId);
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
+        async (decodedText) => {
+          await pararCamera();
+          await handleLer(decodedText);
+        },
+        () => {
+          // frame sem QR — ignora
+        }
+      );
+
+      setCameraStatus("ativa");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+
+      // ✅ Trata "Camera streaming not supported" separadamente
+      const isSemSuporte =
+        msg.includes("streaming not supported") ||
+        msg.includes("not supported") ||
+        msg.includes("secure") ||
+        msg.includes("https");
+
+      const isPermissionError =
+        msg.includes("Permission") ||
+        msg.includes("NotAllowed") ||
+        msg.includes("permission") ||
+        msg.includes("dismissed") ||
+        msg.includes("denied");
+
+      if (isSemSuporte) {
+        setCameraStatus("sem-suporte");
+        setErro("Câmera não suportada neste browser. Acesse via HTTPS ou use o modo manual.");
+      } else if (isPermissionError) {
+        setCameraStatus("negada");
+        setErro("Permissão de câmera negada. Libere nas configurações do browser ou use o modo manual.");
+      } else {
+        setCameraStatus("erro");
+        setErro("Não foi possível acessar a câmera. Tente o modo manual.");
+      }
+
+      console.error("[ModalQRReader] Erro ao iniciar câmera:", msg);
+    }
+  }, [pararCamera]);
+
+  // ── Inicia câmera ao montar ────────────────────────────────────────────────
   useEffect(() => {
-    return () => {
-      pararCamera();
-    };
-  }, []);
+    if (modo !== "camera") return;
+    const timer = setTimeout(() => iniciarCamera(), 150);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Processamento do código ────────────────────────────────────────────────
-  async function handleLer(codigo: string) {
+  // ── Para câmera ao desmontar ───────────────────────────────────────────────
+  useEffect(() => {
+    return () => { pararCamera(); };
+  }, [pararCamera]);
+
+  // ── Processamento do QR ────────────────────────────────────────────────────
+  const handleLer = useCallback(async (codigo: string) => {
     if (!codigo.trim()) return;
     setLoading(true);
     setErro("");
@@ -164,26 +170,26 @@ export function ModalQRReader({
     } finally {
       setLoading(false);
     }
-  }
+  }, [onLer]);
 
   function handleSubmitManual(e: React.FormEvent) {
     e.preventDefault();
     handleLer(inputManual);
   }
 
-  function trocarModo(novoModo: Modo) {
+  async function trocarModo(novoModo: Modo) {
     setResultado(null);
     setErro("");
+    if (modo === "camera" && novoModo === "manual") await pararCamera();
     setModo(novoModo);
+    if (novoModo === "camera") setTimeout(() => iniciarCamera(), 150);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onFechar();
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
@@ -194,80 +200,105 @@ export function ModalQRReader({
               Check-in — {eventoNome}
             </h2>
           </div>
-          <button
-            onClick={onFechar}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-          >
+          <button onClick={onFechar} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
             <IconX size={20} />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* Tabs de modo */}
-          <div className="flex gap-2 bg-slate-100 dark:bg-[#2a2a2a] rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => trocarModo("camera")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${modo === "camera"
-                  ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          {/* ✅ Tabs — só mostra aba câmera se browser suportar */}
+          {suportaCamera && (
+            <div className="flex gap-2 bg-slate-100 dark:bg-[#2a2a2a] rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => trocarModo("camera")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  modo === "camera"
+                    ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 }`}
-            >
-              <IconCamera size={15} />
-              Câmera
-            </button>
-            <button
-              type="button"
-              onClick={() => trocarModo("manual")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${modo === "manual"
-                  ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              >
+                <IconCamera size={15} />
+                Câmera
+              </button>
+              <button
+                type="button"
+                onClick={() => trocarModo("manual")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  modo === "manual"
+                    ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 }`}
-            >
-              <IconKeyboard size={15} />
-              Manual
-            </button>
-          </div>
+              >
+                <IconKeyboard size={15} />
+                Manual
+              </button>
+            </div>
+          )}
+
+          {/* ✅ Aviso quando browser não suporta câmera (HTTP) */}
+          {!suportaCamera && (
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
+              <IconCameraOff size={16} className="text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Câmera indisponível. Use o código manual abaixo.
+              </p>
+            </div>
+          )}
 
           {/* ── MODO CÂMERA ── */}
           {modo === "camera" && (
             <div className="space-y-3">
-              {/* Área do scanner */}
-              <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{ minHeight: 260 }}>
-                {/* Div onde o html5-qrcode injeta o vídeo */}
-                <div id={readerDivId} className="w-full" />
+              <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{ height: 320 }}>
+                <div id={readerDivId} style={{ width: "100%", height: "100%" }} />
 
-                {/* Overlay de status */}
+                {/* Overlay: solicitando */}
                 {cameraStatus === "solicitando" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 z-10">
                     <div className="w-8 h-8 border-2 border-[#FFDE00] border-t-transparent rounded-full animate-spin" />
                     <p className="text-slate-300 text-sm">Acessando câmera...</p>
                   </div>
                 )}
 
-                {(cameraStatus === "negada" || cameraStatus === "erro") && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 p-6">
+                {/* Overlay: sem suporte / negada / erro */}
+                {(cameraStatus === "negada" || cameraStatus === "erro" || cameraStatus === "sem-suporte") && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 p-6 z-10">
                     <IconCameraOff size={36} className="text-slate-500" />
                     <p className="text-slate-400 text-sm text-center">{erro}</p>
-                    <button
-                      type="button"
-                      onClick={iniciarCamera}
-                      className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-slate-900 text-sm font-bold rounded-lg transition-colors"
-                    >
-                      Tentar novamente
-                    </button>
+                    <div className="flex gap-2 flex-wrap justify-center">
+                      {/* Só mostra "Tentar novamente" se não for falta de suporte */}
+                      {cameraStatus !== "sem-suporte" && (
+                        <button
+                          type="button"
+                          onClick={iniciarCamera}
+                          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-slate-900 text-sm font-bold rounded-lg transition-colors"
+                        >
+                          Tentar novamente
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => trocarModo("manual")}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-lg transition-colors"
+                      >
+                        Usar manual
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Mira de scan quando câmera ativa */}
+                {/* Mira de scan */}
                 {cameraStatus === "ativa" && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-48 h-48 relative">
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                    <div className="w-64 h-64 relative">
                       <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-[#FFDE00] rounded-tl-sm" />
                       <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-[#FFDE00] rounded-tr-sm" />
                       <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-[#FFDE00] rounded-bl-sm" />
                       <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-[#FFDE00] rounded-br-sm" />
-                      <div className="absolute left-2 right-2 h-0.5 bg-[#FFDE00]/60 animate-[scan_2s_ease-in-out_infinite] top-1/2" />
+                      <div
+                        className="absolute left-2 right-2 h-0.5 bg-[#FFDE00]/60 top-1/2"
+                        style={{ animation: "qrscan 2s ease-in-out infinite" }}
+                      />
                     </div>
                     <p className="absolute bottom-3 text-white/60 text-xs">
                       Aponte para o QR Code
@@ -276,9 +307,8 @@ export function ModalQRReader({
                 )}
               </div>
 
-              {/* Resultado ou erro após leitura pela câmera */}
               {resultado && <FeedbackSucesso resultado={resultado} />}
-              {erro && cameraStatus !== "negada" && cameraStatus !== "erro" && (
+              {erro && !["negada", "erro", "sem-suporte"].includes(cameraStatus) && (
                 <FeedbackErro mensagem={erro} />
               )}
             </div>
@@ -299,6 +329,8 @@ export function ModalQRReader({
                     onChange={(e) => setInputManual(e.target.value)}
                     placeholder="Cole ou digite o código QR..."
                     className="flex-1 px-3 py-2 border border-slate-300 dark:border-[#505050] rounded-lg text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#FFDE00] transition-colors font-mono"
+                    autoComplete="off"
+                    autoFocus
                   />
                   <button
                     type="submit"
@@ -314,48 +346,18 @@ export function ModalQRReader({
               {erro && <FeedbackErro mensagem={erro} />}
             </div>
           )}
-
-          {/* Lista de presenças */}
-          {presencasConfirmadas.length > 0 && (
-            <div className="space-y-2 pt-1">
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                Presenças confirmadas ({presencasConfirmadas.length})
-              </p>
-              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                {presencasConfirmadas.map((insc) => (
-                  <div
-                    key={insc.id}
-                    className="flex items-center justify-between bg-slate-50 dark:bg-[#2a2a2a] rounded-lg px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                        {insc.alunoNome}
-                      </p>
-                      <p className="text-xs text-slate-400">{insc.alunoCurso}</p>
-                    </div>
-                    <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium">
-                      ✓ Presente
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Animação da linha de scan */}
       <style jsx>{`
-        @keyframes scan {
+        @keyframes qrscan {
           0%, 100% { transform: translateY(-80px); }
-          50% { transform: translateY(80px); }
+          50%       { transform: translateY(80px); }
         }
       `}</style>
     </div>
   );
 }
-
-// ── Sub-componentes de feedback ──────────────────────────────────────────────
 
 function FeedbackSucesso({ resultado }: { resultado: Inscricao }) {
   return (
@@ -364,15 +366,11 @@ function FeedbackSucesso({ resultado }: { resultado: Inscricao }) {
         <IconCheck size={16} className="text-emerald-600" />
       </div>
       <div>
-        <p className="font-bold text-emerald-700 dark:text-emerald-300 text-sm">
-          Presença confirmada!
-        </p>
+        <p className="font-bold text-emerald-700 dark:text-emerald-300 text-sm">Presença confirmada!</p>
         <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-0.5">
-          {resultado.alunoNome} — {resultado.alunoCurso}
+          {resultado.alunoNome} — {resultado.alunoArea}
         </p>
-        <p className="text-xs text-emerald-500 mt-0.5">
-          Matrícula: {resultado.alunoMatricula}
-        </p>
+        <p className="text-xs text-emerald-500 mt-0.5">Matrícula: {resultado.alunoMatricula}</p>
       </div>
     </div>
   );

@@ -1,17 +1,19 @@
+/* app/globals.css */
 @import "tailwindcss";
-@import "@heroui/styles"; 
+@import "@heroui/styles";
+
+@variant dark (&:is(.dark, .dark *));
 
 @theme {
   --breakpoint-filters-sm: 700px;
   --breakpoint-filters: 980px;
 }
+
 :root,
 .light,
 .default,
 [data-theme="light"],
 [data-theme="default"] {
-  /* Theme Colors (Light Mode) */
-   /* Font Family */
   --font: "Roboto", sans-serif;
   --accent: oklch(90.07% 0.1863 98.27);
   --accent-foreground: oklch(15% 0.0300 98.27);
@@ -43,19 +45,13 @@
   --surface-tertiary-foreground: oklch(21.03% 0.0102 98.27);
   --warning: oklch(78.19% 0.1617 53.66);
   --warning-foreground: oklch(21.03% 0.0059 53.66);
-
-  /* Border Radius */
   --radius: 0.5rem;
   --field-radius: 0.75rem;
-
- 
- 
 }
 
 .dark,
 [data-theme="dark"] {
   color-scheme: dark;
-  /* Theme Colors (Dark Mode) */
   --font: "Roboto", sans-serif;
   --accent: oklch(90.07% 0.1863 98.27);
   --accent-foreground: oklch(15% 0.0300 98.27);
@@ -86,7 +82,7 @@
   --surface-tertiary: oklch(27.21% 0.0153 98.27);
   --surface-tertiary-foreground: oklch(99.11% 0.0102 98.27);
   --warning: oklch(82.03% 0.1416 57.67);
-  --warning-foreground: oklch(21.03% 0.0059 57.67);
+  --warning-foreground: oklch(21.03% 0.0059 57.66);
 }
 
 @layer components {
@@ -98,8 +94,3 @@
 body {
   font-family: var(--font);
 }
-
-/* @keyframes scan {
-  0%, 100% { transform: translateY(-80px); }
-  50%       { transform: translateY(80px);  }
-} */

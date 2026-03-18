@@ -75,31 +75,30 @@ export function EventoCard({
           </div>
         )}
 
-        {/* Badge aberto para inscrição */}
-        {status === "disponivel" && (
+        {/* Badge disponível */}
+        {!isInscrito && status === "disponivel" && (
           <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
             Disponível
           </span>
         )}
 
         {/* Badge quase esgotado */}
-        {status === "quase_esgotado" && (
+        {!isInscrito && status === "quase_esgotado" && (
           <span className="absolute top-3 left-3 bg-amber-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
             Últimas vagas!
           </span>
         )}
 
         {/* Badge esgotado */}
-        {status === "esgotado" && (
+        {!isInscrito && status === "esgotado" && (
           <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
             Esgotado
           </span>
         )}
 
-
         {/* Badge inscrito */}
         {isInscrito && (
-          <span className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+          <span className="absolute top-3 left-3 bg-[#FFDE00]/20 text-[#e6c800] border border-[#e6c800]/60 text-xs font-bold px-2.5 py-1 rounded-full shadow">
             Inscrito ✓
           </span>
         )}
@@ -167,10 +166,10 @@ export function EventoCard({
               onClick={() => onInscrever(evento)}
               disabled={status === "esgotado" || encerrado || isInscrito}
               className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${isInscrito
-                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 cursor-default"
-                  : status === "esgotado" || encerrado
-                    ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800] dark:border-[#FFDE00]/60 cursor-default"
+                : status === "esgotado" || encerrado
+                  ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                  : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
                 }`}
             >
               {isInscrito

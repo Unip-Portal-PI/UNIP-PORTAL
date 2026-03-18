@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { IconPlus, IconQrcode, IconAlertCircle, IconCalendarOff } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
-import {  UserRole } from "@/src/types/user";
+import { UserRole } from "@/src/types/user";
 import { EventoService } from "@/src/service/evento.service";
 import { CURSOS, TURNOS, canEdit } from "@/src/utils/evento.helpers";
 
@@ -86,7 +86,7 @@ export default function EventosPage() {
   }
 
   // ── Ações ─────────────────────────────────────────────────────────────────────
-  useCameraPermission(role);
+
   async function handleInscrever(evento: Evento) {
     if (evento.tipoInscricao === "externa" && evento.urlExterna) {
       window.open(evento.urlExterna, "_blank");
@@ -128,12 +128,14 @@ export default function EventosPage() {
     return result;
   }
 
+  // ✅ A função já está certa, só certifique que o modal
+  // chama getUserMedia internamente ao montar
   function abrirModalQR(evento: Evento) {
     const confirmadas = EventoService.getInscricoesEvento(evento.id).filter(
       (i) => i.presencaConfirmada
     );
     setPresencasConfirmadas(confirmadas);
-    setModalQR(evento);
+    setModalQR(evento); // O modal abre → câmera é pedida lá dentro
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -153,7 +155,7 @@ export default function EventosPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setModalForm("novo")}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#0f0f1e] dark:bg-yellow-400 hover:bg-slate-800 dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-slate-800 dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
             >
               <IconPlus size={18} />
               Novo evento

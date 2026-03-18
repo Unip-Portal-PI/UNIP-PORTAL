@@ -48,7 +48,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
             className="rounded"
           />
         </div>
-        <p className="text-xs text-slate-400 font-mono">{code.slice(0, 24)}…</p>
+        <p className="text-xs text-slate-400 font-mono">{code}…</p>
       </div>
     );
   }
@@ -99,17 +99,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
                 </div>
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800/30">
-                <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                  {evento.nome}
-                </p>
-                <p className="text-xs text-blue-500 dark:text-blue-400">
-                  Tipo de inscrição:{" "}
-                  <strong>
-                    {evento.tipoInscricao === "interna" ? "Interna (sistema)" : "Externa (link)"}
-                  </strong>
-                </p>
-              </div>
+              
 
               <div className="flex gap-3 pt-1">
                 <button
@@ -121,7 +111,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
                 <button
                   onClick={handleConfirmar}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-bold transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] disabled:opacity-60 text-sm font-bold transition-colors"
                 >
                   {loading ? "Inscrevendo..." : "Confirmar inscrição"}
                 </button>

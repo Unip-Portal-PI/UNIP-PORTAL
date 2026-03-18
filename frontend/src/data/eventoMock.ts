@@ -1,7 +1,6 @@
-// src/data/mockEventos.ts
+// src/data/eventoMock.ts
 
-import { Evento, Inscricao  } from "@/src/types/evento";
-import {UserProfile} from "@/src/types/user"
+import { Evento } from "@/src/types/evento";
 
 export const MOCK_EVENTOS: Evento[] = [
   {
@@ -18,7 +17,7 @@ export const MOCK_EVENTOS: Evento[] = [
     local: "Auditório Principal – Bloco A",
     dataLimiteInscricao: "2026-08-10",
     vagas: 120,
-    vagasOcupadas: 0,
+    vagasOcupadas: 5,
     tipoInscricao: "interna",
     visibilidade: "publica",
     anexos: [
@@ -41,7 +40,7 @@ export const MOCK_EVENTOS: Evento[] = [
     local: "Laboratório de Informática 3 – Bloco C",
     dataLimiteInscricao: "2025-08-18",
     vagas: 30,
-    vagasOcupadas: 30,
+    vagasOcupadas: 3,
     tipoInscricao: "interna",
     visibilidade: "publica",
     anexos: [],
@@ -61,7 +60,7 @@ export const MOCK_EVENTOS: Evento[] = [
     local: "Auditório 2 – Bloco B",
     dataLimiteInscricao: "2025-09-03",
     vagas: 200,
-    vagasOcupadas: 45,
+    vagasOcupadas: 4,
     tipoInscricao: "interna",
     visibilidade: "publica",
     anexos: [{ id: "a3", nome: "Material de apoio.pdf", url: "#" }],
@@ -81,7 +80,7 @@ export const MOCK_EVENTOS: Evento[] = [
     local: "Ginásio Poliesportivo",
     dataLimiteInscricao: "2025-09-15",
     vagas: 500,
-    vagasOcupadas: 320,
+    vagasOcupadas: 7,
     tipoInscricao: "externa",
     urlExterna: "https://inscricoes.exemplo.com/feira-estagios",
     visibilidade: "publica",
@@ -89,27 +88,3 @@ export const MOCK_EVENTOS: Evento[] = [
     criadoEm: "2025-07-20",
   },
 ];
-
-export const MOCK_INSCRICOES: Inscricao[] = [
-  {
-    id: "insc1",
-    eventoId: "3",
-    alunoId: "user_aluno",
-    alunoNome: "João Silva",
-    alunoArea: "Tecnologia da Informação",
-    alunoMatricula: "2023001",
-    dataInscricao: "2025-07-20",
-    presencaConfirmada: false,
-    qrCode: "QR_user_aluno_event3",
-  },
-];
-
-export const MOCK_USER: UserProfile = {
-  id: "user_aluno",
-  apelido: "João",
-  nome: "João Silva",
-  matricula: "2023001",
-  area: "Tecnologia da Informação",
-  email: "joao@escola.edu.br",
-  role: "aluno", // troque para "colaborador" ou "adm" para testar
-};
