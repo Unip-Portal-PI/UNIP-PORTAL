@@ -16,7 +16,7 @@ export interface Evento {
   nome: string;
   descricaoBreve: string;
   descricaoCompleta: string;
-  curso: string;
+  area: string;
   data: string; // ISO date
   horario: string;
   turno: string;
@@ -36,21 +36,9 @@ export interface Inscricao {
   eventoId: string;
   alunoId: string;
   alunoNome: string;
-  alunoCurso: string;
+  alunoArea: string;
   alunoMatricula: string;
   dataInscricao: string;
   presencaConfirmada: boolean;
   qrCode: string;
-}
-
-export type UserRole = "aluno" | "colaborador" | "adm";
-
-export interface UserProfile {
-  id: string;
-  apelido: string;
-  nome: string;
-  matricula: string;
-  curso: string;
-  email: string;
-  role: UserRole;
 }

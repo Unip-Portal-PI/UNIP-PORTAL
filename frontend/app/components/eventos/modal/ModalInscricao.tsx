@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { IconX, IconQrcode, IconUser, IconBook, IconId } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
-import { UserProfile } from "@/src/types/evento";
+import { UserProfile } from "@/src/types/user";
 import { Inscricao } from "@/src/types/evento";
 
 interface ModalInscricaoProps {
@@ -95,7 +95,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                   <IconBook size={15} className="text-slate-400" />
-                  <span className="font-medium">Curso:</span> {user.curso}
+                  <span className="font-medium">Área:</span> {user.area}
                 </div>
               </div>
 

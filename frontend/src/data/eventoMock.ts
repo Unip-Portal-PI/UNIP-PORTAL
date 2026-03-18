@@ -1,0 +1,115 @@
+// src/data/mockEventos.ts
+
+import { Evento, Inscricao  } from "@/src/types/evento";
+import {UserProfile} from "@/src/types/user"
+
+export const MOCK_EVENTOS: Evento[] = [
+  {
+    id: "1",
+    banner: "https://picsum.photos/seed/evt1/800/400",
+    nome: "Semana de Tecnologia 2025",
+    descricaoBreve: "Palestras, workshops e hackathon sobre as últimas tendências em TI.",
+    descricaoCompleta:
+      "A Semana de Tecnologia 2025 reúne profissionais e estudantes para três dias de imersão em tecnologia. O evento inclui palestras sobre IA, cibersegurança, desenvolvimento mobile e muito mais. Haverá também um hackathon com premiação para as melhores soluções.",
+    area: "Tecnologia da Informação",
+    data: "2026-08-15",
+    horario: "08:00",
+    turno: "Manhã",
+    local: "Auditório Principal – Bloco A",
+    dataLimiteInscricao: "2026-08-10",
+    vagas: 120,
+    vagasOcupadas: 0,
+    tipoInscricao: "interna",
+    visibilidade: "publica",
+    anexos: [
+      { id: "a1", nome: "Programação completa.pdf", url: "#" },
+      { id: "a2", nome: "Regulamento hackathon.pdf", url: "#" },
+    ],
+    criadoEm: "2025-07-01",
+  },
+  {
+    id: "2",
+    banner: "https://picsum.photos/seed/evt2/800/400",
+    nome: "Workshop de Design UX/UI",
+    descricaoBreve: "Aprenda os fundamentos de design de interfaces com especialistas do mercado.",
+    descricaoCompleta:
+      "Workshop intensivo de 8 horas focado nos princípios de UX Research, prototipação no Figma e Design System. Ideal para estudantes de TI, Design e áreas correlatas. Vagas limitadas para garantir qualidade no aprendizado.",
+    area: "Design",
+    data: "2025-08-22",
+    horario: "14:00",
+    turno: "Tarde",
+    local: "Laboratório de Informática 3 – Bloco C",
+    dataLimiteInscricao: "2025-08-18",
+    vagas: 30,
+    vagasOcupadas: 30,
+    tipoInscricao: "interna",
+    visibilidade: "publica",
+    anexos: [],
+    criadoEm: "2025-07-10",
+  },
+  {
+    id: "3",
+    banner: "https://picsum.photos/seed/evt3/800/400",
+    nome: "Palestra: Mercado Financeiro e Investimentos",
+    descricaoBreve: "Entenda como funciona o mercado financeiro e como começar a investir.",
+    descricaoCompleta:
+      "Palestra com convidado especialista do setor financeiro abordando conceitos básicos de renda fixa, renda variável e planejamento financeiro pessoal. Evento aberto a todos os cursos.",
+    area: "Todos",
+    data: "2025-09-05",
+    horario: "19:00",
+    turno: "Noite",
+    local: "Auditório 2 – Bloco B",
+    dataLimiteInscricao: "2025-09-03",
+    vagas: 200,
+    vagasOcupadas: 45,
+    tipoInscricao: "interna",
+    visibilidade: "publica",
+    anexos: [{ id: "a3", nome: "Material de apoio.pdf", url: "#" }],
+    criadoEm: "2025-07-15",
+  },
+  {
+    id: "4",
+    banner: "https://picsum.photos/seed/evt4/800/400",
+    nome: "Feira de Estágios e Empregos",
+    descricaoBreve: "Conecte-se com empresas parceiras e descubra oportunidades de carreira.",
+    descricaoCompleta:
+      "A Feira de Estágios reúne mais de 30 empresas parceiras em busca de talentos. Traga seu currículo atualizado e aproveite para fazer networking. Haverá também palestras de orientação profissional ao longo do dia.",
+    area: "Todos",
+    data: "2025-09-20",
+    horario: "09:00",
+    turno: "Manhã",
+    local: "Ginásio Poliesportivo",
+    dataLimiteInscricao: "2025-09-15",
+    vagas: 500,
+    vagasOcupadas: 320,
+    tipoInscricao: "externa",
+    urlExterna: "https://inscricoes.exemplo.com/feira-estagios",
+    visibilidade: "publica",
+    anexos: [],
+    criadoEm: "2025-07-20",
+  },
+];
+
+export const MOCK_INSCRICOES: Inscricao[] = [
+  {
+    id: "insc1",
+    eventoId: "3",
+    alunoId: "user_aluno",
+    alunoNome: "João Silva",
+    alunoArea: "Tecnologia da Informação",
+    alunoMatricula: "2023001",
+    dataInscricao: "2025-07-20",
+    presencaConfirmada: false,
+    qrCode: "QR_user_aluno_event3",
+  },
+];
+
+export const MOCK_USER: UserProfile = {
+  id: "user_aluno",
+  apelido: "João",
+  nome: "João Silva",
+  matricula: "2023001",
+  area: "Tecnologia da Informação",
+  email: "joao@escola.edu.br",
+  role: "aluno", // troque para "colaborador" ou "adm" para testar
+};

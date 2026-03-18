@@ -3,10 +3,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { IconPlus, IconQrcode, IconAlertCircle, IconCalendarOff } from "@tabler/icons-react";
-import { Evento, Inscricao, UserRole } from "@/src/types/evento";
-import { EventoService, CURSOS, TURNOS, canEdit } from "@/src/service/eventoService";
+import { Evento, Inscricao } from "@/src/types/evento";
+import {  UserRole } from "@/src/types/user";
+import { EventoService } from "@/src/service/evento.service";
+import { CURSOS, TURNOS, canEdit } from "@/src/utils/evento.helpers";
 
-import { Auth } from "@/src/service/authService";
+import { Auth } from "@/src/service/auth.service";
 import { EventoCard } from "@/app/components/eventos/modal/EventoCard";
 import { ModalInscricao } from "@/app/components/eventos/modal/ModalInscricao";
 import { ModalExcluir } from "@/app/components/eventos/modal/ModalExcluir";
@@ -24,7 +26,7 @@ export default function EventosPage() {
     apelido: sessao?.apelido ?? "",
     nome: sessao?.nome ?? "",
     matricula: sessao?.matricula ?? "",
-    curso: "",
+    area: sessao?.area ?? "",
     email: sessao?.email ?? "",
     role,
   };
@@ -72,7 +74,7 @@ export default function EventosPage() {
         e.nome.toLowerCase().includes(search.toLowerCase()) ||
         e.descricaoBreve.toLowerCase().includes(search.toLowerCase());
       const matchCurso =
-        curso === "Todos" || e.curso === curso || e.curso === "Todos";
+        curso === "Todos" || e.area === curso || e.area === "Todos";
       const matchTurno = turno === "Todos" || e.turno === turno;
       return matchSearch && matchCurso && matchTurno;
     });
@@ -94,6 +96,7 @@ export default function EventosPage() {
   }
 
   async function handleConfirmarInscricao(evento: Evento): Promise<Inscricao> {
+    console.log('Inscrição User: ', user.area);
     const result = await EventoService.inscrever(evento.id, user);
     await carregarEventos();
     return result;
@@ -150,9 +153,9 @@ export default function EventosPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setModalForm("novo")}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] hover:bg-blue-700 text-[#252525] text-sm font-bold rounded-xl transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#0f0f1e] dark:bg-yellow-400 hover:bg-slate-800 dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
             >
-              <IconPlus size={16} />
+              <IconPlus size={18} />
               Novo evento
             </button>
           </div>

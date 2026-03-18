@@ -2,7 +2,7 @@
 // app/page.tsx
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "@/src/service/authService";
+import { Auth } from "@/src/service/auth.service";
 
 export default function Splash() {
   const router = useRouter();

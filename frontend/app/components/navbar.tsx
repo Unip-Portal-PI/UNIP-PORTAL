@@ -7,34 +7,40 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Menu, X, LogOut, User, Sun, Moon } from "lucide-react";
-import { Auth } from "@/src/service/authService";
-import { useLoading } from "@/app/context/LoadingContext";
+import { Auth } from "@/src/service/auth.service";
+import { useLoading } from "@/app/components/LoadingContext";
+import { UserRole } from "@/src/types/user";
 
-const navItems = [
-  { label: "Evento", href: "/home/eventos" },
+// Itens base — Gestão só aparece para adm (filtrado abaixo)
+const NAV_ITEMS: { label: string; href: string; roles?: UserRole[] }[] = [
+  { label: "Evento",     href: "/home/eventos" },
   { label: "Comunicado", href: "/home/comunicado" },
-  { label: "Gestão", href: "/home/gestor" },
+  { label: "Gestão",     href: "/home/gestor", roles: ["adm"] },
 ];
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen,    setMenuOpen]    = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mounted,     setMounted]     = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
+
   const desktopProfileRef = useRef<HTMLDivElement>(null);
-  const mobileProfileRef = useRef<HTMLDivElement>(null);
+  const mobileProfileRef  = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
-  const pathname = usePathname();
-  const router = useRouter();
-  const isDark = mounted && theme === "dark";
+  const pathname    = usePathname();
+  const router      = useRouter();
   const { showLoading } = useLoading();
 
-  const user = Auth.getUser();
+  const user    = Auth.getUser();
   const apelido = user?.apelido ?? "Usuário";
+  const role    = user?.permission;
+
+  // Filtra itens de acordo com a role do usuário
+  const navItems = NAV_ITEMS.filter(
+    (item) => !item.roles || (role && item.roles.includes(role))
+  );
 
   const initials = apelido
     .split(" ")
@@ -46,7 +52,7 @@ export default function Navbar() {
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
       const outsideDesktop = desktopProfileRef.current && !desktopProfileRef.current.contains(target);
-      const outsideMobile = mobileProfileRef.current && !mobileProfileRef.current.contains(target);
+      const outsideMobile  = mobileProfileRef.current  && !mobileProfileRef.current.contains(target);
       if (outsideDesktop && outsideMobile) setProfileOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -84,7 +90,7 @@ export default function Navbar() {
         className="flex items-center gap-2 w-full px-4 py-3 text-base text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
         {theme === "dark"
-          ? <Sun className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          ? <Sun  className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           : <Moon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
         }
         {theme === "dark" ? "Modo claro" : "Modo escuro"}
@@ -106,18 +112,8 @@ export default function Navbar() {
       <header className="hidden md:flex items-center justify-between px-8 py-3 shadow-md bg-white dark:bg-[#202020] z-30 relative transition-colors">
         <Link href="/home">
           <>
-            <Image
-              src="/img/logo_avp.png"
-              alt="AVP Conecta"
-              width={120} height={40}
-              className="object-contain dark:hidden"
-            />
-            <Image
-              src="/img/logo_avp_dark.png"
-              alt="AVP Conecta"
-              width={120} height={40}
-              className="object-contain hidden dark:block"
-            />
+            <Image src="/img/logo_avp.png"      alt="AVP Conecta" width={120} height={40} className="object-contain dark:hidden" />
+            <Image src="/img/logo_avp_dark.png" alt="AVP Conecta" width={120} height={40} className="object-contain hidden dark:block" />
           </>
         </Link>
 
@@ -126,10 +122,11 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-base transition-colors ${pathname === item.href
-                ? "font-bold text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
+              className={`text-base transition-colors ${
+                pathname === item.href
+                  ? "font-bold text-slate-900 dark:text-white"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
             >
               {item.label}
             </Link>
@@ -157,7 +154,7 @@ export default function Navbar() {
         </button>
 
         <Link href="/home" className="absolute left-1/2 -translate-x-1/2">
-          <Image src="/img/logo_avp_vertical.png" alt="AVP Conecta" width={40} height={10} className="object-contain dark:hidden" />
+          <Image src="/img/logo_avp_vertical.png"      alt="AVP Conecta" width={40} height={10} className="object-contain dark:hidden" />
           <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={40} height={10} className="object-contain hidden dark:block" />
         </Link>
 
@@ -183,14 +180,15 @@ export default function Navbar() {
         />
       )}
       <aside
-        className={`fixed top-0 left-0 h-full w-60 bg-white dark:bg-[#202020] z-50 flex flex-col px-4 py-6 shadow-xl transition-transform duration-300 md:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+        className={`fixed top-0 left-0 h-full w-60 bg-white dark:bg-[#202020] z-50 flex flex-col px-4 py-6 shadow-xl transition-transform duration-300 md:hidden ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         <button onClick={() => setMenuOpen(false)} className="self-end mb-4">
           <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
         </button>
 
-        <Image src="/img/logo_avp_vertical.png" alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6 dark:hidden" />
+        <Image src="/img/logo_avp_vertical.png"      alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6 dark:hidden" />
         <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={100} height={100} className="object-contain mx-auto mb-6 hidden dark:block" />
 
         <nav className="flex flex-col gap-2 flex-1">
@@ -199,10 +197,11 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className={`px-3 py-2 rounded-md text-base transition-colors ${pathname === item.href
-                ? "bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
+              className={`px-3 py-2 rounded-md text-base transition-colors ${
+                pathname === item.href
+                  ? "bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
             >
               {item.label}
             </Link>

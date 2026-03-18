@@ -2,12 +2,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { InputCad } from "@/app/components/input_cad";
-import { User, AtSign, Lock, Hash } from "lucide-react";
+import { InputCad, SelectCad } from "@/app/components/inputCad";
+import { User, AtSign, Lock, Hash, Phone, BookOpen, Calendar } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import PublicGuard from "@/app/components/login/guard/PublicGuard";
+import PublicGuard from "@/src/guard/PublicGuard";
+import { CURSOS } from "@/src/utils/evento.helpers";
 
 export default function Cadastro() {
   const router = useRouter();
@@ -38,14 +39,20 @@ export default function Cadastro() {
               />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-6">Cadastre-se</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-6">
+              Cadastre-se
+            </h2>
 
             <form className="flex flex-col gap-4">
-              <InputCad id="nome"      label="Nome completo"    type="text"     placeholder="Digite seu nome"             Icon={User}  />
-              <InputCad id="matricula" label="Matrícula"        type="text"     placeholder="Digite sua matrícula"        Icon={Hash}  />
-              <InputCad id="email"     label="E-mail"           type="email"    placeholder="Digite seu e-mail"           Icon={AtSign}/>
-              <InputCad id="senha"     label="Senha"            type="password" placeholder="Digite sua senha"            Icon={Lock}  />
-              <InputCad id="confirmar" label="Confirmar senha"  type="password" placeholder="Digite novamente a senha"    Icon={Lock}  />
+              <InputCad id="matricula" label="Matrícula" type="text" placeholder="Digite sua matrícula" Icon={Hash} />
+              <InputCad id="nome" label="Nome completo" type="text" placeholder="Digite seu nome completo" Icon={User} />
+              <InputCad id="apelido" label="Apelido" type="text" placeholder="Como prefere ser chamado(a)" Icon={User} />
+              <InputCad id="telefone" label="Telefone" type="tel" placeholder="(00) 00000-0000" Icon={Phone} />
+              <InputCad id="data_nasc" label="Data de Nascimento" type="date" placeholder="" Icon={Calendar} />
+              <SelectCad id="area" label="Área" placeholder="Selecione sua Área" options={CURSOS} Icon={BookOpen} />
+              <InputCad id="email" label="E-mail" type="email" placeholder="Digite seu e-mail" Icon={AtSign} />
+              <InputCad id="senha" label="Senha" type="password" placeholder="Digite sua senha" Icon={Lock} />
+              <InputCad id="confirmar" label="Confirmar senha" type="password" placeholder="Repita sua senha" Icon={Lock} />
 
               <button
                 type="button"
@@ -65,7 +72,7 @@ export default function Cadastro() {
           </div>
         </div>
 
-        <footer className="w-full text-xs text-slate-500 dark:text-slate-600 text-center py-4">
+        <footer className="w-full text-xs text-slate-500 dark:text-white text-center py-4">
           AVP Conecta © {new Date().getFullYear()} – Todos os direitos reservados.
         </footer>
       </main>

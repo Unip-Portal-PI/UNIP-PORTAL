@@ -10,8 +10,9 @@ import {
   IconEdit,
   IconTrash,
 } from "@tabler/icons-react";
-import { Evento, UserRole } from "@/src/types/evento";
-import { getStatusVaga, isInscricaoEncerrada, canEdit, canDelete } from "@/src/service/eventoService";
+import { Evento } from "@/src/types/evento";
+import { UserRole } from "@/src/types/user";
+import { getStatusVaga, isInscricaoEncerrada, canEdit, canDelete } from "@/src/utils/evento.helpers";
 
 interface EventoCardProps {
   evento: Evento;
@@ -40,8 +41,8 @@ export function EventoCard({
     status === "esgotado"
       ? "bg-red-500"
       : status === "quase_esgotado"
-      ? "bg-amber-400"
-      : "bg-emerald-500";
+        ? "bg-amber-400"
+        : "bg-emerald-500";
 
   const dataFormatada = new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -74,19 +75,27 @@ export function EventoCard({
           </div>
         )}
 
-        {/* Badge esgotado */}
-        {status === "esgotado" && (
-          <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
-            Esgotado
+        {/* Badge aberto para inscrição */}
+        {status === "disponivel" && (
+          <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+            Disponível
           </span>
         )}
 
         {/* Badge quase esgotado */}
         {status === "quase_esgotado" && (
-          <span className="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+          <span className="absolute top-3 left-3 bg-amber-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
             Últimas vagas!
           </span>
         )}
+
+        {/* Badge esgotado */}
+        {status === "esgotado" && (
+          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+            Esgotado
+          </span>
+        )}
+
 
         {/* Badge inscrito */}
         {isInscrito && (
@@ -157,21 +166,20 @@ export function EventoCard({
             <button
               onClick={() => onInscrever(evento)}
               disabled={status === "esgotado" || encerrado || isInscrito}
-              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
-                isInscrito
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${isInscrito
                   ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 cursor-default"
                   : status === "esgotado" || encerrado
-                  ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
-              }`}
+                    ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
             >
               {isInscrito
                 ? "Inscrito ✓"
                 : encerrado
-                ? "Inscrições encerradas"
-                : status === "esgotado"
-                ? "Esgotado"
-                : "Inscrever-se"}
+                  ? "Inscrições encerradas"
+                  : status === "esgotado"
+                    ? "Esgotado"
+                    : "Inscrever-se"}
             </button>
           )}
 
@@ -198,9 +206,8 @@ export function EventoCard({
           {/* Ver detalhes (todos) */}
           <button
             onClick={handleCardClick}
-            className={`${
-              role === "aluno" ? "" : "flex-1"
-            } py-2 px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
+            className={`${role === "aluno" ? "" : "flex-1"
+              } py-2 px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
           >
             Ver detalhes
           </button>

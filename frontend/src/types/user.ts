@@ -1,6 +1,5 @@
 // src/types/user.ts
 
-import {UserRole} from "@/src/types/evento";
 
 export interface Usuario {
   matricula: string;
@@ -8,7 +7,7 @@ export interface Usuario {
   apelido: string;
   telefone: string;
   dataNascimento: string; // ISO 8601: "YYYY-MM-DD"
-  curso: string;
+  area: string;
   permission: UserRole;
   email: string;
   senha: string;
@@ -21,6 +20,7 @@ export interface UsuarioSessao {
   apelido: string;
   email: string;
   matricula: string;
+  area: string;
   permission: UserRole;
 }
 
@@ -33,4 +33,17 @@ export interface ResultadoLogin {
   sucesso: boolean;
   mensagem: string;
   usuario?: UsuarioSessao;
+}
+
+
+export type UserRole = "aluno" | "colaborador" | "adm";
+
+export interface UserProfile {
+  id: string;
+  apelido: string;
+  nome: string;
+  matricula: string;
+  area: string;
+  email: string;
+  role: UserRole;
 }

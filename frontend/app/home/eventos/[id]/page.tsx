@@ -16,9 +16,11 @@ import {
   IconEdit,
   IconTrash,
 } from "@tabler/icons-react";
-import { Evento, Inscricao, UserRole } from "@/src/types/evento";
-import { EventoService, CURSOS, TURNOS, canEdit, getStatusVaga, isInscricaoEncerrada, canDelete } from "@/src/service/eventoService";
-import { Auth } from "@/src/service/authService";
+import { Evento, Inscricao } from "@/src/types/evento";
+import { UserRole } from "@/src/types/user";
+import { EventoService,} from "@/src/service/evento.service";
+import { canEdit, getStatusVaga, isInscricaoEncerrada, canDelete } from "@/src/utils/evento.helpers";
+import { Auth } from "@/src/service/auth.service";
 import { ModalInscricao } from "@/app/components/eventos/modal/ModalInscricao";
 import { ModalExcluir } from "@/app/components/eventos/modal/ModalExcluir";
 import { ModalFormEvento } from "@/app/components/eventos/modal/ModalFormEvento";
@@ -34,7 +36,7 @@ export default function DetalheEventoPage() {
     apelido: sessao?.apelido ?? "",
     nome: sessao?.nome ?? "",
     matricula: sessao?.matricula ?? "",
-    curso: "",
+    area: sessao?.area ?? "",
     email: sessao?.email ?? "",
     role,
   };

@@ -7,12 +7,11 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { InputCad } from "@/app/components/input_cad";
+import { InputCad } from "@/app/components/inputCad";
 import { Hash, Lock } from "lucide-react";
-import { Auth } from "@/src/service/authService";
-import PublicGuard from "@/app/components/login/guard/PublicGuard";
-import { useLoading } from "@/app/context/LoadingContext";
-
+import { Auth } from "@/src/service/auth.service";
+import PublicGuard from "@/src/guard/PublicGuard";
+import { useLoading } from "@/app/components/LoadingContext";
 export default function Login() {
   const router = useRouter();
   const { showLoading } = useLoading();
@@ -23,7 +22,7 @@ export default function Login() {
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
     const resultado = await Auth.login(matricula, senha);
-    if (resultado) {
+    if (resultado.sucesso) {
       setErro(false);
       showLoading();
       router.push("/home");
@@ -97,7 +96,7 @@ export default function Login() {
           </div>
         </div>
 
-        <footer className="w-full text-xs text-slate-500 dark:text-slate-600 text-center py-4">
+        <footer className="w-full text-xs text-slate-500 dark:text-white text-center py-4">
           AVP Conecta © {new Date().getFullYear()} – Todos os direitos reservados.
         </footer>
       </main>

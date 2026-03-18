@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { AtSign, Lock, CheckCircle } from "lucide-react";
-import { InputCad } from "@/app/components/input_cad";
+import { InputCad } from "@/app/components/inputCad";
 
 type Etapa = "email" | "codigo" | "nova-senha" | "sucesso";
 
@@ -233,7 +233,7 @@ export default function ResetSenha() {
         </div>
       </div>
 
-      <footer className="w-full text-xs text-slate-500 dark:text-slate-600 text-center py-4">
+      <footer className="w-full text-xs text-slate-500 dark:text-white text-center py-4">
         AVP Conecta © {new Date().getFullYear()} – Todos os direitos reservados.
       </footer>
     </main>
