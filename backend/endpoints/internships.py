@@ -15,16 +15,19 @@ from core.security import RoleChecker, oauth2_scheme, settings
 # ==============================================================================
 router = APIRouter()
 
-# Restrição RBAC: Apenas Staff pode gerenciar o mural
-require_staff = RoleChecker(["Administrador", "Colaborador"])
+# AJUSTE: Roles sincronizadas com o padrão do banco (admin, staff)
+require_staff = RoleChecker(["admin", "staff"])
 
-def get_current_user_id(token: str) -> str:
+def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
     """Extrai de forma segura o ID do usuário (sub) para Auditoria."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload.get("sub")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Token inválido.")
+        return int(user_id)
+    except (JWTError, ValueError):
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
 
 # ==============================================================================
 # OPERAÇÕES DE ESCRITA (ADMINISTRATIVO)
@@ -34,17 +37,14 @@ def get_current_user_id(token: str) -> str:
     response_model=InternshipResponse, 
     dependencies=[Depends(require_staff)],
     summary="Publica uma nova vaga de estágio",
-    tags=["Estágios - Escrita"]
+    tags=["Estágios"]
 )
 def create_internship(
     internship: InternshipCreate, 
     db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    current_user_id: int = Depends(get_current_user_id)
 ):
     """Registra uma nova vaga no mural e gera rastro de auditoria."""
-    current_user_id = get_current_user_id(token)
-    
-    # Mapeamento do Schema para o Modelo de Banco
     internship_model = InternshipModel(
         company=internship.company,
         position=internship.position,
@@ -66,16 +66,15 @@ def create_internship(
     response_model=InternshipResponse, 
     dependencies=[Depends(require_staff)],
     summary="Atualiza dados de uma vaga",
-    tags=["Estágios - Escrita"]
+    tags=["Estágios"]
 )
 def update_internship(
     internship_id: int, 
     internship: InternshipCreate, 
     db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    current_user_id: int = Depends(get_current_user_id)
 ):
     """Atualiza requisitos ou datas de uma vaga existente."""
-    current_user_id = get_current_user_id(token)
     service = InternshipService(InternshipRepository(db), AuditRepository(db))
     
     updated = service.update_internship(internship_id, internship, current_user_id)
@@ -87,15 +86,14 @@ def update_internship(
     "/{internship_id}", 
     dependencies=[Depends(require_staff)],
     summary="Remove/Desativa uma vaga",
-    tags=["Estágios - Escrita"]
+    tags=["Estágios"]
 )
 def delete_internship(
     internship_id: int, 
     db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    current_user_id: int = Depends(get_current_user_id)
 ):
     """Executa Soft Delete e registra a responsabilidade da exclusão."""
-    current_user_id = get_current_user_id(token)
     service = InternshipService(InternshipRepository(db), AuditRepository(db))
     
     deleted = service.delete_internship(internship_id, current_user_id)
@@ -111,7 +109,7 @@ def delete_internship(
     "/", 
     response_model=List[InternshipResponse],
     summary="Lista vagas com busca opcional",
-    tags=["Estágios - Leitura"]
+    tags=["Estágios"]
 )
 def list_internships(
     skip: int = 0, 
@@ -127,7 +125,7 @@ def list_internships(
     "/{internship_id}", 
     response_model=InternshipResponse,
     summary="Busca detalhes de uma vaga específica",
-    tags=["Estágios - Leitura"]
+    tags=["Estágios"]
 )
 def get_internship(internship_id: int, db: Session = Depends(get_db)):
     """Detalhes completos de uma vaga para visualização do aluno."""
@@ -135,5 +133,5 @@ def get_internship(internship_id: int, db: Session = Depends(get_db)):
     internship = service.get_internship(internship_id)
     
     if not internship:
-        raise HTTPException(status_code=404, detail="Oportunidade de estágio não encontrada.")
+        raise HTTPException(status_code=404, detail="Oportunidade não encontrada.")
     return internship
