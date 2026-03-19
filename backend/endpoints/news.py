@@ -14,15 +14,18 @@ from persistence.models.news_model import NewsModel
 # ==============================================================================
 router = APIRouter()
 
-# Restrição de Acesso: Apenas Staff pode gerenciar o mural de notícias
-require_staff = RoleChecker(["Administrador", "Colaborador"])
+# AJUSTE: Nomes das roles sincronizados com o banco de dados (users.py)
+require_staff = RoleChecker(["admin", "staff"])
 
-def get_current_user_id(token: str) -> str:
-    """Extrai de forma segura o ID do usuário (sub) do JWT para a Auditoria."""
+def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
+    """Extrai o ID do usuário de forma segura e padronizada."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload.get("sub")
-    except JWTError:
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Token inválido.")
+        return int(user_id)
+    except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
 
 # ==============================================================================
@@ -32,13 +35,9 @@ def get_current_user_id(token: str) -> str:
     "/", 
     response_model=list[NewsResponse],
     summary="Lista comunicados ativos",
-    tags=["Notícias - Visualização"]
+    tags=["Notícias"]
 )
 def list_news(skip: int = 0, limit: int = 5, db: Session = Depends(get_db)):
-    """
-    Recupera as últimas notícias publicadas.
-    Otimizado para o feed principal (Top 5).
-    """
     service = NewsService(NewsRepository(db), AuditRepository(db))
     return service.list_news(skip=skip, limit=limit)
 
@@ -50,19 +49,14 @@ def list_news(skip: int = 0, limit: int = 5, db: Session = Depends(get_db)):
     response_model=NewsResponse, 
     dependencies=[Depends(require_staff)],
     summary="Publica um novo comunicado oficial",
-    tags=["Notícias - Gestão"]
+    tags=["Notícias"]
 )
 def create_news(
     news: NewsCreate, 
     db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    current_user_id: int = Depends(get_current_user_id) # Uso direto da dependência
 ):
-    """
-    Cria uma nova notícia. O autor é vinculado via Token JWT.
-    """
-    current_user_id = get_current_user_id(token)
-    
-    # Mapeamento Schema -> Model
+    """Cria uma nova notícia vinculada ao Admin/Staff logado."""
     new_post = NewsModel(
         title=news.title, 
         content=news.content, 
@@ -70,34 +64,29 @@ def create_news(
     )
     
     service = NewsService(NewsRepository(db), AuditRepository(db))
-    return service.create_news(new_post, int(current_user_id))
+    return service.create_news(new_post, current_user_id)
 
 @router.delete(
     "/{news_id}", 
     dependencies=[Depends(require_staff)],
-    summary="Remove ou desativa um comunicado",
-    tags=["Notícias - Gestão"]
+    summary="Remove um comunicado",
+    tags=["Notícias"]
 )
 def delete_news(
     news_id: int, 
     db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    current_user_id: int = Depends(get_current_user_id)
 ):
-    """
-    Exclui uma notícia. 
-    Aplica Soft Delete se houver histórico de leitura para preservar métricas.
-    """
-    current_user_id = get_current_user_id(token)
+    """Remove uma notícia registrando quem realizou a exclusão."""
     service = NewsService(NewsRepository(db), AuditRepository(db))
     
-    # Passamos a role "Administrador" ou similar se necessário para a lógica do serviço
-    # Para simplificar aqui, assumimos que se passou pelo RoleChecker, tem permissão.
-    result = service.delete_news(news_id, int(current_user_id), "Administrador")
+    # AJUSTE: Passamos "admin" para manter a coerência da lógica de serviço
+    result = service.delete_news(news_id, current_user_id, "admin")
     
     if not result:
         raise HTTPException(status_code=404, detail="Comunicado não encontrado.")
     
     if result == "forbidden":
-        raise HTTPException(status_code=403, detail="Você não tem permissão para excluir esta notícia.")
+        raise HTTPException(status_code=403, detail="Permissão insuficiente.")
     
-    return {"status": "success", "message": "Notícia removida com sucesso (Log registrado)."}
+    return {"status": "success", "message": "Notícia removida."}
