@@ -118,7 +118,7 @@ export default function Login() {
               {/* ✅ type="submit" para o browser reconhecer o fluxo de login */}
               <button
                 type="submit"
-                className="bg-[#0f0f1e] dark:bg-yellow-400 dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-yellow-400 dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
               >
                 Entrar
               </button>

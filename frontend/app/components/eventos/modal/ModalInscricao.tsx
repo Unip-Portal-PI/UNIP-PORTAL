@@ -65,12 +65,12 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030]">
           <h2 className="font-bold text-slate-900 dark:text-white text-lg">
             {etapa === "confirmacao" && "Confirmar inscrição"}
-            {etapa === "sucesso" && "Inscrição realizada! 🎉"}
+            {etapa === "sucesso" && "Inscrição realizada!"}
             {etapa === "erro" && "Ops! Algo deu errado"}
           </h2>
           <button
             onClick={onFechar}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            className="text-slate-400 cursor-pointer hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
             <IconX size={20} />
           </button>
@@ -104,14 +104,14 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={onFechar}
-                  className="flex-1 py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  className="flex-1 cursor-pointer py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleConfirmar}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] disabled:opacity-60 text-sm font-bold transition-colors"
+                  className="flex-1 cursor-pointer py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] disabled:opacity-60 text-sm font-bold transition-colors"
                 >
                   {loading ? "Inscrevendo..." : "Confirmar inscrição"}
                 </button>
@@ -134,7 +134,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
               </div>
               <button
                 onClick={onFechar}
-                className="w-full py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
+                className="w-full cursor-pointer py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
               >
                 Fechar
               </button>
@@ -150,7 +150,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
               <p className="text-sm text-slate-600 dark:text-slate-300 text-center">{erro}</p>
               <button
                 onClick={onFechar}
-                className="w-full py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                className="w-full cursor-pointer py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
               >
                 Fechar
               </button>

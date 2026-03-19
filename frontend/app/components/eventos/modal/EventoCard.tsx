@@ -173,7 +173,7 @@ export function EventoCard({
             <button
               onClick={() => onInscrever(evento)}
               disabled={status === "esgotado" || encerrado || isInscrito}
-              className={`flex-1 py-2 rounded-md text-sm font-bold transition-colors ${isInscrito
+              className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${isInscrito
                 ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800] dark:border-[#FFDE00]/60 cursor-default"
                 : status === "esgotado" || encerrado
                   ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
@@ -194,7 +194,7 @@ export function EventoCard({
           {canEdit(role) && (
             <button
               onClick={() => onEditar(evento)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-slate-200 dark:border-[#404040] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-slate-200 dark:border-[#404040] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
             >
               <IconEdit size={14} />
               Editar
@@ -204,7 +204,7 @@ export function EventoCard({
           {canDelete(role) && (
             <button
               onClick={() => onExcluir(evento)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <IconTrash size={14} />
             </button>
@@ -213,7 +213,7 @@ export function EventoCard({
           {/* Ver detalhes (todos) */}
           <button
             onClick={handleCardClick}
-            className={`${role === "aluno" ? "" : "flex-1"} py-2 px-3 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
+            className={`${role === "aluno" ? "" : "flex-1"} py-2 px-3 cursor-pointer rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
           >
             Ver detalhes
           </button>

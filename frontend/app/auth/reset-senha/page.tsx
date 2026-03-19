@@ -111,7 +111,7 @@ export default function ResetSenha() {
                   setEmail(val);
                   handleEnviarEmail();
                 }}
-                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Enviar
               </button>
@@ -158,13 +158,13 @@ export default function ResetSenha() {
 
               <button
                 onClick={handleConfirmarCodigo}
-                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Confirmar
               </button>
 
               <p className="text-center text-sm mt-6">
-                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline">
+                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline Z cursor-pointer">
                   Voltar
                 </button>
               </p>
@@ -204,7 +204,7 @@ export default function ResetSenha() {
 
               <button
                 onClick={handleRedefinirSenha}
-                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Confirmar
               </button>
@@ -223,7 +223,7 @@ export default function ResetSenha() {
               </p>
               <button
                 onClick={() => router.push("/auth/login")}
-                className="w-full bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-4 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                className="w-full cursor-pointer bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-4 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Ir para o login
               </button>

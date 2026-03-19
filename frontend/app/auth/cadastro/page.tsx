@@ -73,7 +73,7 @@ export default function Cadastro() {
               {/* ✅ type="submit" para o browser reconhecer como cadastro e oferecer salvar */}
               <button
                 type="submit"
-                className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Cadastrar
               </button>

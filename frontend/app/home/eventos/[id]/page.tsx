@@ -106,7 +106,7 @@ export default function DetalheEventoPage() {
         </p>
         <button
           onClick={() => router.push("/home/eventos")}
-          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold rounded-md transition-colors"
+          className="px-4 cursor-pointer py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold rounded-md transition-colors"
         >
           Voltar para eventos
         </button>
@@ -189,7 +189,7 @@ export default function DetalheEventoPage() {
       {/* Voltar */}
       <button
         onClick={() => router.push("/home/eventos")}
-        className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-[#e6c800] dark:hover:text-[#FFDE00] transition-colors mb-6"
+        className="flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-[#e6c800] dark:hover:text-[#FFDE00] transition-colors mb-6"
       >
         <IconArrowLeft size={16} />
         Voltar para eventos
@@ -298,7 +298,7 @@ export default function DetalheEventoPage() {
                 <button
                   onClick={() => setModalInscricao(true)}
                   disabled={status === "esgotado" || encerrado || isInscrito}
-                  className={`w-full py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
+                  className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
                     ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800]/60 dark:border-[#FFDE00]/40 cursor-default"
                     : status === "esgotado" || encerrado
                       ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
@@ -319,7 +319,7 @@ export default function DetalheEventoPage() {
               {isInscrito && inscricaoAluno && (
                 <button
                   onClick={() => setModalQRAluno(true)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
+                  className="flex cursor-pointer items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
                 >
                   <IconQrcode size={15} />
                   Ver meu QR Code
@@ -547,7 +547,7 @@ export default function DetalheEventoPage() {
             </div>
             <button
               onClick={() => setModalQRAluno(false)}
-              className="w-full py-2 rounded-md bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#333] transition-colors"
+              className="w-full cursor-pointer py-2 rounded-md bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#333] transition-colors"
             >
               Fechar
             </button>
