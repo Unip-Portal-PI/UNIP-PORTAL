@@ -1,4 +1,8 @@
 // app/components/navbar.tsx
+// ──────────────────────────────────────────────────────────────────────────────
+// ALTERAÇÃO: adicionado <SinoComunicados /> no header desktop (ao lado do avatar)
+//            e no drawer mobile (no rodapé, ao lado do botão de logout)
+// ──────────────────────────────────────────────────────────────────────────────
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -10,6 +14,7 @@ import { Menu, X, LogOut, User, Sun, Moon, CalendarDays, Megaphone, Settings } f
 import { Auth } from "@/src/service/auth.service";
 import { useLoading } from "@/app/components/LoadingContext";
 import { UserRole } from "@/src/types/user";
+import { SinoComunicados } from "@/app/components/comunicados/notificacoes/SinoComunicados";
 
 const NAV_ITEMS: { label: string; href: string; icon: React.ReactNode; roles?: UserRole[] }[] = [
   { label: "Evento", href: "/home/eventos", icon: <CalendarDays className="w-5 h-5" /> },
@@ -82,12 +87,12 @@ export default function Navbar() {
   );
 
   const ProfileDropdown = ({ mounted }: { mounted: boolean }) => (
-    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#202020] rounded-xl shadow-xl border border-[#FFDE00] dark:border-[#FFDE00] overflow-hidden z-50">
+    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#202020] rounded-xl shadow-xl border border-slate-600 dark:border-slate-600 overflow-hidden z-50">
       <button
         onClick={() => { setProfileOpen(false); router.push("/home/perfil"); }}
         className="flex items-center gap-2 w-full px-4 py-3 text-base text-slate-700 dark:text-slate-200 hover:bg-[#FFDE00]/20 dark:hover:bg-[#FFDE00]/20 transition-colors"
       >
-        <User className="w-4 h-4 text-[#FFDE00]" />
+        <User className="w-4 h-4 text-slate-700 dark:text-slate-200" />
         Perfil
       </button>
 
@@ -97,8 +102,8 @@ export default function Navbar() {
       >
         {mounted ? (
           isDark
-            ? <Sun className="w-4 h-4 text-[#FFDE00]" />
-            : <Moon className="w-4 h-4 text-[#FFDE00]" />
+            ? <Sun className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+            : <Moon className="w-4 h-4 text-slate-700 dark:text-slate-200" />
         ) : (
           <span className="w-4 h-4" />
         )}
@@ -134,7 +139,7 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-base transition-colors ${pathname === item.href
+              className={`text-base transition-colors ${pathname === item.href || pathname.startsWith(item.href + "/")
                 ? "font-bold text-slate-900 dark:text-white border-b-2 border-[#FFDE00]"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
@@ -144,17 +149,23 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="relative" ref={desktopProfileRef}>
-          <button
-            onClick={() => setProfileOpen((v) => !v)}
-            className="flex items-center gap-2 focus:outline-none max-w-[220px] cursor-pointer"
-          >
-            <span className="text-base text-slate-700 dark:text-slate-300 truncate min-w-0">
-              Olá, <strong>{apelido}</strong>
-            </span>
-            <AvatarImg size={36} />
-          </button>
-          {profileOpen && <ProfileDropdown mounted={mounted} />}
+        {/* ── Direita: sino + avatar ── */}
+        <div className="flex items-center gap-3">
+          {/* 🔔 SINO DE NOTIFICAÇÕES */}
+          <SinoComunicados />
+
+          <div className="relative" ref={desktopProfileRef}>
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              className="flex items-center gap-2 focus:outline-none max-w-[220px] cursor-pointer"
+            >
+              <span className="text-base text-slate-700 dark:text-slate-300 truncate min-w-0">
+                Olá, <strong>{apelido}</strong>
+              </span>
+              <AvatarImg size={36} />
+            </button>
+            {profileOpen && <ProfileDropdown mounted={mounted} />}
+          </div>
         </div>
       </header>
 
@@ -169,7 +180,8 @@ export default function Navbar() {
           <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={40} height={10} className="object-contain hidden dark:block" />
         </Link>
 
-        <div className="w-8" />
+        {/* 🔔 SINO mobile (header) */}
+        <SinoComunicados />
       </header>
 
       {/* ── DRAWER MOBILE ── */}
@@ -198,18 +210,21 @@ export default function Navbar() {
         {/* Nav principal */}
         <nav className="flex flex-col gap-1 flex-1 px-3 py-4 overflow-y-auto">
           {navItems.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${active
-                  ? "bg-[#FFDE00]/20 dark:bg-[#FFDE00]/20 text-slate-900 dark:text-white border-l-4 border-[#FFDE00]"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/10 hover:text-slate-900 dark:hover:text-white"
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${active
+                  ? "bg-[#FFDE00]/20 dark:bg-[#FFDE00]/20 text-[#4d4d4d] dark:text-white border-l-4 border-[#FFDE00] font-semibold"
+                  : "text-slate-400 hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/10 hover:text-slate-600 dark:hover:text-slate-300"
                   }`}
               >
-                <span className={active ? "text-[#FFDE00]" : "text-slate-400 dark:text-slate-500"}>
+                <span className={active
+                  ? "text-[#4d4d4d] dark:text-white"
+                  : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors"
+                }>
                   {item.icon}
                 </span>
                 {item.label}
