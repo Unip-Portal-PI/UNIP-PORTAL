@@ -1,37 +1,68 @@
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime, date
+from typing import List, Optional
 
 # ==============================================================================
-# SCHEMAS DE EVENTOS E SIMPÓSIOS (EVENT DTOs)
+# SCHEMAS DE ANEXOS (DTOs)
 # ==============================================================================
-class EventCreate(BaseModel):
-    """
-    Schema de Entrada (POST/PUT).
-    Define os campos necessários para criar ou atualizar um evento.
-    O campo 'date' é mapeado para 'event_date' no repositório.
-    """
-    name: str
-    description: Optional[str] = None
-    location: str
-    date: datetime
-    time: str
-    enrollment_info: Optional[str] = None
 
+class AttachmentBase(BaseModel):
+    name: str = Field(..., description="Nome de exibição do arquivo")
+    url: str = Field(..., description="URL pública para download")
 
-class EventResponse(BaseModel):
+class AttachmentCreate(AttachmentBase):
+    """Usado para criar anexos junto com o evento"""
+    pass
+
+class AttachmentResponse(AttachmentBase):
+    """Retorno do anexo contendo o ID do banco de dados"""
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+# ==============================================================================
+# SCHEMAS de EVENTO (DTOs)
+# ==============================================================================
+
+class EventBase(BaseModel):
+    """
+    Schema base com todos os campos em inglês para coincidir com o Form-Data e o Banco.
+    """
+    title: str = Field(..., min_length=3, description="Título do evento")
+    short_description: Optional[str] = Field(None, max_length=120, description="Resumo para cards")
+    full_description: Optional[str] = Field(None, description="Descrição detalhada")
+    area: str = Field(default="Geral", description="Área acadêmica")
+    event_date: date = Field(..., description="Data do evento (AAAA-MM-DD)")
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="Horário no formato HH:mm")
+    shift: str = Field(..., description="Turno: Manhã | Tarde | Noite")
+    location: str = Field(..., description="Local ou link da sala")
+    deadline_date: date = Field(..., description="Data limite para inscrições")
+    total_slots: int = Field(..., ge=0, description="Total de vagas (mínimo 0)")
+    registration_type: str = Field(default="interna", description="Tipo: interna | externa")
+    external_url: Optional[str] = Field(None, description="URL se a inscrição for externa")
+    visibility: str = Field(default="publica", description="Visibilidade: publica | privada")
+    banner_url: Optional[str] = Field(None, description="Caminho da imagem do banner")
+
+class EventCreate(EventBase):
+    """
+    Schema de Entrada (POST).
+    """
+    attachments: Optional[List[AttachmentCreate]] = []
+
+class EventResponse(EventBase):
     """
     Schema de Saída (GET).
-    Representa o evento como ele está estruturado no banco de dados.
-    Utilizado em listagens gerais e detalhes do evento.
+    Reflete os campos do modelo do banco de dados.
     """
     id: int
-    name: str
-    description: Optional[str] = None
-    location: str
-    event_date: datetime
-    time: str
-    enrollment_info: Optional[str] = None
+    occupied_slots: int = Field(default=0, description="Vagas já preenchidas")
+    is_active: bool = True
+    owner_id: int
+    created_at: datetime
+    
+    # Lista de anexos vinculados
+    attachments: List[AttachmentResponse] = Field(default=[])
 
-    # Configuração para compatibilidade com SQLAlchemy (Pydantic V2)
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,   # Permite ler dados de objetos ORM (SQLAlchemy)
+        populate_by_name=True   # Permite popular usando nomes de campos
+    )
