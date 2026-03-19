@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, Date
 from sqlalchemy.orm import relationship
 from persistence.database import Base
 
@@ -7,51 +7,51 @@ from persistence.database import Base
 # ==============================================================================
 class UserModel(Base):
     """
-    Modelo de representação de usuários (Alunos, Colaboradores e Admins).
-    Gerencia credenciais, perfis de acesso (RBAC) e estados de ativação.
+    Modelo de representação de usuários.
+    Armazena dados cadastrais, credenciais e nível de acesso (RBAC).
     """
     
-    # Nome físico da tabela no Banco de Dados
     __tablename__ = "users"
 
-    # ==========================================================================
-    # IDENTIFICADORES E CHAVES
-    # ==========================================================================
-    # Chave primária única para cada usuário
+# ==============================================================================
+# IDENTIFICADORES
+# ==============================================================================
     id = Column(Integer, primary_key=True, index=True)
 
-    # ==========================================================================
-    # ATRIBUTOS DE IDENTIDADE E CONTATO
-    # ==========================================================================
-    # Nome completo do usuário para fins cadastrais
+# ==============================================================================
+# ATRIBUTOS DE IDENTIDADE (OBRIGATÓRIOS)
+# ==============================================================================
     name = Column(String(100), nullable=False)
-    
-    # Matrícula Acadêmica (ID de negócio único e indexado)
+    nickname = Column(String(50), nullable=False) # Apelido obrigatório
     registration_number = Column(String(20), unique=True, index=True, nullable=False)
-    
-    # Email institucional (Login do usuário)
     email = Column(String(100), unique=True, index=True, nullable=False)
+    area = Column(String(100), nullable=False) # Área acadêmica/setor obrigatória
 
-    # ==========================================================================
-    # SEGURANÇA E AUTENTICAÇÃO (RBAC)
-    # ==========================================================================
-    # Hash da senha (BCrypt/Argon2) - Persistência do segredo criptografado
+# ==============================================================================
+# ATRIBUTOS COMPLEMENTARES (OPCIONAIS)
+# ==============================================================================
+    phone = Column(String(20), nullable=True)
+    birth_date = Column(Date, nullable=True)
+
+# ==============================================================================
+# SEGURANÇA E RBAC
+# ==============================================================================
+    # Armazena o hash (Argon2) da senha, nunca o texto plano
     password_hash = Column(String(255), nullable=False)
     
-    # Nível de acesso: 'Administrador', 'Colaborador' ou 'Aluno'
-    role = Column(String(50), nullable=False)
+    # Nível de acesso: 'admin', 'staff' ou 'student'
+    role = Column(String(50), nullable=False, default="student")
 
-    # ==========================================================================
-    # ESTADOS E FLUXO DE VERIFICAÇÃO (OTP)
-    # ==========================================================================
-    # Define se a conta foi ativada via código de verificação
-    is_active = Column(Boolean, default=False)
-    
-    # Código temporário de 4 dígitos para ativação inicial ou recuperação
-    otp_code = Column(String(4), nullable=True)
+# ==============================================================================
+# ESTADOS DE CONTA E VALIDAÇÃO
+# ==============================================================================
+    is_active = Column(Boolean, default=False) # Alunos começam inativos (aguardando OTP)
+    otp_code = Column(String(4), nullable=True) # Código de 4 dígitos para ativação/recuperação
 
-    # ==========================================================================
-    # MAPEAMENTO DE RELACIONAMENTOS (BACK-REFERENCES)
-    # ==========================================================================
-    # Permite acessar as inscrições e logs do usuário de forma reversa
+# =============================================================================
+# RELACIONAMENTOS (EXPANSÍVEL)
+# ==============================================================================
     # enrollments = relationship("EnrollmentModel", back_populates="user")
+
+    def __repr__(self):
+        return f"<UserModel(name={self.name}, registration={self.registration_number}, role={self.role})>"
