@@ -1,6 +1,7 @@
 from fpdf import FPDF
 from io import BytesIO
 from persistence.repositories.enrollment_repository import EnrollmentRepository
+from persistence.models.enrollment_model import EnrollmentModel
 
 # ==============================================================================
 # SERVIÇO DE EMISSÃO DE DOCUMENTOS (DOCUMENT & REPORTING SERVICE)
@@ -14,8 +15,7 @@ class CertificateService:
 
     def __init__(self, enrollment_repo: EnrollmentRepository):
         """
-        Injeção de dependência do repositório de inscrições para acesso aos dados
-        de alunos e eventos.
+        Injeção de dependência do repositório de inscrições.
         """
         self.repo = enrollment_repo
 
@@ -26,21 +26,19 @@ class CertificateService:
         """
         Gera um certificado de participação personalizado em formato PDF.
         
-        Args:
-            enrollment_id: ID da inscrição do aluno no evento.
-            
         Returns:
             bytes: O conteúdo do PDF gerado ou None se a presença não estiver confirmada.
         """
         
         # ======================================================================
-        # 1. VALIDAÇÃO DE ELEGIBILIDADE
+        # 1. VALIDAÇÃO DE ELEGIBILIDADE E BUSCA DE DADOS
         # ======================================================================
-        # Verifica se a inscrição existe e se o aluno realmente compareceu (is_present)
-        enrollment = self.repo.db.query(
-            self.repo.db.get_model("EnrollmentModel")
-        ).filter_by(id=enrollment_id).first()
+        # Buscamos a inscrição garantindo que os relacionamentos de User e Event existam
+        enrollment = self.repo.db.query(EnrollmentModel).filter(
+            EnrollmentModel.id == enrollment_id
+        ).first()
         
+        # Regra de Ouro: Sem presença confirmada, sem certificado.
         if not enrollment or not enrollment.is_present:
             return None
 
@@ -61,7 +59,8 @@ class CertificateService:
         
         # Cabeçalho Principal
         pdf.set_font("Helvetica", "B", 30)
-        pdf.cell(0, 40, "CERTIFICADO DE PARTICIPAÇÃO", ln=True, align='C')
+        pdf.ln(30) # Espaçamento superior
+        pdf.cell(0, 20, "CERTIFICADO DE PARTICIPAÇÃO", ln=True, align='C')
         
         # Texto Introdutório
         pdf.set_font("Helvetica", "", 18)
@@ -69,32 +68,45 @@ class CertificateService:
         pdf.multi_cell(0, 10, "Certificamos que o(a) aluno(a)", align='C')
         
         # Nome do Aluno (Destaque em Negrito/Maiúsculo)
-        pdf.set_font("Helvetica", "B", 24)
-        pdf.cell(0, 20, f"{enrollment.user.name.upper()}", ln=True, align='C')
+        pdf.set_font("Helvetica", "B", 26)
+        student_name = enrollment.user.name if enrollment.user else "Participante"
+        pdf.cell(0, 25, f"{student_name.upper()}", ln=True, align='C')
         
         # Corpo do Texto: Detalhes Dinâmicos do Evento
         pdf.set_font("Helvetica", "", 18)
+        pdf.ln(5)
+        
+        event_name = enrollment.event.title if enrollment.event else "Evento Acadêmico"
+        event_date = enrollment.event.start_time.strftime('%d/%m/%Y') if enrollment.event else "--/--/----"
+        
         texto_evento = (
-            f"participou do evento '{enrollment.event.name}', "
-            f"realizado em {enrollment.event.event_date.strftime('%d/%m/%Y')}, "
-            f"com carga horária de {enrollment.event.time}."
+            f"participou com êxito do evento '{event_name}', "
+            f"realizado em {event_date}, "
+            f"cumprindo todos os requisitos de presença."
         )
         pdf.multi_cell(0, 10, texto_evento, align='C')
 
         # ======================================================================
         # 4. SEGURANÇA E RASTREABILIDADE (COMPLIANCE)
         # ======================================================================
-        # Informações para verificação de validade do documento
-        pdf.ln(20)
+        pdf.ln(25)
         pdf.set_font("Helvetica", "I", 10)
-        pdf.cell(0, 10, f"Código de Autenticação: {enrollment.qr_code_token}", ln=True, align='C')
         
-        # Registro temporal da emissão baseada na presença real
+        auth_code = enrollment.qr_code_token or "N/A"
+        pdf.cell(0, 8, f"Código de Autenticação: {auth_code}", ln=True, align='C')
+        
         data_geracao = enrollment.present_at.strftime('%d/%m/%Y %H:%M') if enrollment.present_at else "--/--/--"
-        pdf.cell(0, 5, f"Gerado em: {data_geracao}", ln=True, align='C')
+        pdf.cell(0, 5, f"Presença validada em: {data_geracao}", ln=True, align='C')
 
         # ======================================================================
-        # 5. FINALIZAÇÃO DO DOCUMENTO
+        # 5. FINALIZAÇÃO E RETORNO (CORREÇÃO DO BYTEARRAY)
         # ======================================================================
-        # Retorna o conteúdo binário pronto para StreamResponse no FastAPI
-        return pdf.output()
+        # A lib FPDF pode retornar string ou bytearray dependendo da versão.
+        # Aqui garantimos que o retorno seja SEMPRE bytes para o FastAPI.
+        pdf_output = pdf.output()
+        
+        if isinstance(pdf_output, (bytes, bytearray)):
+            return bytes(pdf_output)
+        
+        # Caso retorne string (versões antigas), encodamos para latin-1
+        return str(pdf_output).encode('latin-1')
