@@ -27,7 +27,7 @@ class EmailService:
         Envia o código de ativação de 4 dígitos para o e-mail do usuário.
         """
         
-        subject = "Seu código de ativação InfoUnity"
+        subject = "Seu código de ativação AVP"
         body = f"Olá! Seu código de verificação é: {code}. Use-o para ativar sua conta."
 
         # ======================================================================
