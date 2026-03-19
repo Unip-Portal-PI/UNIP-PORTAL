@@ -14,7 +14,19 @@ let _inscricoes: Inscricao[] = [...MOCK_INSCRICOES];
 
 export const EventoService = {
   getAll: (): Promise<Evento[]> =>
-    new Promise((res) => setTimeout(() => res([..._eventos]), 600)),
+    new Promise((res) =>
+      setTimeout(() => {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0); // ignora a hora — compara só a data
+
+        const ativos = _eventos.filter((e) => {
+          const dataEvento = new Date(e.data + "T00:00:00");
+          return dataEvento >= hoje; // hoje ainda aparece, ontem não
+        });
+
+        res([...ativos]);
+      }, 600)
+    ),
 
   getById: (id: string): Promise<Evento | null> =>
     new Promise((res) =>

@@ -155,7 +155,7 @@ export default function EventosPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setModalForm("novo")}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-slate-800 dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-[#e6c800] dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
             >
               <IconPlus size={18} />
               Novo evento
@@ -254,10 +254,10 @@ export default function EventosPage() {
               {canEdit(role) && (
                 <button
                   onClick={() => abrirModalQR(evento)}
-                  className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-colors"
+                  className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-[#F3F3F3] dark:hover:bg-[#515151] transition-colors"
                   title="Leitor QR Code"
                 >
-                  <IconQrcode size={16} />
+                  <IconQrcode size={26} />
                 </button>
               )}
             </div>

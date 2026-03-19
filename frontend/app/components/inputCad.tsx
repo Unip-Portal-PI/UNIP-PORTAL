@@ -12,6 +12,8 @@ interface InputProps {
   id: string;
   Icon?: LucideIcon;
   erro?: boolean;
+  defaultValue?: string; // ✅ novo
+  autoComplete?: string;
 }
 
 interface SelectProps {
@@ -33,7 +35,7 @@ function formatTelefone(value: string): string {
   return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
 }
 
-export function InputCad({ label, type, placeholder, id, Icon, erro }: InputProps) {
+export function InputCad({ label, type, placeholder, id, Icon, erro, defaultValue, autoComplete }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [telValue, setTelValue] = useState("");
 
@@ -54,6 +56,8 @@ export function InputCad({ label, type, placeholder, id, Icon, erro }: InputProp
           id={id}
           type={inputType}
           placeholder={placeholder}
+          defaultValue={defaultValue} // ✅ novo
+          autoComplete={autoComplete}
           value={isTel ? telValue : undefined}
           onChange={isTel ? (e) => setTelValue(formatTelefone(e.target.value)) : undefined}
           inputMode={isTel ? "numeric" : undefined}

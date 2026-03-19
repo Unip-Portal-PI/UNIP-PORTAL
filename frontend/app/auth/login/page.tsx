@@ -1,8 +1,6 @@
-// app/auth/login/page.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,15 +10,34 @@ import { Hash, Lock } from "lucide-react";
 import { Auth } from "@/src/service/auth.service";
 import PublicGuard from "@/src/guard/PublicGuard";
 import { useLoading } from "@/app/components/LoadingContext";
+
 export default function Login() {
   const router = useRouter();
   const { showLoading } = useLoading();
   const [erro, setErro] = useState(false);
+  const [lembrar, setLembrar] = useState(false);
+  const [matriculaInicial, setMatriculaInicial] = useState("");
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+
+  useEffect(() => {
+    const salva = localStorage.getItem("matricula_lembrar");
+    if (salva) {
+      setMatriculaInicial(salva);
+      setLembrar(true);
+    }
+  }, []);
+
   async function handleLogin() {
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
+
+    if (lembrar) {
+      localStorage.setItem("matricula_lembrar", matricula);
+    } else {
+      localStorage.removeItem("matricula_lembrar");
+    }
+
     const resultado = await Auth.login(matricula, senha);
     if (resultado.sucesso) {
       setErro(false);
@@ -46,7 +63,14 @@ export default function Login() {
 
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-6">Login</h2>
 
-            <div className="flex flex-col gap-4">
+            {/* ✅ form com onSubmit — essencial para o browser oferecer salvar credenciais */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+              className="flex flex-col gap-4"
+            >
               <InputCad
                 id="matricula"
                 label="Matrícula"
@@ -54,23 +78,36 @@ export default function Login() {
                 placeholder="Digite sua matrícula"
                 Icon={Hash}
                 erro={erro}
+                defaultValue={matriculaInicial}
+                autoComplete="username"
               />
 
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="senha" className="font-bold text-sm text-slate-800 dark:text-slate-200">Senha</label>
-                  <Link href="/auth/reset-senha" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                    Esqueceu sua senha?
-                  </Link>
-                </div>
                 <InputCad
                   id="senha"
-                  label=""
+                  label="Senha"
                   type="password"
                   placeholder="Digite sua senha"
                   Icon={Lock}
                   erro={erro}
+                  autoComplete="current-password"
                 />
+
+                <div className="flex items-center justify-between mt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={lembrar}
+                      onChange={(e) => setLembrar(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-[#505050] accent-[#0f0f1e] dark:accent-yellow-400 cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Lembre de mim</span>
+                  </label>
+                  <Link href="/auth/reset-senha" className="text-base text-blue-600 dark:text-blue-400 hover:underline">
+                    Esqueceu sua senha?
+                  </Link>
+                </div>
+
                 {erro && (
                   <span className="text-xs text-red-500 mt-1">
                     Matrícula ou senha inválidos
@@ -78,14 +115,14 @@ export default function Login() {
                 )}
               </div>
 
+              {/* ✅ type="submit" para o browser reconhecer o fluxo de login */}
               <button
-                type="button"
-                onClick={handleLogin}
+                type="submit"
                 className="bg-[#0f0f1e] dark:bg-yellow-400 dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
               >
                 Entrar
               </button>
-            </div>
+            </form>
 
             <p className="text-center text-sm mt-6 text-slate-600 dark:text-slate-400">
               Não possui acesso?{" "}

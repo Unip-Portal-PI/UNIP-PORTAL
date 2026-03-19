@@ -151,7 +151,7 @@ export default function ResetSenha() {
                     value={val}
                     onChange={(e) => handleOtpChange(e.target.value, i)}
                     onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                    className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:border-[#0f0f1e] dark:focus:border-white transition-colors"
+                    className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md outline-none focus:border-[#0f0f1e] dark:focus:border-white transition-colors"
                   />
                 ))}
               </div>

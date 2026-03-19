@@ -61,7 +61,7 @@ const INITIAL: FormData = {
 };
 
 const inputCls =
-  "w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 focus:outline-none transition-colors";
+  "w-full px-3 py-2 border rounded-md text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 focus:outline-none transition-colors";
 
 function inputBorder(erros: Record<string, string>, key: string) {
   return erros[key]
@@ -292,7 +292,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 key={tipo}
                 type="button"
                 onClick={() => set("tipoInscricao", tipo)}
-                className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-bold transition-colors capitalize ${
+                className={`flex-1 py-2.5 rounded-md border-2 text-sm font-bold transition-colors capitalize ${
                   form.tipoInscricao === tipo
                     ? "border-[#FFDE00] bg-[#FFDE00]/10 text-[#b89e00] dark:text-[#FFDE00]"
                     : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
@@ -326,7 +326,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 key={vis}
                 type="button"
                 onClick={() => set("visibilidade", vis)}
-                className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-bold transition-colors capitalize ${
+                className={`flex-1 py-2.5 rounded-md border-2 text-sm font-bold transition-colors capitalize ${
                   form.visibilidade === vis
                     ? "border-[#FFDE00] bg-[#FFDE00]/10 text-[#b89e00] dark:text-[#FFDE00]"
                     : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
@@ -355,7 +355,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               type="button"
               onClick={adicionarAnexo}
               disabled={!anexoNome.trim()}
-              className="px-3 py-2 bg-slate-200 dark:bg-[#363636] hover:bg-slate-300 dark:hover:bg-[#404040] disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-lg text-sm transition-colors"
+              className="px-3 py-2 bg-slate-200 dark:bg-[#363636] hover:bg-slate-300 dark:hover:bg-[#404040] disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-md text-sm transition-colors"
             >
               <IconPaperclip size={16} />
             </button>
@@ -366,7 +366,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               {form.anexos.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between bg-slate-50 dark:bg-[#2a2a2a] rounded-lg px-3 py-2"
+                  className="flex items-center justify-between bg-slate-50 dark:bg-[#2a2a2a] rounded-md px-3 py-2"
                 >
                   <span className="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
                     <IconPaperclip size={13} className="text-slate-400" />

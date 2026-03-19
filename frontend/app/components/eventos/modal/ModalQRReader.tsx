@@ -23,10 +23,8 @@ interface ModalQRReaderProps {
 type Modo = "camera" | "manual";
 type CameraStatus = "idle" | "solicitando" | "ativa" | "negada" | "erro" | "sem-suporte";
 
-// ✅ Verifica se o browser suporta câmera ANTES de tentar qualquer coisa
 function browserSuportaCamera(): boolean {
   if (typeof window === "undefined") return false;
-  // Câmera via getUserMedia só funciona em HTTPS (ou localhost)
   const isSecure =
     window.location.protocol === "https:" ||
     window.location.hostname === "localhost" ||
@@ -43,7 +41,6 @@ export function ModalQRReader({
   onFechar,
   presencasConfirmadas,
 }: ModalQRReaderProps) {
-  // ✅ Já começa no modo manual se o browser não suportar câmera
   const [modo, setModo] = useState<Modo>(() =>
     browserSuportaCamera() ? "camera" : "manual"
   );
@@ -58,7 +55,6 @@ export function ModalQRReader({
   const inputRef = useRef<HTMLInputElement>(null);
   const readerDivId = "qr-reader-camera";
 
-  // ── Para câmera ────────────────────────────────────────────────────────────
   const pararCamera = useCallback(async () => {
     try {
       const scanner = scannerRef.current as {
@@ -77,9 +73,7 @@ export function ModalQRReader({
     setCameraStatus("idle");
   }, []);
 
-  // ── Inicia câmera ──────────────────────────────────────────────────────────
   const iniciarCamera = useCallback(async () => {
-    // ✅ Checagem antecipada — evita o erro "Camera streaming not supported"
     if (!browserSuportaCamera()) {
       setCameraStatus("sem-suporte");
       setErro("Câmera não disponível neste browser. Acesse via HTTPS ou use o modo manual.");
@@ -105,16 +99,42 @@ export function ModalQRReader({
           await pararCamera();
           await handleLer(decodedText);
         },
-        () => {
-          // frame sem QR — ignora
-        }
+        () => { }
       );
 
-      setCameraStatus("ativa");
+      // ✅ Aguarda o vídeo estar visível de verdade antes de tirar o overlay
+      const readerDiv = document.getElementById(readerDivId);
+      const videoExistente = readerDiv?.querySelector("video");
+
+      const ativarQuandoPronto = (video: HTMLVideoElement) => {
+        if (video.readyState >= 2 || video.videoWidth > 0) {
+          setCameraStatus("ativa");
+        } else {
+          video.addEventListener("canplay", () => setCameraStatus("ativa"), { once: true });
+        }
+      };
+
+      if (videoExistente) {
+        ativarQuandoPronto(videoExistente as HTMLVideoElement);
+      } else {
+        // Vídeo ainda não foi injetado no DOM — observa até aparecer
+        const observer = new MutationObserver(() => {
+          const v = document.getElementById(readerDivId)?.querySelector("video");
+          if (v) {
+            observer.disconnect();
+            ativarQuandoPronto(v as HTMLVideoElement);
+          }
+        });
+        if (readerDiv) {
+          observer.observe(readerDiv, { childList: true, subtree: true });
+        } else {
+          // Fallback: sem div, ativa direto
+          setCameraStatus("ativa");
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
 
-      // ✅ Trata "Camera streaming not supported" separadamente
       const isSemSuporte =
         msg.includes("streaming not supported") ||
         msg.includes("not supported") ||
@@ -143,19 +163,16 @@ export function ModalQRReader({
     }
   }, [pararCamera]);
 
-  // ── Inicia câmera ao montar ────────────────────────────────────────────────
   useEffect(() => {
     if (modo !== "camera") return;
     const timer = setTimeout(() => iniciarCamera(), 150);
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Para câmera ao desmontar ───────────────────────────────────────────────
   useEffect(() => {
     return () => { pararCamera(); };
   }, [pararCamera]);
 
-  // ── Processamento do QR ────────────────────────────────────────────────────
   const handleLer = useCallback(async (codigo: string) => {
     if (!codigo.trim()) return;
     setLoading(true);
@@ -185,7 +202,6 @@ export function ModalQRReader({
     if (novoModo === "camera") setTimeout(() => iniciarCamera(), 150);
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
@@ -206,17 +222,16 @@ export function ModalQRReader({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* ✅ Tabs — só mostra aba câmera se browser suportar */}
+          {/* Tabs */}
           {suportaCamera && (
             <div className="flex gap-2 bg-slate-100 dark:bg-[#2a2a2a] rounded-xl p-1">
               <button
                 type="button"
                 onClick={() => trocarModo("camera")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${
-                  modo === "camera"
-                    ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] dark:text-white shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-colors ${modo === "camera"
+                  ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  }`}
               >
                 <IconCamera size={15} />
                 Câmera
@@ -224,11 +239,10 @@ export function ModalQRReader({
               <button
                 type="button"
                 onClick={() => trocarModo("manual")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-colors ${
-                  modo === "manual"
-                    ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] dark:text-white shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-colors ${modo === "manual"
+                  ? "bg-[#FFDE00] dark:bg-yellow-400 text-[#252525] shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  }`}
               >
                 <IconKeyboard size={15} />
                 Manual
@@ -236,7 +250,7 @@ export function ModalQRReader({
             </div>
           )}
 
-          {/* ✅ Aviso quando browser não suporta câmera (HTTP) */}
+          {/* Aviso sem suporte */}
           {!suportaCamera && (
             <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
               <IconCameraOff size={16} className="text-amber-500 mt-0.5 shrink-0" />
@@ -249,11 +263,14 @@ export function ModalQRReader({
           {/* ── MODO CÂMERA ── */}
           {modo === "camera" && (
             <div className="space-y-3">
-              <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{ height: 320 }}>
+              <div
+                className="relative bg-slate-900 rounded-xl overflow-hidden"
+                style={cameraStatus !== "ativa" ? { height: 340 } : undefined}
+              >
                 <div id={readerDivId} style={{ width: "100%", height: "100%" }} />
 
                 {/* Overlay: solicitando */}
-                {cameraStatus === "solicitando" && (
+                {(cameraStatus === "solicitando" || cameraStatus === "idle") && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 z-10">
                     <div className="w-8 h-8 border-2 border-[#FFDE00] border-t-transparent rounded-full animate-spin" />
                     <p className="text-slate-300 text-sm">Acessando câmera...</p>
@@ -266,12 +283,11 @@ export function ModalQRReader({
                     <IconCameraOff size={36} className="text-slate-500" />
                     <p className="text-slate-400 text-sm text-center">{erro}</p>
                     <div className="flex gap-2 flex-wrap justify-center">
-                      {/* Só mostra "Tentar novamente" se não for falta de suporte */}
                       {cameraStatus !== "sem-suporte" && (
                         <button
                           type="button"
                           onClick={iniciarCamera}
-                          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-slate-900 text-sm font-bold rounded-lg transition-colors"
+                          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-slate-900 text-sm font-bold rounded-md transition-colors"
                         >
                           Tentar novamente
                         </button>
@@ -279,7 +295,7 @@ export function ModalQRReader({
                       <button
                         type="button"
                         onClick={() => trocarModo("manual")}
-                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-lg transition-colors"
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-md transition-colors"
                       >
                         Usar manual
                       </button>
@@ -328,14 +344,14 @@ export function ModalQRReader({
                     value={inputManual}
                     onChange={(e) => setInputManual(e.target.value)}
                     placeholder="Cole ou digite o código QR..."
-                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-[#505050] rounded-lg text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#FFDE00] transition-colors font-mono"
+                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-[#505050] rounded-md text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#FFDE00] transition-colors font-mono"
                     autoComplete="off"
                     autoFocus
                   />
                   <button
                     type="submit"
                     disabled={loading || !inputManual.trim()}
-                    className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-50 text-slate-900 text-sm font-bold rounded-lg transition-colors"
+                    className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-50 text-slate-900 text-sm font-bold rounded-md transition-colors"
                   >
                     {loading ? "..." : "Ler"}
                   </button>

@@ -48,7 +48,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
             className="rounded"
           />
         </div>
-        <p className="text-xs text-slate-400 font-mono">{code}…</p>
+        <p className="text-xs text-slate-400 font-mono">{code}</p>
       </div>
     );
   }
@@ -134,7 +134,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
               </div>
               <button
                 onClick={onFechar}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors"
+                className="w-full py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
               >
                 Fechar
               </button>

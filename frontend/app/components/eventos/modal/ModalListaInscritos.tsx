@@ -203,7 +203,7 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
         <td className="lg:hidden px-3 py-3 text-right">
           <span
             aria-hidden="true"
-            className="inline-flex items-center justify-center p-1 rounded-lg text-slate-400 dark:text-slate-500 pointer-events-none"
+            className="inline-flex items-center justify-center p-1 rounded-md text-slate-400 dark:text-slate-500 pointer-events-none"
           >
             {expandida ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}
           </span>

@@ -15,6 +15,21 @@ export default function Cadastro() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
+  function handleCadastro(e: React.FormEvent) {
+    e.preventDefault();
+
+    const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
+    const senha = (document.getElementById("senha") as HTMLInputElement).value;
+    const confirmar = (document.getElementById("confirmar") as HTMLInputElement).value;
+
+    if (senha !== confirmar) return; // validação básica
+
+    // ✅ Salva matrícula para o "Lembre de mim" do login
+    localStorage.setItem("matricula_lembrar", matricula);
+
+    router.push("/auth/login");
+  }
+
   return (
     <PublicGuard>
       <main className="min-h-screen bg-white dark:bg-[#303030] flex flex-col items-center justify-between p-4 transition-colors">
@@ -43,20 +58,21 @@ export default function Cadastro() {
               Cadastre-se
             </h2>
 
-            <form className="flex flex-col gap-4">
-              <InputCad id="matricula" label="Matrícula" type="text" placeholder="Digite sua matrícula" Icon={Hash} />
-              <InputCad id="nome" label="Nome completo" type="text" placeholder="Digite seu nome completo" Icon={User} />
-              <InputCad id="apelido" label="Apelido" type="text" placeholder="Como prefere ser chamado(a)" Icon={User} />
-              <InputCad id="telefone" label="Telefone" type="tel" placeholder="(00) 00000-0000" Icon={Phone} />
-              <InputCad id="data_nasc" label="Data de Nascimento" type="date" placeholder="" Icon={Calendar} />
+            {/* ✅ form com onSubmit para o browser oferecer salvar credenciais */}
+            <form onSubmit={handleCadastro} className="flex flex-col gap-4">
+              <InputCad id="matricula" label="Matrícula" type="text" placeholder="Digite sua matrícula" Icon={Hash} autoComplete="username" />
+              <InputCad id="nome" label="Nome completo" type="text" placeholder="Digite seu nome completo" Icon={User} autoComplete="name" />
+              <InputCad id="apelido" label="Apelido" type="text" placeholder="Como prefere ser chamado(a)" Icon={User} autoComplete="nickname" />
+              <InputCad id="telefone" label="Telefone" type="tel" placeholder="(00) 00000-0000" Icon={Phone} autoComplete="tel" />
+              <InputCad id="data_nasc" label="Data de Nascimento" type="date" placeholder="" Icon={Calendar} autoComplete="bday" />
               <SelectCad id="area" label="Área" placeholder="Selecione sua Área" options={CURSOS} Icon={BookOpen} />
-              <InputCad id="email" label="E-mail" type="email" placeholder="Digite seu e-mail" Icon={AtSign} />
-              <InputCad id="senha" label="Senha" type="password" placeholder="Digite sua senha" Icon={Lock} />
-              <InputCad id="confirmar" label="Confirmar senha" type="password" placeholder="Repita sua senha" Icon={Lock} />
+              <InputCad id="email" label="E-mail" type="email" placeholder="Digite seu e-mail" Icon={AtSign} autoComplete="email" />
+              <InputCad id="senha" label="Senha" type="password" placeholder="Digite sua senha" Icon={Lock} autoComplete="new-password" />
+              <InputCad id="confirmar" label="Confirmar senha" type="password" placeholder="Repita sua senha" Icon={Lock} autoComplete="new-password" />
 
+              {/* ✅ type="submit" para o browser reconhecer como cadastro e oferecer salvar */}
               <button
-                type="button"
-                onClick={() => router.push("/auth/login")}
+                type="submit"
                 className="bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 Cadastrar

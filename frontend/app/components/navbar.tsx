@@ -11,7 +11,6 @@ import { Auth } from "@/src/service/auth.service";
 import { useLoading } from "@/app/components/LoadingContext";
 import { UserRole } from "@/src/types/user";
 
-// Itens base — Gestão só aparece para adm (filtrado abaixo)
 const NAV_ITEMS: { label: string; href: string; icon: React.ReactNode; roles?: UserRole[] }[] = [
   { label: "Evento", href: "/home/eventos", icon: <CalendarDays className="w-5 h-5" /> },
   { label: "Comunicado", href: "/home/comunicado", icon: <Megaphone className="w-5 h-5" /> },
@@ -37,7 +36,6 @@ export default function Navbar() {
   const apelido = user?.apelido ?? "Usuário";
   const role = user?.permission;
 
-  // Filtra itens de acordo com a role do usuário
   const navItems = NAV_ITEMS.filter(
     (item) => !item.roles || (role && item.roles.includes(role))
   );
@@ -72,6 +70,8 @@ export default function Navbar() {
     aluno: "Aluno",
   };
 
+  const isDark = mounted && theme === "dark";
+
   const AvatarImg = ({ size }: { size: number }) => (
     <img
       src={`https://ui-avatars.com/api/?name=${initials}&background=0f0f1e&color=fff`}
@@ -81,7 +81,8 @@ export default function Navbar() {
     />
   );
 
-  const ProfileDropdown = () => (
+  // ✅ Recebe mounted para evitar flash de tema errado
+  const ProfileDropdown = ({ mounted }: { mounted: boolean }) => (
     <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#202020] rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50">
       <button
         onClick={() => { setProfileOpen(false); router.push("/home/perfil"); }}
@@ -92,14 +93,21 @@ export default function Navbar() {
       </button>
 
       <button
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
         className="flex items-center gap-2 w-full px-4 py-3 text-base text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
-        {theme === "dark"
-          ? <Sun className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-          : <Moon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+        {/* ✅ Só mostra ícone/texto correto após montar */}
+        {mounted ? (
+          isDark
+            ? <Sun className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            : <Moon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+        ) : (
+          <span className="w-4 h-4" />
+        )}
+        {mounted
+          ? isDark ? "Modo claro" : "Modo escuro"
+          : <span className="w-16 h-4 bg-slate-100 dark:bg-slate-700 rounded animate-pulse" />
         }
-        {theme === "dark" ? "Modo claro" : "Modo escuro"}
       </button>
 
       <button
@@ -129,8 +137,8 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               className={`text-base transition-colors ${pathname === item.href
-                  ? "font-bold text-slate-900 dark:text-white"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "font-bold text-slate-900 dark:text-white"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
             >
               {item.label}
@@ -148,7 +156,7 @@ export default function Navbar() {
             </span>
             <AvatarImg size={36} />
           </button>
-          {profileOpen && <ProfileDropdown />}
+          {profileOpen && <ProfileDropdown mounted={mounted} />}
         </div>
       </header>
 
@@ -163,7 +171,6 @@ export default function Navbar() {
           <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={40} height={10} className="object-contain hidden dark:block" />
         </Link>
 
-        {/* Espaço vazio para manter logo centralizada */}
         <div className="w-8" />
       </header>
 
@@ -178,10 +185,9 @@ export default function Navbar() {
         className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-[#202020] z-50 flex flex-col shadow-xl transition-transform duration-300 md:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        {/* Topo: logo + nome do app + fechar */}
+        {/* Topo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-100 dark:border-slate-700">
-          {/* <Image src="/img/logo_avp_vertical.png"      alt="AVP Conecta" width={36} height={36} className="object-contain dark:hidden" /> */}
-          <Image src="/img/logo_icon.png" alt="AVP Conecta" width={36} height={36} className="object-contain  " />
+          <Image src="/img/logo_icon.png" alt="AVP Conecta" width={36} height={36} className="object-contain" />
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-bold text-slate-900 dark:text-white">AVP Conecta</span>
             <span className="text-xs text-slate-400 dark:text-slate-500">Portal de Informações</span>
@@ -200,9 +206,9 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active
-                    ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${active
+                  ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                   }`}
               >
                 <span className={active ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"}>
@@ -214,17 +220,22 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Rodapé: toggle tema + perfil + logout */}
+        {/* Rodapé */}
         <div className="border-t border-slate-100 dark:border-slate-700 px-3 py-3 flex flex-col gap-1">
-          {/* Toggle de tema */}
+          {/* ✅ Toggle de tema com mounted */}
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            <span>{mounted && theme === "dark" ? "Tema escuro" : "Tema claro"}</span>
-            <div className="w-10 h-5 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center px-0.5 transition-colors">
-              <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${mounted && theme === "dark" ? "translate-x-5" : "translate-x-0"}`} />
-            </div>
+            <span>{mounted ? (isDark ? "Tema escuro" : "Tema claro") : ""}</span>
+            {/* ✅ Toggle visual também aguarda mounted */}
+            {mounted ? (
+              <div className="w-10 h-5 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center px-0.5 transition-colors">
+                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${isDark ? "translate-x-5" : "translate-x-0"}`} />
+              </div>
+            ) : (
+              <div className="w-10 h-5 rounded-full bg-slate-200 dark:bg-slate-600" />
+            )}
           </button>
 
           {/* Perfil + logout */}
@@ -236,7 +247,7 @@ export default function Navbar() {
             </div>
             <button
               onClick={() => { setMenuOpen(false); setLogoutModal(true); }}
-              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+              className="p-1.5 rounded-md text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -261,13 +272,13 @@ export default function Navbar() {
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => setLogoutModal(false)}
-                className="flex-1 py-2 rounded-lg border-2 border-[#8D8D8D] dark:border-slate-600 text-base text-[#252525] dark:text-slate-300 hover:bg-[#E2E2E2] dark:hover:bg-slate-700 transition-colors"
+                className="flex-1 py-2 rounded-md border-2 border-[#8D8D8D] dark:border-slate-600 text-base text-[#252525] dark:text-slate-300 hover:bg-[#E2E2E2] dark:hover:bg-slate-700 transition-colors"
               >
                 Não
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 py-2 rounded-lg bg-[#DD0B0B] text-white text-base font-bold hover:bg-[#AD0000] transition-colors"
+                className="flex-1 py-2 rounded-md bg-[#DD0B0B] text-white text-base font-bold hover:bg-[#AD0000] transition-colors"
               >
                 Sim, sair
               </button>

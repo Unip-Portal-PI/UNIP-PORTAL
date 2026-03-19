@@ -59,7 +59,7 @@ export default function DetalheEventoPage() {
   const [modalQR, setModalQR] = useState(false);
   const [modalInscritos, setModalInscritos] = useState(false);
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
-
+  const [copiado, setCopiado] = useState(false);
   async function carregar() {
     setLoading(true);
     setErro(false);
@@ -106,7 +106,7 @@ export default function DetalheEventoPage() {
         </p>
         <button
           onClick={() => router.push("/home/eventos")}
-          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold rounded-xl transition-colors"
+          className="px-4 py-2 bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold rounded-md transition-colors"
         >
           Voltar para eventos
         </button>
@@ -280,6 +280,97 @@ export default function DetalheEventoPage() {
 
         {/* Coluna lateral */}
         <div className="space-y-4">
+
+          {/* Botão de inscrição (aluno) */}
+          {role === "aluno" && (
+            <>
+              {evento.tipoInscricao === "externa" && evento.urlExterna ? (
+                <a
+                  href={evento.urlExterna}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
+                >
+                  <IconExternalLink size={16} />
+                  Inscrever-se (site externo)
+                </a>
+              ) : (
+                <button
+                  onClick={() => setModalInscricao(true)}
+                  disabled={status === "esgotado" || encerrado || isInscrito}
+                  className={`w-full py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
+                    ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800]/60 dark:border-[#FFDE00]/40 cursor-default"
+                    : status === "esgotado" || encerrado
+                      ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                      : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                    }`}
+                >
+                  {isInscrito
+                    ? "Você já está inscrito ✓"
+                    : encerrado
+                      ? "Inscrições encerradas"
+                      : status === "esgotado"
+                        ? "Esgotado"
+                        : "Inscrever-se neste evento"}
+                </button>
+              )}
+
+              {/* Botão Ver QR Code — só quando inscrito */}
+              {isInscrito && inscricaoAluno && (
+                <button
+                  onClick={() => setModalQRAluno(true)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
+                >
+                  <IconQrcode size={15} />
+                  Ver meu QR Code
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Ações colaborador/adm */}
+          {canEdit(role) && (
+            <div className="space-y-2">
+              <button
+                onClick={() => setModalInscritos(true)}
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+              >
+                <IconUsers size={15} />
+                Ver inscritos
+                {inscritosDoEvento.length > 0 && (
+                  <span className="ml-auto bg-slate-200 dark:bg-[#333] text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {inscritosDoEvento.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setModalForm(true)}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+              >
+                <IconEdit size={15} />
+                Editar evento
+              </button>
+
+              <button
+                onClick={abrirModalQR}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
+              >
+                <IconQrcode size={15} />
+                Leitor QR Code (check-in)
+              </button>
+
+              {canDelete(role) && (
+                <button
+                  onClick={() => setModalExcluir(true)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-red-200 dark:border-red-900/40 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <IconTrash size={15} />
+                  Excluir evento
+                </button>
+              )}
+            </div>
+          )}
           {/* Informações */}
           <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-5 space-y-4">
             <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
@@ -289,8 +380,8 @@ export default function DetalheEventoPage() {
             <div className="flex items-start gap-3 text-sm">
               <IconCalendar size={16} className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium text-slate-800 dark:text-slate-200 capitalize">
-                  {dataFormatada}
+                <p className="font-medium text-slate-800 dark:text-slate-200">
+                  {dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1).toLowerCase()}
                 </p>
                 <p className="text-slate-400 text-xs mt-0.5">
                   {evento.turno} · {evento.horario}
@@ -341,97 +432,7 @@ export default function DetalheEventoPage() {
             </div>
           </div>
 
-          {/* Botão de inscrição (aluno) */}
-          {role === "aluno" && (
-            <>
-              {evento.tipoInscricao === "externa" && evento.urlExterna ? (
-                <a
-                  href={evento.urlExterna}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
-                >
-                  <IconExternalLink size={16} />
-                  Inscrever-se (site externo)
-                </a>
-              ) : (
-                <button
-                  onClick={() => setModalInscricao(true)}
-                  disabled={status === "esgotado" || encerrado || isInscrito}
-                  className={`w-full py-3 rounded-xl text-sm font-bold transition-colors ${
-                    isInscrito
-                      ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800]/60 dark:border-[#FFDE00]/40 cursor-default"
-                      : status === "esgotado" || encerrado
-                        ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                        : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                  }`}
-                >
-                  {isInscrito
-                    ? "Você já está inscrito ✓"
-                    : encerrado
-                      ? "Inscrições encerradas"
-                      : status === "esgotado"
-                        ? "Esgotado"
-                        : "Inscrever-se neste evento"}
-                </button>
-              )}
 
-              {/* Botão Ver QR Code — só quando inscrito */}
-              {isInscrito && inscricaoAluno && (
-                <button
-                  onClick={() => setModalQRAluno(true)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
-                >
-                  <IconQrcode size={15} />
-                  Ver meu QR Code
-                </button>
-              )}
-            </>
-          )}
-
-          {/* Ações colaborador/adm */}
-          {canEdit(role) && (
-            <div className="space-y-2">
-              <button
-                onClick={() => setModalInscritos(true)}
-                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-              >
-                <IconUsers size={15} />
-                Ver inscritos
-                {inscritosDoEvento.length > 0 && (
-                  <span className="ml-auto bg-slate-200 dark:bg-[#333] text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {inscritosDoEvento.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setModalForm(true)}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-              >
-                <IconEdit size={15} />
-                Editar evento
-              </button>
-
-              <button
-                onClick={abrirModalQR}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-[#FFDE00]/40 dark:border-[#FFDE00]/20 text-sm font-bold text-[#e6c800] dark:text-[#FFDE00] hover:bg-[#FFDE00]/10 dark:hover:bg-[#FFDE00]/5 transition-colors"
-              >
-                <IconQrcode size={15} />
-                Leitor QR Code (check-in)
-              </button>
-
-              {canDelete(role) && (
-                <button
-                  onClick={() => setModalExcluir(true)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-red-200 dark:border-red-900/40 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <IconTrash size={15} />
-                  Excluir evento
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -487,19 +488,66 @@ export default function DetalheEventoPage() {
             <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
               Seu QR Code de presença
             </p>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(inscricaoAluno.qrCode)}`}
-              alt="QR Code"
-              width={180}
-              height={180}
-              className="rounded-lg shadow"
-            />
-            <p className="text-xs text-slate-400 font-mono text-center break-all">
-              {inscricaoAluno.qrCode}
-            </p>
+
+            {/* Container da imagem com loading */}
+            <div className="relative w-[200px] h-[200px] shadow rounded-md bg-white flex items-center justify-center">
+              {/* Círculo de loading — some quando a imagem carrega */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="animate-spin w-10 h-10 text-slate-300" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    className="opacity-25"
+                    cx="12" cy="12" r="10"
+                    stroke="currentColor" strokeWidth="3"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              </div>
+
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(inscricaoAluno.qrCode)}`}
+                alt="QR Code"
+                width={180}
+                height={180}
+                className=" rounded-md opacity-0 transition-opacity duration-300"
+                onLoad={(e) => {
+                  // Quando carregar: mostra a imagem e some o spinner
+                  (e.target as HTMLImageElement).classList.remove("opacity-0");
+                  (e.target as HTMLImageElement).previousElementSibling?.classList.add("hidden");
+                }}
+              />
+            </div>
+
+            <div className="relative flex items-center gap-1.5 justify-center w-full">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(inscricaoAluno.qrCode);
+                  setCopiado(true);
+                  setTimeout(() => setCopiado(false), 2000);
+                }}
+                className="group flex items-center gap-1.5 cursor-pointer"
+              >
+                <p className="text-xs text-slate-400 font-mono text-center break-all group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                  {inscricaoAluno.qrCode}
+                </p>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg>
+              </button>
+
+              {copiado && (
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
+                  Copiado!
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setModalQRAluno(false)}
-              className="w-full py-2 rounded-lg bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#333] transition-colors"
+              className="w-full py-2 rounded-md bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#333] transition-colors"
             >
               Fechar
             </button>
