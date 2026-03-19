@@ -1,16 +1,21 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
-from core.config import settings
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+
+from core.config import settings
+from persistence.database import get_db
+from persistence.models.user_model import UserModel
+from persistence.repositories.user_repository import UserRepository
 
 # ==============================================================================
 # CONFIGURAÇÕES DE CRIPTOGRAFIA E AUTH (SECURITY CORE)
 # ==============================================================================
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-# Define a rota de token para a documentação automática do Swagger
+# O tokenUrl deve apontar para o prefixo correto definido no seu main.py
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
 # ==============================================================================
@@ -19,7 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 def hash_password(password: str) -> str:
     """
     Transforma senha em texto plano em um hash seguro utilizando Argon2.
-    Nota: Argon2 trunca senhas após 72 caracteres por design.
+    Argon2 trunca senhas após 72 caracteres por design para evitar ataques DoS.
     """
     if len(password) > 72:
         password = password[:72]
@@ -32,15 +37,44 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password[:72], hashed_password)
 
 # ==============================================================================
+# LÓGICA DE AUTENTICAÇÃO (LOGIN CORE)
+# ==============================================================================
+def authenticate_user(registration: str, password: str, db: Session):
+    """
+    Valida as credenciais do usuário baseadas na MATRÍCULA.
+    Retorna o UserModel se válido, caso contrário levanta exceção ou retorna False.
+    """
+    repository = UserRepository(db)
+    
+    # BUSCA PELA MATRÍCULA
+    user = repository.get_by_registration(registration.strip())
+    
+    if not user:
+        return False
+        
+    # Verificação de Conta Ativa (Importante para o fluxo de OTP)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta conta ainda não foi ativada. Verifique seu e-mail para validar o código OTP.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(password, user.password_hash):
+        return False
+        
+    return user
+
+# ==============================================================================
 # TOKENS DE ACESSO (JWT ISSUANCE)
 # ==============================================================================
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     """
     Gera um Token JWT assinado para autenticação do usuário.
+    Inclui Claims como sub (ID) e role para controle de acesso rápido.
     """
     to_encode = data.copy()
     
-    # Define o tempo de expiração (Usa Timezone UTC para evitar erros de servidor)
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -48,50 +82,63 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     
     to_encode.update({"exp": expire})
     
-    # Assina o token com a SECRET_KEY configurada no .env
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 # ==============================================================================
-# CONTROLE DE ACESSO (RBAC - ROLE-BASED ACCESS CONTROL)
+# CONTROLE DE ACESSO (RBAC COM SINCRONIZAÇÃO DE BANCO)
 # ==============================================================================
-def get_current_user_role(token: str = Depends(oauth2_scheme)):
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """
-    Filtro de extração de identidade. Valida o token e extrai a role do usuário.
+    Valida o token e verifica se o estado do usuário no banco condiz com o token.
+    Impede que usuários cujas permissões foram alteradas ou contas desativadas
+    continuem usando tokens antigos.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token inválido ou expirado",
+        detail="Sessão inválida ou expirada. Por favor, faça login novamente.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
     try:
-        # Decodifica o token e valida a integridade
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        role: str = payload.get("role")
+        user_id: str = payload.get("sub")
+        role_from_token: str = payload.get("role")
         
-        if role is None:
+        if user_id is None or role_from_token is None:
             raise credentials_exception
-        return role
+            
+        # Busca o estado ATUAL no banco via ID (PrimaryKey)
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        
+        if not user or not user.is_active:
+            raise credentials_exception
+
+        # RBAC Sync: Invalida o token se a Role no banco for diferente da Role no Token
+        if user.role != role_from_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Suas permissões de acesso mudaram. Por segurança, faça login novamente.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        return user
         
     except JWTError:
         raise credentials_exception
 
 class RoleChecker:
     """
-    Middleware injetável para proteção de rotas por nível de acesso.
-    
-    Exemplo:
-        @router.post("/", dependencies=[Depends(RoleChecker(["Administrador"]))])
+    Dependência injetável para proteção de rotas (Middleware de Role).
+    Exemplo de uso: Depends(RoleChecker(["admin", "staff"]))
     """
     def __init__(self, allowed_roles: list):
         self.allowed_roles = allowed_roles
 
-    def __call__(self, role: str = Depends(get_current_user_role)):
-        """
-        Verifica se o papel do usuário está no grupo de permissão da rota.
-        """
-        if role not in self.allowed_roles:
+    def __call__(self, current_user: UserModel = Depends(get_current_user)):
+        if current_user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Acesso Negado: Sua função não possui permissão para esta ação."
+                detail=f"Acesso Negado: Sua função '{current_user.role}' não possui permissão para este recurso."
             )
+        return current_user
