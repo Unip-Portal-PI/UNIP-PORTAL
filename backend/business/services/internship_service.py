@@ -23,19 +23,19 @@ class InternshipService:
     # ==========================================================================
     # CRIAÇÃO E PUBLICAÇÃO (POSTING ENGINE)
     # ==========================================================================
-    def create_internship(self, internship: InternshipModel, admin_id: str):
+    def create_internship(self, internship: InternshipModel, admin_id: int): # AJUSTE: int
         """
         Publica uma nova vaga de estágio e registra a autoria.
         
         Args:
             internship (InternshipModel): Instância com dados da empresa, cargo e requisitos.
-            admin_id (str): ID do administrador responsável pela postagem.
+            admin_id (int): ID do administrador responsável pela postagem.
         """
         created = self.repo.create(internship)
         
         if created:
             self.audit_repo.log_action(
-                user_id=admin_id,
+                user_id=str(admin_id), # Garante conversão para string no log se necessário
                 action="CREATE",
                 table_name="internships",
                 description=f"Postou vaga de {created.position} na empresa {created.company}"
@@ -59,7 +59,7 @@ class InternshipService:
     # ==========================================================================
     # MANUTENÇÃO E CICLO DE VIDA (LIFE CYCLE)
     # ==========================================================================
-    def update_internship(self, internship_id: int, internship_data, admin_id: str):
+    def update_internship(self, internship_id: int, internship_data, admin_id: int): # AJUSTE: int
         """
         Atualiza as informações de uma vaga e audita a alteração.
         Útil para correções de prazos ou alteração de requisitos.
@@ -68,14 +68,14 @@ class InternshipService:
         
         if updated:
             self.audit_repo.log_action(
-                user_id=admin_id,
+                user_id=str(admin_id),
                 action="UPDATE",
                 table_name="internships",
                 description=f"Atualizou vaga de estágio ID: {internship_id}"
             )
         return updated
 
-    def delete_internship(self, internship_id: int, admin_id: str):
+    def delete_internship(self, internship_id: int, admin_id: int): # AJUSTE: int
         """
         Remove uma vaga do sistema de forma lógica (Soft Delete).
         Garante que os logs de auditoria continuem apontando para um ID válido.
@@ -84,7 +84,7 @@ class InternshipService:
         
         if result:
             self.audit_repo.log_action(
-                user_id=admin_id,
+                user_id=str(admin_id),
                 action="DELETE",
                 table_name="internships",
                 description=f"Desativou (Soft Delete) vaga de estágio ID: {internship_id}"
