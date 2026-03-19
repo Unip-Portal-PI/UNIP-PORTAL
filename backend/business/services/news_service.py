@@ -8,8 +8,8 @@ from persistence.models.news_model import NewsModel
 class NewsService:
     """
     Serviço de Gestão de Notícias e Comunicados.
-    Controla a publicação de informativos, o rastreamento de leitura pelos alunos
-    e implementa políticas rigorosas de integridade e concorrência.
+    Controla a publicação de informativos, o rastreamento de leitura
+    e implementa políticas de integridade e controle de concorrência.
     """
 
     def __init__(self, repo: NewsRepository, audit_repo: AuditRepository):
@@ -25,7 +25,7 @@ class NewsService:
     def create_news(self, news_model: NewsModel, admin_id: int):
         """
         Publica um novo comunicado oficial no sistema.
-        Vincula explicitamente o autor para rastreabilidade futura.
+        Vincula o autor (int) para rastreabilidade.
         """
         news_model.author_id = admin_id
         created = self.repo.create(news_model)
@@ -42,11 +42,9 @@ class NewsService:
     def get_news_and_log_read(self, news_id: int, user_id: int):
         """ 
         Recupera uma notícia e registra o log de visualização.
-        Essencial para gerar relatórios de alcance e decidir o tipo de exclusão.
         """
         news = self.repo.get_by_id(news_id)
         if news:
-            # Registra que este usuário específico consumiu a informação
             self.repo.register_read(news_id, user_id)
         return news
 
@@ -55,20 +53,19 @@ class NewsService:
     # ==========================================================================
     def update_news(self, news_id: int, news_data, user_id: int, user_role: str, version_sent: int):
         """ 
-        Atualiza um comunicado validando permissões e integridade de versão.
-        Implementa Optimistic Concurrency Control.
+        Atualiza um comunicado validando permissões (admin/staff) e versão.
         """
         news = self.repo.get_by_id(news_id)
         if not news:
             return "not_found"
 
-        # 1. Validação de Permissão (RBAC)
-        # Colaboradores só editam suas próprias postagens. Admins são globais.
-        if user_role != "Administrador" and news.author_id != user_id:
+        # AJUSTE: Sincronizado com a role 'admin' (users.py)
+        # Se não for admin e não for o autor, bloqueia.
+        if user_role != "admin" and news.author_id != user_id:
             return "forbidden"
 
-        # 2. Verificação de Versão (Prevenção de sobrescrita cega)
-        if news.version != version_sent:
+        # Verificação de Versão (Optimistic Concurrency Control)
+        if hasattr(news, 'version') and news.version != version_sent:
             return "concurrency_error"
 
         updated = self.repo.update(news_id, news_data)
@@ -77,7 +74,7 @@ class NewsService:
                 user_id=str(user_id),
                 action="UPDATE",
                 table_name="news",
-                description=f"Editou comunicado ID {news_id} (Nova Versão: {updated.version})"
+                description=f"Editou comunicado ID {news_id}"
             )
         return updated
 
@@ -86,26 +83,26 @@ class NewsService:
     # ==========================================================================
     def delete_news(self, news_id: int, user_id: int, user_role: str):
         """ 
-        Executa a remoção lógica ou física baseada no engajamento.
+        Executa a remoção lógica (se houver leituras) ou física baseada no engajamento.
         """
         news = self.repo.get_by_id(news_id)
         if not news:
             return None
 
-        # Validação de autoridade
-        if user_role != "Administrador" and news.author_id != user_id:
+        # AJUSTE: Sincronizado com a role 'admin'
+        if user_role != "admin" and news.author_id != user_id:
             return "forbidden"
 
         # Inteligência de Exclusão:
-        # Se alguém já leu, o dado não pode sumir do banco (integridade de auditoria).
+        # Se houver registros de leitura, faz Soft Delete para preservar auditoria.
         has_readers = self.repo.count_reads(news_id) > 0
         
         if has_readers:
             result = self.repo.soft_delete(news_id)
-            action_desc = f"Soft Delete no comunicado ID {news_id} (motivo: já lido)"
+            action_desc = f"Soft Delete no comunicado ID {news_id} (possuía leituras)"
         else:
             result = self.repo.physical_delete(news_id)
-            action_desc = f"Delete Físico no comunicado ID {news_id} (motivo: sem leituras)"
+            action_desc = f"Delete Físico no comunicado ID {news_id} (sem leituras)"
 
         if result:
             self.audit_repo.log_action(
