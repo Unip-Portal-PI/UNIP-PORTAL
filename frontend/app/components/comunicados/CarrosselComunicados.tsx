@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from "react";
 import { IconChevronLeft, IconChevronRight, IconExternalLink } from "@tabler/icons-react";
 import { Comunicado } from "@/src/types/comunicado";
 import { isComunicadoExpirado } from "@/src/utils/comunicado.helpers";
-import { ComunicadoService } from "@/src/service/comunicado.service";
 
 interface CarrosselComunicadosProps {
   comunicados: Comunicado[];
@@ -41,9 +40,9 @@ export function CarrosselComunicados({ comunicados, onAbrir }: CarrosselComunica
     <div className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-[#303030] mb-8 group">
       {/* Slide */}
       <div
-        className="relative h-52 sm:h-64 cursor-pointer"
+        className="relative h-52 sm:h-95 cursor-pointer"
         onClick={() => {
-          ComunicadoService.marcarLido(atual.id);
+        
           onAbrir(atual);
         }}
       >

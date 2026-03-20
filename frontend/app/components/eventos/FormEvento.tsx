@@ -4,7 +4,8 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from "react";
 import { IconUpload, IconX, IconPaperclip, IconCalendar } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
-import { CURSOS, TURNOS } from "@/src/utils/evento.helpers";
+import { TURNOS } from "@/src/utils/evento.helpers";
+import { CURSOS } from "@/src/utils/cursos.helpers";
 
 type FormData = Omit<Evento, "id" | "criadoEm" | "vagasOcupadas" | "banner" | "anexos"> & {
   banner: string;
@@ -204,7 +205,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         </Campo>
 
         {/* Curso */}
-        <Campo label="Curso / Área vinculada" required>
+        <Campo label="Área vinculada" required>
           <select
             value={form.area}
             onChange={(e) => set("area", e.target.value)}

@@ -3,15 +3,7 @@
 import { Comunicado } from "@/src/types/comunicado";
 import { UserRole } from "@/src/types/user";
 
-export const CURSOS_COMUNICADO = [
-  "Todos",
-  "Análise e Desenvolvimento de Sistemas",
-  "Gestão Comercial",
-  "Gestão de RH",
-  "Logística",
-  "Marketing",
-  "Ciências Contábeis",
-];
+
 
 export function isComunicadoExpirado(c: Comunicado): boolean {
   if (!c.dataValidade) return false;

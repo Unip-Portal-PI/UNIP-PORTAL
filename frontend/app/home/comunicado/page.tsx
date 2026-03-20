@@ -11,11 +11,11 @@ import { Comunicado } from "@/src/types/comunicado";
 import { UserRole } from "@/src/types/user";
 import { ComunicadoService } from "@/src/service/comunicado.service";
 import {
-  CURSOS_COMUNICADO,
   canEditComunicado,
   canDeleteAllComunicados,
   isAutor,
 } from "@/src/utils/comunicado.helpers";
+import { CURSOS } from "@/src/utils/cursos.helpers"
 import { Auth } from "@/src/service/auth.service";
 
 import { ComunicadoCard } from "@/app/components/comunicados/modal/ComunicadoCard";
@@ -23,8 +23,8 @@ import { ModalComunicado } from "@/app/components/comunicados/modal/ModalComunic
 import { ModalExcluirComunicado } from "@/app/components/comunicados/modal/ModalExcluirComunicado";
 import { ModalFormComunicado } from "@/app/components/comunicados/modal/ModalFormComunicado";
 import { CarrosselComunicados } from "@/app/components/comunicados/CarrosselComunicados";
-import { FilterInput } from "@/app/components/eventos/filters/FilterInput";
-import { FilterSelect } from "@/app/components/eventos/filters/FilterSelect";
+import { FilterInput } from "@/app/components/filters/FilterInput";
+import { FilterSelect } from "@/app/components/filters/FilterSelect";
 
 export default function ComunicadoPage() {
   const sessao = Auth.getUser();
@@ -39,7 +39,7 @@ export default function ComunicadoPage() {
 
   // Filtros
   const [search, setSearch] = useState("");
-  const [curso, setCurso] = useState(CURSOS_COMUNICADO[0]); // "Todos"
+  const [curso, setCurso] = useState(CURSOS[0]); // "Todos"
 
   // Modais
   const [modalVer, setModalVer] = useState<Comunicado | null>(null);
@@ -124,6 +124,28 @@ export default function ComunicadoPage() {
         )}
       </div>
 
+      {/* Skeleton: Carrossel */}
+      {loading && (
+        <div className="w-full rounded-2xl overflow-hidden border border-slate-100 dark:border-[#303030] mb-8 animate-pulse">
+          <div className="relative h-52 sm:h-95 bg-slate-200 dark:bg-[#2a2a2a]">
+            {/* Overlay simulado */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            {/* Texto simulado */}
+            <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
+              <div className="h-4 bg-white/20 rounded-full w-20" />
+              <div className="h-5 bg-white/20 rounded w-2/3" />
+              <div className="h-3 bg-white/20 rounded w-1/3" />
+            </div>
+            {/* Dots simulados */}
+            <div className="absolute bottom-4 right-5 flex gap-1.5">
+              <div className="w-5 h-2 bg-white/30 rounded-full" />
+              <div className="w-2 h-2 bg-white/20 rounded-full" />
+              <div className="w-2 h-2 bg-white/20 rounded-full" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Carrossel de destaques */}
       {!loading && !erroCarga && comunicados.length > 0 && (
         <CarrosselComunicados
@@ -142,27 +164,47 @@ export default function ComunicadoPage() {
             onChange={setSearch}
           />
           <FilterSelect
-            label="Curso / Área"
+            label="Área"
             value={curso}
             onChange={setCurso}
-            options={CURSOS_COMUNICADO}
+            options={CURSOS}
           />
         </div>
       </div>
 
-      {/* Estado: carregando */}
+      {/* Skeleton: Cards */}
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
               className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] overflow-hidden animate-pulse"
             >
-              <div className="h-40 bg-slate-200 dark:bg-[#2a2a2a]" />
-              <div className="p-4 space-y-3">
-                <div className="h-4 bg-slate-200 dark:bg-[#2a2a2a] rounded w-3/4" />
-                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
-                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+              {/* Banner */}
+              <div className="h-72 bg-slate-200 dark:bg-[#2a2a2a]" />
+              {/* Conteúdo */}
+              <div className="p-6 space-y-4">
+                {/* Título */}
+                <div className="space-y-2">
+                  <div className="h-5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-3/4" />
+                  <div className="h-5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+                </div>
+                {/* Resumo */}
+                <div className="space-y-2">
+                  <div className="h-3.5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
+                  <div className="h-3.5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
+                  <div className="h-3.5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-2/3" />
+                  <div className="h-3.5 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+                </div>
+                {/* Meta */}
+                <div className="flex gap-4">
+                  <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-20" />
+                  <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-24" />
+                </div>
+                {/* Separador */}
+                <div className="h-px bg-slate-100 dark:bg-[#2a2a2a]" />
+                {/* Botão */}
+                <div className="h-10 bg-slate-200 dark:bg-[#2a2a2a] rounded-md w-full" />
               </div>
             </div>
           ))}
@@ -201,7 +243,7 @@ export default function ComunicadoPage() {
 
       {/* Grid de comunicados */}
       {!loading && !erroCarga && comunicadosFiltrados.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {comunicadosFiltrados.map((comunicado) => (
             <ComunicadoCard
               key={comunicado.id}

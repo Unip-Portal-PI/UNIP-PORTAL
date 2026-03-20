@@ -14,7 +14,6 @@ import { Menu, X, LogOut, User, Sun, Moon, CalendarDays, Megaphone, Settings } f
 import { Auth } from "@/src/service/auth.service";
 import { useLoading } from "@/app/components/LoadingContext";
 import { UserRole } from "@/src/types/user";
-import { SinoComunicados } from "@/app/components/comunicados/notificacoes/SinoComunicados";
 
 const NAV_ITEMS: { label: string; href: string; icon: React.ReactNode; roles?: UserRole[] }[] = [
   { label: "Evento", href: "/home/eventos", icon: <CalendarDays className="w-5 h-5" /> },
@@ -32,7 +31,7 @@ export default function Navbar() {
 
   const desktopProfileRef = useRef<HTMLDivElement>(null);
   const mobileProfileRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const { showLoading } = useLoading();
@@ -75,7 +74,7 @@ export default function Navbar() {
     aluno: "Aluno",
   };
 
-  const isDark = mounted && theme === "dark";
+  const isDark = mounted && resolvedTheme === "dark";
 
   const AvatarImg = ({ size }: { size: number }) => (
     <img
@@ -151,8 +150,8 @@ export default function Navbar() {
 
         {/* ── Direita: sino + avatar ── */}
         <div className="flex items-center gap-3">
-          {/* 🔔 SINO DE NOTIFICAÇÕES */}
-          <SinoComunicados />
+      
+  
 
           <div className="relative" ref={desktopProfileRef}>
             <button
@@ -180,8 +179,6 @@ export default function Navbar() {
           <Image src="/img/logo_avp_vertical_dark.png" alt="AVP Conecta" width={40} height={10} className="object-contain hidden dark:block" />
         </Link>
 
-        {/* 🔔 SINO mobile (header) */}
-        <SinoComunicados />
       </header>
 
       {/* ── DRAWER MOBILE ── */}

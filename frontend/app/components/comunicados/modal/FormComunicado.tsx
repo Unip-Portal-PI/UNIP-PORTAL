@@ -14,7 +14,7 @@ import {
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { Comunicado, ComunicadoAnexo } from "@/src/types/comunicado";
-import { CURSOS_COMUNICADO } from "@/src/utils/comunicado.helpers";
+import { CURSOS } from "@/src/utils/cursos.helpers";
 
 const MAX_ANEXO_MB = 10;
 const TIPOS_ACEITOS = ["application/pdf", "image/jpeg", "image/png"];
@@ -245,7 +245,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         {/* Visibilidade */}
         <Campo label="Visibilidade (cursos que podem ver)" required>
           <div className="flex flex-wrap gap-2 mt-1">
-            {CURSOS_COMUNICADO.map((curso) => {
+            {CURSOS.map((curso) => {
               const ativo =
                 curso === "Todos"
                   ? form.visibilidade.includes("Todos")

@@ -80,7 +80,7 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
             <img
               src={comunicado.banner}
               alt={comunicado.titulo}
-              className="w-full h-48 object-cover rounded-xl"
+              className="w-full h-68 object-cover rounded-xl"
             />
           )}
 

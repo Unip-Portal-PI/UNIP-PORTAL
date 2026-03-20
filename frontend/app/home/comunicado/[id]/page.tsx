@@ -49,7 +49,7 @@ export default function ComunicadoDetalhePage() {
     try {
       const data = await ComunicadoService.getById(id);
       if (!data) { setNaoEncontrado(true); return; }
-      ComunicadoService.marcarLido(id);
+
       setComunicado(data);
     } catch {
       setNaoEncontrado(true);
@@ -146,10 +146,10 @@ export default function ComunicadoDetalhePage() {
 
   const dataValidadeFormatada = comunicado.dataValidade
     ? new Date(comunicado.dataValidade + "T00:00:00").toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
     : null;
 
   return (
@@ -201,8 +201,10 @@ export default function ComunicadoDetalhePage() {
             />
           </div>
         ) : (
-          <div className="w-full h-40 rounded-2xl bg-gradient-to-br from-[#FFDE00]/70 to-amber-400 flex items-center justify-center mb-6 shadow-sm">
-            <IconSpeakerphone size={48} className="text-[#252525] opacity-20" />
+          <div className="w-full h-60 rounded-2xl bg-gradient-to-br from-[#FFDE00]/70 to-amber-400 flex items-center justify-center mb-6 shadow-sm">
+            <span className="text-[#252525] text-5xl font-black opacity-40 select-none text-center">
+              Comunicado<br />AVP
+            </span>
           </div>
         )}
 

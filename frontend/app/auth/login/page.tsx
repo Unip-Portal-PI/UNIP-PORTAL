@@ -61,7 +61,7 @@ export default function Login() {
               <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={130} height={80} className="object-contain" />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-6">Login</h2>
+            <h2 className="text-2xl font-bold text-[#202020] dark:text-white text-center mb-6">Login</h2>
 
             {/* ✅ form com onSubmit — essencial para o browser oferecer salvar credenciais */}
             <form
@@ -101,9 +101,9 @@ export default function Login() {
                       onChange={(e) => setLembrar(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-300 dark:border-[#505050] accent-[#0f0f1e] dark:accent-yellow-400 cursor-pointer"
                     />
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Lembre de mim</span>
+                    <span className="text-xm text-slate-600 dark:text-slate-400">Lembre de mim</span>
                   </label>
-                  <Link href="/auth/reset-senha" className="text-base text-blue-600 dark:text-blue-400 hover:underline">
+                  <Link href="/auth/reset-senha" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                     Esqueceu sua senha?
                   </Link>
                 </div>
@@ -118,7 +118,7 @@ export default function Login() {
               {/* ✅ type="submit" para o browser reconhecer o fluxo de login */}
               <button
                 type="submit"
-                className="bg-[#0f0f1e] cursor-pointer dark:bg-yellow-400 dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
+                className="bg-[#0f0f1e] cursor-pointer dark:bg-yellow-400 dark:text-[#202020] text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
               >
                 Entrar
               </button>

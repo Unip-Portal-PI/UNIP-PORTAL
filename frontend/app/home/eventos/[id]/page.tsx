@@ -26,11 +26,11 @@ import {
   canDelete,
 } from "@/src/utils/evento.helpers";
 import { Auth } from "@/src/service/auth.service";
-import { ModalInscricao } from "@/app/components/eventos/modal/ModalInscricao";
-import { ModalExcluir } from "@/app/components/eventos/modal/ModalExcluir";
-import { ModalFormEvento } from "@/app/components/eventos/modal/ModalFormEvento";
-import { ModalQRReader } from "@/app/components/eventos/modal/ModalQRReader";
-import { ModalListaInscritos } from "@/app/components/eventos/modal/ModalListaInscritos";
+import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
+import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
+import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
+import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
+import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscritos";
 
 export default function DetalheEventoPage() {
   const { id } = useParams<{ id: string }>();
@@ -204,7 +204,7 @@ export default function DetalheEventoPage() {
         />
       ) : (
         <div className="w-full h-64 rounded-2xl mb-6 bg-gradient-to-br from-[#FFDE00] to-[#e6c800] flex items-center justify-center shadow-sm">
-          <span className="text-[#252525] text-7xl font-bold opacity-20">{evento.nome[0]}</span>
+          <span className="text-[#252525] text-7xl font-black opacity-20 text-center">Evento<br />AVP</span>
         </div>
       )}
 
