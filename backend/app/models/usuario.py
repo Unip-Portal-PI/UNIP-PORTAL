@@ -18,9 +18,10 @@ class UsuarioModel(Base):
     telefone = Column(String(20), nullable=True)
     data_nascimento = Column(Date, nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
-    otp_code = Column(String(5), nullable=True)
+    otp_code = Column(String(6), nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
     data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     nivel_acesso = relationship("NivelAcessoModel", lazy="joined")
     curso = relationship("CursoModel", lazy="joined")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, text
+from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.core.database import Base
@@ -6,6 +6,9 @@ from app.core.database import Base
 
 class InscricaoModel(Base):
     __tablename__ = "inscricao"
+    __table_args__ = (
+        UniqueConstraint("id_evento", "id_usuario", name="uq_inscricao_usuario_evento"),
+    )
 
     id_inscricao = Column(String(36), primary_key=True, server_default=text("(UUID())"))
     id_evento = Column(String(36), ForeignKey("evento.id_evento", ondelete="CASCADE"), nullable=False)

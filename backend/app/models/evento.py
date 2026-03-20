@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Integer, Date, DateTime, ForeignKey, Table, text
+from sqlalchemy import Column, String, Integer, Date, DateTime, Time, Enum, ForeignKey, text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.core.database import Base
+from app.core.enums import Turno, TipoInscricao, Visibilidade
 
 
 class EventoCurso(Base):
@@ -27,16 +28,17 @@ class EventoModel(Base):
     descricao_breve = Column(String(120), nullable=True)
     banner_url = Column(String(500), nullable=True)
     data = Column(Date, nullable=False)
-    horario = Column(String(5), nullable=True)
-    turno = Column(String(20), nullable=True)
+    horario = Column(Time, nullable=True)
+    turno = Column(Enum(Turno), nullable=True)
     id_sala = Column(String(36), ForeignKey("sala.id_sala"), nullable=True)
     vagas = Column(Integer, nullable=True)
     data_limite_inscricao = Column(Date, nullable=True)
-    tipo_inscricao = Column(String(20), default="interna", nullable=False)
+    tipo_inscricao = Column(Enum(TipoInscricao), default=TipoInscricao.INTERNA, nullable=False)
     url_externa = Column(String(500), nullable=True)
-    visibilidade = Column(String(20), default="publica", nullable=False)
+    visibilidade = Column(Enum(Visibilidade), default=Visibilidade.PUBLICA, nullable=False)
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
     data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     sala = relationship("SalaModel", lazy="joined")
     cursos = relationship("CursoModel", secondary="evento_curso", lazy="joined")
