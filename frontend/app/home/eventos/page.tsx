@@ -17,7 +17,6 @@ import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 // import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
-import { useCameraPermission } from "@/src/hooks/useCameraPermission";
 export default function EventosPage() {
   const sessao = Auth.getUser();
   const role = (sessao?.permission ?? "aluno") as UserRole;
