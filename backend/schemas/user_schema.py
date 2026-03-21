@@ -24,7 +24,7 @@ class AttachmentResponse(AttachmentBase):
 
 class EventBase(BaseModel):
     """
-    Schema base com todos os campos em inglês para corresponder ao Modelo do Banco de Dados.
+    Schema base para eventos correspondente ao Modelo do Banco de Dados.
     """
     title: str = Field(..., min_length=3)
     short_description: Optional[str] = Field(None, max_length=120)
@@ -89,7 +89,6 @@ class UserCreate(BaseModel):
     @classmethod
     def validate_phone(cls, v):
         if v:
-            # Remove caracteres não numéricos
             return re.sub(r"\D", "", v)
         return v
 
@@ -129,5 +128,24 @@ class PasswordUpdate(BaseModel):
     @field_validator("new_password")
     @classmethod
     def validate_new_password(cls, v):
-        # Reutiliza a lógica de complexidade do UserCreate
         return UserCreate.password_complexity(v)
+# ==============================================================================
+# NOVOS SCHEMAS DE AUTENTICAÇÃO
+# ==============================================================================
+
+class UserLogin(BaseModel):
+    """Schema para captura de credenciais no login."""
+    registration_number: str
+    password: str
+
+class UserVerifyOTP(BaseModel):
+    """Schema para validação do código de ativação enviado por e-mail."""
+    email: EmailStr
+    otp_code: str = Field(..., min_length=6, max_length=6)
+
+    @field_validator("otp_code")
+    @classmethod
+    def validate_otp_format(cls, v):
+        if not v.isdigit():
+            raise ValueError("O código deve conter apenas números.")
+        return v
