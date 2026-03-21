@@ -43,6 +43,9 @@ class NewsModel(Base):
     # Controle de Soft Delete: Define se a notícia está visível no feed
     is_active = Column(Boolean, default=True)
 
+    # Status detalhado conforme RN04 (Ativo, Inativo, Excluido) (@Gabriel)
+    status = Column(String(20), default="Ativo")
+
     # ==========================================================================
     # GOVERNANÇA E INTEGRIDADE (BUSINESS RULES)
     # ==========================================================================
@@ -57,3 +60,30 @@ class NewsModel(Base):
     # ==========================================================================
     # Permite carregar o objeto do autor: news_obj.author.name
     author = relationship("UserModel")
+    # Permite carregar os registros de leitura associados: news_obj.reads (@Gabriel)
+    reads = relationship("NewsReadModel", back_populates="news")
+
+# ==========================================================================
+# REGISTRO DE LEITURA (AUDITORIA DE CONSUMO) - RN09 (@Gabriel)
+# ==========================================================================
+class NewsReadModel(Base):
+    """
+    Modelo de registro de leitura para auditoria de consumo.
+    Permite rastrear quais usuários leram quais notícias e quando.
+    """
+    __tablename__ = "news_reads"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # ID da notícia lida (Vínculo com a tabela de notícias)
+    news_id = Column(Integer, ForeignKey("news.id"), nullable=False)
+        
+    # ID do usuário que leu a notícia (Vínculo com a tabela de usuários)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+        
+    # Data e hora da leitura (Uso de callable para garantir o tempo de execução)
+    read_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relacionamentos para facilitar consultas
+    news = relationship("NewsModel", back_populates="reads")
+    user = relationship("UserModel")

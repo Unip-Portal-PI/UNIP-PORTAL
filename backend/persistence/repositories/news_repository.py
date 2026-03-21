@@ -30,6 +30,7 @@ class NewsRepository:
         return self.db.query(NewsModel).filter(
             NewsModel.id == news_id, 
             NewsModel.is_active == True
+            NewsModel.status == "Ativo" # <--- Filtro de segurança (@Gabriel)
         ).first()
 
     def list(self, skip: int = 0, limit: int = 10) -> List[NewsModel]:
@@ -98,6 +99,7 @@ class NewsRepository:
         news = self.db.query(NewsModel).filter_by(id=news_id).first()
         if news:
             news.is_active = False
+            news.status = "Excluido"  # <--- (@Gabriel)
             self.db.commit()
             return True
         return False

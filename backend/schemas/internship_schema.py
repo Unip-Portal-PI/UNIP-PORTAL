@@ -1,37 +1,41 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional
 
 # ==============================================================================
 # SCHEMAS DE OPORTUNIDADES DE ESTÁGIO (INTERNSHIP DTOs)
 # ==============================================================================
-class InternshipCreate(BaseModel):
-    """
-    Schema de Entrada (POST/PUT).
-    Define os dados necessários para cadastrar uma nova vaga no mural.
-    O campo 'end_date' é opcional para casos de vagas com prazo indeterminado.
-    """
-    company: str
-    position: str
+class InternshipBase(BaseModel):
+    """Base para evitar repetição de campos entre Create e Response."""
+    company: str = Field(..., min_length=2, max_length=100)
+    position: str = Field(..., min_length=2, max_length=100)
     description: Optional[str] = None
-    location: str
+    location: str = Field(..., max_length=100)
     start_date: datetime
     end_date: Optional[datetime] = None
 
+class InternshipCreate(InternshipBase):
+    """
+    Schema de Entrada (POST).
+    Nota: O 'author_id' não está aqui porque será injetado pelo Token JWT no Backend.
+    """
+    pass
 
-class InternshipResponse(BaseModel):
+class InternshipUpdate(InternshipBase):
+    """Schema para atualização, incluindo o controle de versão (@Gabriel)."""
+    current_version: int = Field(..., description="Versão atual para evitar conflitos")
+
+class InternshipResponse(InternshipBase):
     """
     Schema de Saída (GET).
-    Retorna os dados da vaga incluindo o ID gerado pelo banco.
-    A configuração 'from_attributes' permite a conversão direta do modelo SQLAlchemy.
+    Inclui campos de governança e rastro de auditoria (@Gabriel).
     """
     id: int
-    company: str
-    position: str
-    description: Optional[str] = None
-    location: str
-    start_date: datetime
-    end_date: Optional[datetime] = None
+    status: str          # Ativo, Encerrado, Excluido
+    is_active: bool
+    author_id: int       # ID de quem postou a vaga
+    version: int
+    created_at: datetime
 
     # Configuração moderna para Pydantic V2
     model_config = ConfigDict(from_attributes=True)

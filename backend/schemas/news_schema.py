@@ -42,6 +42,7 @@ class NewsResponse(NewsBase):
     id: int
     created_at: datetime
     is_active: bool
+    status: str  # <--- (@Gabriel)
     author_id: int  
     version: int    
 
@@ -60,3 +61,11 @@ class NewsReadResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class NewsReadCreate(BaseModel): # (@Gabriel)
+    """ 
+    Schema de Criação de Log de Leitura.
+    Registra a leitura de um aviso por um usuário específico.
+    """
+    news_id: int
+   # user_id: int  # O ID do usuário pode ser inferido a partir do token de autenticação

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from persistence.database import Base
 from datetime import datetime, timezone
 
@@ -50,6 +51,21 @@ class InternshipModel(Base):
     # ==========================================================================
     # Controle de exibição (Soft Delete): Define se a vaga está visível
     is_active = Column(Boolean, default=True) 
+
+    # Status detalhado conforme RN04 (Ativo, Encerrado, Excluido) <---(@Gabriel)
+    status = Column(String(20), default="Ativo")
     
+    # Rastro de auditoria - Quem criou a vaga? <---(@Gabriel)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+   
     # Registro automático do momento da criação da vaga
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Controle de Versão para integridade de dados <---(@Gabriel)
+    version = Column(Integer, default=1)
+
+    # ==========================================================================
+    # RELACIONAMENTOS (ORM MAPPING)
+    #==========================================================================
+    # Permite saber qual usuário/staff postou a vaga
+    author = relationship("UserModel")
