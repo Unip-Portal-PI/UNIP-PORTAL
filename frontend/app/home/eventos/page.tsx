@@ -6,17 +6,17 @@ import { IconPlus, IconQrcode, IconAlertCircle, IconCalendarOff } from "@tabler/
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
 import { EventoService } from "@/src/service/evento.service";
-import { CURSOS, TURNOS, canEdit } from "@/src/utils/evento.helpers";
-
+import { TURNOS, canEdit } from "@/src/utils/evento.helpers";
+import { CURSOS } from "@/src/utils/cursos.helpers";
 import { Auth } from "@/src/service/auth.service";
-import { EventoCard } from "@/app/components/eventos/modal/EventoCard";
-import { ModalInscricao } from "@/app/components/eventos/modal/ModalInscricao";
-import { ModalExcluir } from "@/app/components/eventos/modal/ModalExcluir";
-import { ModalFormEvento } from "@/app/components/eventos/modal/ModalFormEvento";
-import { ModalQRReader } from "@/app/components/eventos/modal/ModalQRReader";
+import { EventoCard } from "@/app/components/eventos/EventoCard";
+import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
+import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
+import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
+import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 // import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
-import { FilterInput } from "@/app/components/eventos/filters/FilterInput";
-import { FilterSelect } from "@/app/components/eventos/filters/FilterSelect";
+import { FilterInput } from "@/app/components/filters/FilterInput";
+import { FilterSelect } from "@/app/components/filters/FilterSelect";
 import { useCameraPermission } from "@/src/hooks/useCameraPermission";
 export default function EventosPage() {
   const sessao = Auth.getUser();

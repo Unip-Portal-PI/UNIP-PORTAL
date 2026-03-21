@@ -5,7 +5,7 @@ import { Evento } from "@/src/types/evento";
 export const MOCK_EVENTOS: Evento[] = [
   {
     id: "1",
-    banner: "https://picsum.photos/seed/evt1/800/400",
+    banner: "https://picsum.photos/800/400",
     nome: "Semana de Tecnologia 2026",
     descricaoBreve: "Palestras, workshops e hackathon sobre as últimas tendências em TI.",
     descricaoCompleta:
@@ -28,7 +28,7 @@ export const MOCK_EVENTOS: Evento[] = [
   },
   {
     id: "2",
-    banner: "https://picsum.photos/seed/evt2/800/400",
+    banner: "https://picsum.photos/800/400",
     nome: "Workshop de Design UX/UI",
     descricaoBreve: "Aprenda os fundamentos de design de interfaces com especialistas do mercado.",
     descricaoCompleta:
@@ -48,7 +48,7 @@ export const MOCK_EVENTOS: Evento[] = [
   },
   {
     id: "3",
-    banner: "https://picsum.photos/seed/evt3/800/400",
+    banner: "https://picsum.photos/800/400",
     nome: "Palestra: Mercado Financeiro e Investimentos",
     descricaoBreve: "Entenda como funciona o mercado financeiro e como começar a investir.",
     descricaoCompleta:
@@ -68,7 +68,7 @@ export const MOCK_EVENTOS: Evento[] = [
   },
   {
     id: "4",
-    banner: "https://picsum.photos/seed/evt4/800/400",
+    banner: "https://picsum.photos/800/400",
     nome: "Feira de Estágios e Empregos",
     descricaoBreve: "Conecte-se com empresas parceiras e descubra oportunidades de carreira.",
     descricaoCompleta:

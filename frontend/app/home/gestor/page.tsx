@@ -1,8 +1,9 @@
-// app/page/gestor/page.tsx
-export default function Gestor() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
-    </div>
-  );
+// app/home/gestor/page.tsx
+// Substitui o arquivo original (que só tinha um <h1> vazio)
+"use client";
+
+import { TabelaUsuarios } from "@/app/components/gestor/TabelaUsuarios";
+
+export default function GestorPage() {
+  return <TabelaUsuarios />;
 }

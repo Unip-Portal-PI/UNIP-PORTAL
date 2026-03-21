@@ -73,7 +73,7 @@ export const MOCK_INSCRICOES: Inscricao[] = [
     alunoArea: "admistração",
     alunoMatricula: "AD20240033",
     dataInscricao: "2025-08-10",
-    presencaConfirmada: true,
+    presencaConfirmada: false,
     qrCode: "QR_AD20240033_2",
   },
   {

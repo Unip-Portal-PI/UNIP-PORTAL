@@ -78,9 +78,9 @@ export function EventoCard({
             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-40 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-            <span className="text-white text-4xl font-bold opacity-30">
-              {evento.nome[0]}
+          <div className="w-full h-40 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
+            <span className="text-[#252525] text-4xl font-black opacity-20 select-none text-center">
+              Evento<br />AVP
             </span>
           </div>
         )}
