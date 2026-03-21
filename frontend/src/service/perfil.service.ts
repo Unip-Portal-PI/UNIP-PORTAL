@@ -2,14 +2,16 @@
 "use client";
 
 import { MOCK_USUARIOS } from "@/src/data/usersMock";
-import { Usuario, UsuarioSessao } from "@/src/types/user";
-import { simularLatencia } from "@/src/utils/auth.helpers";
+import { Usuario } from "@/src/types/user";
 
 // Fotos de perfil em memória (matricula → dataURL)
 const _fotos: Record<string, string> = {};
 
+// Listeners para mudança de foto
+type FotoListener = (matricula: string, dataURL: string | null) => void;
+const _listeners: Set<FotoListener> = new Set();
+
 export const PerfilService = {
-  // Busca dados completos do usuário logado (incluindo campos não presentes na sessão)
   getDadosCompletos(matricula: string): Promise<Usuario | null> {
     return new Promise((resolve) =>
       setTimeout(() => {
@@ -19,7 +21,6 @@ export const PerfilService = {
     );
   },
 
-  // Verifica se e-mail já está em uso por outro usuário
   emailEmUso(email: string, ignorarMatricula: string): boolean {
     return MOCK_USUARIOS.some(
       (u) =>
@@ -28,7 +29,6 @@ export const PerfilService = {
     );
   },
 
-  // Atualiza dados pessoais
   atualizarDados(
     matricula: string,
     dados: Partial<Pick<Usuario, "nome" | "apelido" | "email" | "telefone" | "dataNascimento" | "area">>
@@ -46,7 +46,6 @@ export const PerfilService = {
     });
   },
 
-  // Altera senha
   alterarSenha(matricula: string, senhaAtual: string, novaSenha: string): Promise<void> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -61,12 +60,20 @@ export const PerfilService = {
     });
   },
 
-  // Foto de perfil (em memória — simulação)
   getFoto(matricula: string): string | null {
     return _fotos[matricula] ?? null;
   },
 
+  // Salva a foto E notifica todos os listeners (navbar, perfil, etc.)
   salvarFoto(matricula: string, dataURL: string): void {
     _fotos[matricula] = dataURL;
+    _listeners.forEach((fn) => fn(matricula, dataURL));
+  },
+
+  // Inscreve um componente para receber atualizações de foto
+  // Retorna função de cancelamento para usar no cleanup do useEffect
+  onFotoAtualizada(listener: FotoListener): () => void {
+    _listeners.add(listener);
+    return () => _listeners.delete(listener);
   },
 };

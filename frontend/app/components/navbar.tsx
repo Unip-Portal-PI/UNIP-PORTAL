@@ -15,7 +15,7 @@ import { Auth } from "@/src/service/auth.service";
 import { useLoading } from "@/app/components/LoadingContext";
 import { UserRole } from "@/src/types/user";
 import { PerfilService } from "@/src/service/perfil.service";
-
+import { useFotoPerfil } from "@/src/context/FotoPerfilContext";
 const NAV_ITEMS: { label: string; href: string; icon: React.ReactNode; roles?: UserRole[] }[] = [
   { label: "Evento", href: "/home/eventos", icon: <CalendarDays className="w-5 h-5" /> },
   { label: "Comunicado", href: "/home/comunicado", icon: <Megaphone className="w-5 h-5" /> },
@@ -27,7 +27,7 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
   const [mounted, setMounted] = useState(false);
-
+  const { foto } = useFotoPerfil();
   useEffect(() => { setMounted(true); }, []);
 
   const desktopProfileRef = useRef<HTMLDivElement>(null);
@@ -40,7 +40,6 @@ export default function Navbar() {
   const user = Auth.getUser();
   const apelido = user?.apelido ?? "Usuário";
   const role = user?.permission;
-  const foto = user ? PerfilService.getFoto(user.matricula) : null;
   const navItems = NAV_ITEMS.filter(
     (item) => !item.roles || (role && item.roles.includes(role))
   );

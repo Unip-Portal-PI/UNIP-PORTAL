@@ -18,6 +18,7 @@ import {
 import { Usuario } from "@/src/types/user";
 import { PerfilService } from "@/src/service/perfil.service";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import { useFotoPerfil } from "@/src/context/FotoPerfilContext";
 
 interface Props {
   usuario: Usuario;
@@ -66,7 +67,9 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
   const [telefone, setTelefone] = useState(usuario.telefone);
   const [dataNasc, setDataNasc] = useState(usuario.dataNascimento);
   const [area, setArea] = useState(usuario.area);
+  const { atualizarFoto } = useFotoPerfil();
   const [foto, setFoto] = useState<string | null>(PerfilService.getFoto(matricula));
+  const [fotoTemp, setFotoTemp] = useState<string | null>(null);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [feedbackDados, setFeedbackDados] = useState<"sucesso" | "erro" | null>(null);
@@ -87,9 +90,9 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      setFoto(url);
-      PerfilService.salvarFoto(matricula, url);
+      const dataURL = ev.target?.result as string;
+      setFoto(dataURL);       // atualiza preview na tela
+      setFotoTemp(dataURL);   // guarda para salvar depois
     };
     reader.readAsDataURL(file);
   }
@@ -111,6 +114,13 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
     setErroGeral("");
     try {
       await PerfilService.atualizarDados(matricula, { nome, apelido, email, telefone, dataNascimento: dataNasc, area });
+
+      // Só propaga a foto para a navbar APÓS salvar com sucesso
+      if (fotoTemp) {
+        atualizarFoto(matricula, fotoTemp);
+        setFotoTemp(null);
+      }
+
       setFeedbackDados("sucesso");
       onAtualizado();
       setTimeout(() => setFeedbackDados(null), 3000);
