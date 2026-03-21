@@ -11,6 +11,7 @@ from persistence.repositories.user_repository import UserRepository
 from persistence.repositories.audit_repository import AuditRepository
 from schemas.user_schema import UserCreate, UserResponse, UserUpdateSelf
 from core.security import RoleChecker, oauth2_scheme, settings
+from persistence import models
 
 router = APIRouter(prefix="", tags=["Users & Auth"])
 
@@ -27,14 +28,25 @@ class RoleUpdate(BaseModel):
     new_role: str  # 'student', 'staff' ou 'admin'
 
 class PasswordResetConfirm(BaseModel):
-    otp_code: str = Field(..., min_length=4, max_length=4)
-    current_password: str
+    otp_code: str = Field(..., min_length=6, max_length=6)
     new_password: str = Field(..., min_length=8)
 
 class ForgotPasswordConfirm(BaseModel):
     email: str
-    otp_code: str = Field(..., min_length=4, max_length=4)
+    otp_code: str = Field(..., min_length=6, max_length=6)
     new_password: str = Field(..., min_length=8)
+
+# ==============================================================================
+# DEPENDÊNCIAS DE SERVIÇO
+# ==============================================================================
+
+def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
+    """Centraliza a criação do AuthService com todas as dependências."""
+    return AuthService(
+        repo=UserRepository(db), 
+        audit_repo=AuditRepository(db), 
+        email_service=EmailService()
+    )
 
 # ==============================================================================
 # SEGURANÇA
@@ -57,12 +69,8 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
 # ==============================================================================
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    """
-    Cadastra um novo usuário. 
-    Obrigatoriedade: name, nickname, registration_number, email, password, area.
-    """
-    service = AuthService(UserRepository(db), AuditRepository(db))
+def register_user(user: UserCreate, service: AuthService = Depends(get_auth_service)):
+    """Cadastra um novo usuário e envia e-mail de ativação."""
     created_user = service.register(
         name=user.name,
         nickname=user.nickname,
@@ -79,21 +87,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             status_code=400, 
             detail="E-mail ou Matrícula já cadastrados no sistema."
         )
-    
-    # Envio de e-mail apenas se não for o primeiro admin (que já nasce ativo)
-    if created_user.otp_code:
-        try:
-            EmailService().send_verification_code(created_user.email, code=created_user.otp_code)
-        except Exception:
-            # Não trava o registro se o provedor de e-mail falhar, mas avisa
-            pass
             
     return created_user
 
 @router.post("/verify-otp")
-def verify_otp(data: VerifyOTP, db: Session = Depends(get_db)):
+def verify_otp(data: VerifyOTP, service: AuthService = Depends(get_auth_service)):
     """Ativa a conta do usuário através do código enviado por e-mail."""
-    service = AuthService(UserRepository(db), AuditRepository(db))
     success = service.activate_account(data.email, data.code)
     
     if not success:
@@ -102,21 +101,19 @@ def verify_otp(data: VerifyOTP, db: Session = Depends(get_db)):
     return {"message": "Conta ativada com sucesso! Agora você pode realizar o login."}
 
 # ==============================================================================
-# FLUXO DE ACESSO (LOGIN POR MATRÍCULA)
+# FLUXO DE ACESSO (LOGIN E RECUPERAÇÃO ESQUECIDA)
 # ==============================================================================
 
 @router.post("/login")
 def login(
     registration: str = Body(..., description="Matrícula/RA"), 
     password: str = Body(...), 
-    db: Session = Depends(get_db)
+    service: AuthService = Depends(get_auth_service)
 ):
     """Realiza o login utilizando Matrícula e Senha."""
-    service = AuthService(UserRepository(db), AuditRepository(db))
     result = service.login(registration, password)
     
     if not result:
-        # Se retornar None, as credenciais estão erradas
         raise HTTPException(
             status_code=401, 
             detail="Matrícula ou senha incorretos."
@@ -124,16 +121,17 @@ def login(
     return result
 
 @router.post("/forgot-password/request")
-def request_recovery_otp(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
-    service = AuthService(UserRepository(db), AuditRepository(db))
-    otp = service.request_otp_by_email(email)
-    if otp:
-        EmailService().send_verification_code(email, code=otp)
+def request_recovery_otp(
+    email: str = Body(..., embed=True), 
+    service: AuthService = Depends(get_auth_service)
+):
+    """Gera e envia via e-mail o código de recuperação para quem esqueceu a senha."""
+    service.request_otp_by_email(email)
     return {"message": "Se o e-mail existir, um código de recuperação foi enviado."}
 
 @router.post("/forgot-password/confirm")
-def confirm_recovery(data: ForgotPasswordConfirm, db: Session = Depends(get_db)):
-    service = AuthService(UserRepository(db), AuditRepository(db))
+def confirm_recovery(data: ForgotPasswordConfirm, service: AuthService = Depends(get_auth_service)):
+    """Confirma a recuperação de senha utilizando o código enviado por e-mail."""
     if not service.recover_password_with_otp(data.email, data.otp_code, data.new_password):
         raise HTTPException(status_code=400, detail="Código inválido ou usuário não encontrado.")
     return {"message": "Senha redefinida com sucesso."}
@@ -150,27 +148,53 @@ def get_my_profile(db: Session = Depends(get_db), user_id: int = Depends(get_cur
     return user
 
 @router.put("/me", response_model=UserResponse)
-def update_my_profile(user_data: UserUpdateSelf, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
-    service = AuthService(UserRepository(db), AuditRepository(db))
+def update_my_profile(
+    user_data: UserUpdateSelf, 
+    service: AuthService = Depends(get_auth_service), 
+    user_id: int = Depends(get_current_user_id)
+):
     updated = service.update_my_profile(user_id, user_data)
     if not updated:
         raise HTTPException(status_code=400, detail="Erro ao atualizar dados do perfil.")
     return updated
+# ==============================================================================
+# NOVAS ROTAS DE TROCA DE SENHA (PARA USUÁRIO LOGADO)
+# ==============================================================================
+
+@router.post("/me/request-password-otp")
+def request_password_change_otp(
+    user_id: int = Depends(get_current_user_id),
+    service: AuthService = Depends(get_auth_service)
+):
+    """Solicita código de troca de senha para o usuário que já está logado."""
+    # O AuthService deve implementar o envio via e-mail do usuário pelo ID
+    success = service.request_password_change_otp(user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return {"message": "Código de verificação enviado para o seu e-mail."}
 
 @router.post("/me/confirm-password-change")
-def confirm_password_change(data: PasswordResetConfirm, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
-    """Troca de senha segura para usuário logado (exige OTP e senha atual)."""
-    service = AuthService(UserRepository(db), AuditRepository(db))
-    result = service.confirm_password_change(user_id, data.otp_code, data.current_password, data.new_password)
-    if result != "success":
-        raise HTTPException(status_code=400, detail=result)
-    return {"message": "Senha alterada com sucesso."}
+def confirm_password_change(
+    data: PasswordResetConfirm,
+    user_id: int = Depends(get_current_user_id),
+    service: AuthService = Depends(get_auth_service)
+):
+    """Confirma a troca de senha do usuário logado validando o código enviado."""
+    success = service.confirm_password_change(user_id, data.otp_code, data.new_password)
+    if not success:
+        raise HTTPException(status_code=400, detail="Código inválido ou expirado.")
+    return {"message": "Senha alterada com sucesso!"}
 
-# --- ADMINISTRAÇÃO ---
+# ==============================================================================
+# ADMINISTRAÇÃO
+# ==============================================================================
 
 @router.patch("/promote", dependencies=[Depends(require_admin)])
-def manage_access(data: RoleUpdate, db: Session = Depends(get_db), admin_id: int = Depends(get_current_user_id)):
-    service = AuthService(UserRepository(db), AuditRepository(db))
+def manage_access(
+    data: RoleUpdate, 
+    service: AuthService = Depends(get_auth_service), 
+    admin_id: int = Depends(get_current_user_id)
+):
     result = service.update_user_access(admin_id, data.user_id, data.new_role)
     
     if result == "user_not_found":
@@ -185,8 +209,11 @@ def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return UserRepository(db).list(skip, limit)
 
 @router.delete("/{user_id}", dependencies=[Depends(require_admin)])
-def delete_user(user_id: int, db: Session = Depends(get_db), admin_id: int = Depends(get_current_user_id)):
-    service = AuthService(UserRepository(db), AuditRepository(db))
+def delete_user(
+    user_id: int, 
+    service: AuthService = Depends(get_auth_service), 
+    admin_id: int = Depends(get_current_user_id)
+):
     result = service.delete_user(user_id, admin_id)
     
     if result == "self_delete_forbidden":
