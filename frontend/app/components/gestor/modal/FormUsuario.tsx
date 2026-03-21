@@ -1,7 +1,8 @@
 // app/components/gestor/usuarios/modal/FormUsuario.tsx
 "use client";
 
-import { useState, useRef, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef } from "react";
+import { IconEye, IconEyeOff } from "@tabler/icons-react";
 import { UsuarioGestor, StatusUsuario } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
 import { UsuarioGestorService } from "@/src/service/usuarioGestor.service";
@@ -16,6 +17,7 @@ type FormData = {
   nome: string;
   apelido: string;
   email: string;
+  senha: string;
   area: string;
   permission: UserRole;
   status: StatusUsuario;
@@ -59,13 +61,12 @@ function inputBorder(erros: Record<string, string>, key: string) {
     : "border-slate-300 dark:border-[#505050] focus:border-[#FFDE00]";
 }
 
-
-
 const INITIAL: FormData = {
   matricula: "",
   nome: "",
   apelido: "",
   email: "",
+  senha: "",
   area: CURSOS[0],
   permission: "aluno",
   status: "ativo",
@@ -77,9 +78,11 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
     const [form, setForm] = useState<FormData>({
       ...INITIAL,
       ...inicial,
+      senha: "", // nunca pré-preenche senha
       status: (inicial?.ativo ? "ativo" : "inativo") as StatusUsuario,
     });
     const [erros, setErros] = useState<Record<string, string>>({});
+    const [mostrarSenha, setMostrarSenha] = useState(false);
 
     function set<K extends keyof FormData>(key: K, value: FormData[K]) {
       setForm((prev) => ({ ...prev, [key]: value }));
@@ -98,6 +101,13 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
       if (!form.matricula.trim()) e.matricula = "Matrícula é obrigatória.";
       else if (UsuarioGestorService.matriculaEmUso(form.matricula, inicial?.id))
         e.matricula = "Matrícula já está em uso.";
+
+      // Senha obrigatória só na criação
+      if (!isEdicao) {
+        if (!form.senha.trim()) e.senha = "Senha é obrigatória.";
+        else if (form.senha.length < 6) e.senha = "Mínimo 6 caracteres.";
+      }
+
       setErros(e);
       return Object.keys(e).length === 0;
     }
@@ -175,6 +185,28 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
+        {/* Senha — só na criação */}
+        {!isEdicao && (
+          <Campo label="Senha" erro={erros.senha} required span2>
+            <div className="relative">
+              <input
+                type={mostrarSenha ? "text" : "password"}
+                value={form.senha}
+                onChange={(e) => set("senha", e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className={`${inputCls} pr-10 ${inputBorder(erros, "senha")}`}
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                {mostrarSenha ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+              </button>
+            </div>
+          </Campo>
+        )}
+
         {/* Área */}
         <Campo label="Área" required>
           <div className="relative">
@@ -193,7 +225,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           </div>
         </Campo>
 
-        {/* Permissão */}
+        {/* Perfil */}
         <Campo label="Perfil de acesso" required>
           <div className="flex gap-2">
             {(["aluno", "colaborador", "adm"] as UserRole[]).map((p) => (
@@ -201,10 +233,11 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
                 key={p}
                 type="button"
                 onClick={() => set("permission", p)}
-                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.permission === p
+                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
+                  form.permission === p
                     ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
                     : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                  }`}
+                }`}
               >
                 {p === "adm" ? "Admin" : p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
@@ -212,26 +245,30 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           </div>
         </Campo>
 
-        {/* Status */}
-        <Campo label="Status" required>
-          <div className="flex gap-2">
-            {(["ativo", "inativo"] as StatusUsuario[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => { set("status", s); set("ativo", s === "ativo"); }}
-                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.status === s
-                    ? s === "ativo"
-                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
-                      : "border-slate-400 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                    : "border-slate-200 dark:border-[#404040] text-slate-400 hover:border-slate-300"
+        {/* Status — só na edição */}
+        {isEdicao && (
+          <Campo label="Status" required>
+            <div className="flex gap-2">
+              {(["ativo", "inativo"] as StatusUsuario[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { set("status", s); set("ativo", s === "ativo"); }}
+                  className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
+                    form.status === s
+                      ? s === "ativo"
+                        ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                        : "border-slate-400 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      : "border-slate-200 dark:border-[#404040] text-slate-400 hover:border-slate-300"
                   }`}
-              >
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
-          </div>
-        </Campo>
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+          </Campo>
+        )}
+
       </div>
     );
   }
