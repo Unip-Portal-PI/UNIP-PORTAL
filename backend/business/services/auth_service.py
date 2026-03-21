@@ -6,6 +6,7 @@ from core.security import hash_password, verify_password, create_access_token
 from persistence.repositories.user_repository import UserRepository
 from persistence.repositories.audit_repository import AuditRepository
 from persistence.models.user_model import UserModel
+from business.services.email_service import EmailService
 
 class AuthService:
     """
@@ -13,12 +14,13 @@ class AuthService:
     autenticação JWT por matrícula, ativação de conta e auditoria.
     """
 
-    def __init__(self, repo: UserRepository, audit_repo: AuditRepository):
+    def __init__(self, repo: UserRepository, audit_repo: AuditRepository, email_service: EmailService):
         self.repo = repo
         self.audit_repo = audit_repo
+        self.email_service = email_service
 
     # ==========================================================================
-    # FLUXO DE REGISTRO (COM NOVOS CAMPOS E AUTO-SEED)
+    # FLUXO DE REGISTRO
     # ==========================================================================
     def register(
         self, 
@@ -32,18 +34,12 @@ class AuthService:
         birth_date: Optional[date] = None,
         admin_id: str = "System"
     ):
-        """
-        Registra um usuário com os novos campos obrigatórios (nickname, area).
-        Se for o primeiro do sistema, torna-o Admin Ativo automaticamente.
-        """
         clean_email = email.lower().strip()
         clean_reg = registration_number.strip()
         
-        # Validação de duplicidade (E-mail ou Matrícula)
         if self.repo.get_by_email(clean_email) or self.repo.get_by_registration(clean_reg):
             return None
         
-        # Regra de Auto-Seed Admin
         is_first_user = self.repo.count_users() == 0
         
         if is_first_user:
@@ -53,7 +49,7 @@ class AuthService:
         else:
             assigned_role = "student"
             is_active = False 
-            otp = f"{random.randint(1000, 9999)}"
+            otp = f"{random.randint(100000, 999999)}" 
         
         user = UserModel(
             name=name.strip(),
@@ -72,6 +68,9 @@ class AuthService:
         created = self.repo.create(user)
         
         if created:
+            if otp:
+                self.email_service.send_verification_code(created.email, otp)
+
             desc = f"Usuário registrado: {created.registration_number} | {created.email} (Role: {assigned_role})"
             if is_first_user: desc += " - [AUTO-SEED ADMIN]"
                 
@@ -84,10 +83,9 @@ class AuthService:
         return created
 
     # ==========================================================================
-    # FLUXO DE ATIVAÇÃO
+    # FLUXO DE ATIVAÇÃO E LOGIN
     # ==========================================================================
     def activate_account(self, email: str, otp_code: str):
-        """Valida o OTP e ativa a conta para permitir o primeiro login."""
         user = self.repo.get_by_email(email.lower().strip())
         
         if not user or user.otp_code != otp_code:
@@ -105,14 +103,7 @@ class AuthService:
         )
         return True
 
-    # ==========================================================================
-    # FLUXO DE LOGIN (VIA MATRÍCULA)
-    # ==========================================================================
     def login(self, registration: str, password: str):
-        """
-        Realiza autenticação utilizando a MATRÍCULA.
-        Verifica se a conta está ativa antes de gerar o token.
-        """
         user = self.repo.get_by_registration(registration.strip())
         
         if not user or not verify_password(password, user.password_hash):
@@ -121,7 +112,7 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sua conta ainda não foi ativada. Verifique seu e-mail para validar o código OTP."
+                detail="Sua conta ainda não foi ativada. Verifique seu e-mail."
             )
         
         access_token = create_access_token(data={
@@ -138,16 +129,17 @@ class AuthService:
         }
 
     # ==========================================================================
-    # RECUPERAÇÃO E SEGURANÇA
+    # RECUPERAÇÃO DE SENHA (NÃO LOGADO)
     # ==========================================================================
     def request_otp_by_email(self, email: str):
-        """Gera um novo OTP para recuperação de senha esquecida."""
         user = self.repo.get_by_email(email.lower().strip())
         if not user: return None
             
-        otp = f"{random.randint(1000, 9999)}"
+        otp = f"{random.randint(100000, 999999)}"
         user.otp_code = otp
         self.repo.db.commit()
+        
+        self.email_service.send_verification_code(user.email, otp)
         
         self.audit_repo.log_action(
             user_id=str(user.id),
@@ -158,7 +150,6 @@ class AuthService:
         return otp
 
     def recover_password_with_otp(self, email: str, otp_code: str, new_password: str):
-        """Redefine a senha utilizando o fluxo de 'Esqueci minha senha'."""
         user = self.repo.get_by_email(email.lower().strip())
         
         if not user or user.otp_code != otp_code:
@@ -177,10 +168,52 @@ class AuthService:
         return True
 
     # ==========================================================================
+    # TROCA DE SENHA (USUÁRIO LOGADO) - NOVOS MÉTODOS
+    # ==========================================================================
+    def request_password_change_otp(self, user_id: int) -> bool:
+        """Gera e envia um código para troca de senha do usuário que já está logado."""
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+
+        otp = f"{random.randint(100000, 999999)}"
+        user.otp_code = otp
+        self.repo.db.commit()
+
+        # Dispara e-mail com o layout do AVP Conecta
+        self.email_service.send_verification_code(user.email, otp)
+
+        self.audit_repo.log_action(
+            user_id=str(user.id),
+            action="PWD_CHANGE_REQUEST",
+            table_name="users",
+            description="Solicitado código para alteração de senha via perfil logado."
+        )
+        return True
+
+    def confirm_password_change(self, user_id: int, otp_code: str, new_password: str) -> bool:
+        """Valida o código e aplica a nova senha para o usuário logado."""
+        user = self.repo.get_by_id(user_id)
+        
+        if not user or user.otp_code != otp_code:
+            return False
+            
+        user.password_hash = hash_password(new_password)
+        user.otp_code = None
+        self.repo.db.commit()
+        
+        self.audit_repo.log_action(
+            user_id=str(user.id),
+            action="PWD_CHANGE_CONFIRM",
+            table_name="users",
+            description="Senha alterada com sucesso dentro do perfil."
+        )
+        return True
+
+    # ==========================================================================
     # GESTÃO ADMINISTRATIVA E PERFIL
     # ==========================================================================
     def update_user_access(self, admin_id: int, target_user_id: int, new_role: str) -> str:
-        """Promove ou rebaixa o nível de acesso de um usuário (RBAC)."""
         if new_role not in ["student", "staff", "admin"]:
             return "invalid_role"
 
@@ -197,7 +230,6 @@ class AuthService:
         return "user_not_found"
 
     def update_my_profile(self, user_id: int, user_data):
-        """Atualiza dados do perfil (apelido, área, telefone, etc)."""
         if hasattr(user_data, "email") and user_data.email:
             user_data.email = user_data.email.lower().strip()
             
@@ -212,7 +244,6 @@ class AuthService:
         return updated
 
     def delete_user(self, target_user_id: int, current_user_id: int):
-        """Desativa um usuário (Soft Delete). Impede auto-exclusão."""
         if target_user_id == current_user_id:
             return "self_delete_forbidden"
             
