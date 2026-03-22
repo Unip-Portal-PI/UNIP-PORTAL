@@ -8,6 +8,7 @@ from persistence.repositories.news_repository import NewsRepository
 from persistence.repositories.audit_repository import AuditRepository
 from schemas.news_schema import NewsCreate, NewsResponse, NewsReadCreate, NewsReadResponse # <--- ATUALIZADO (@Gabriel)
 from persistence.models.news_model import NewsModel
+from datetime import datetime, timezone
 
 # ==============================================================================
 # CONFIGURAÇÃO DO ROTEADOR DE NOTÍCIAS (EDITORIAL ROUTER)
@@ -37,9 +38,9 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
     summary="Lista comunicados ativos",
     tags=["Notícias"]
 )
-def list_news(skip: int = 0, limit: int = 5, db: Session = Depends(get_db)):
+def list_news(skip: int = 0, limit: int = 5, area: str | None = None, db: Session = Depends(get_db)):
     service = NewsService(NewsRepository(db), AuditRepository(db))
-    return service.list_news(skip=skip, limit=limit)
+    return service.list_news(skip=skip, limit=limit, area=area)
 
 # ENDPOINT DE REGISTRO DE LEITURA DE NOTÍCIAS (RN09) - ATUALIZADO (@Gabriel)
 @router.post("/read", response_model=NewsReadResponse, summary="Registra leitura do aluno")
@@ -72,10 +73,19 @@ def create_news(
     current_user_id: int = Depends(get_current_user_id) # Uso direto da dependência
 ):
     """Cria uma nova notícia vinculada ao Admin/Staff logado."""
+    
+    if news.expires_at and news.expires_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=400,
+            detail="A data de validade não pode ser anterior ou igual à data atual"
+        )
+    
     new_post = NewsModel(
         title=news.title, 
         content=news.content, 
         image_url=news.image_url,
+        area=news.area,
+        expires_at=news.expires_at,
         status="Ativo" # Define o status como "Ativo" por padrão (RN04) <-- ATUALIZADO (@Gabriel)
     )
     
