@@ -1,16 +1,24 @@
 // app/home/layout.tsx
 import Navbar from "@/app/components/navbar";
-import AuthGuard from "@/src/guard/AuthGuard";
- 
+import { LoadingProvider } from "@/app/components/LoadingContext";
+import { FotoPerfilProvider } from "@/src/context/FotoPerfilContext";
+import { Auth } from "@/src/service/auth.service";
+
 export default function HomeLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard>
-      <div className="min-h-screen flex flex-col bg-white dark:bg-[#303030] transition-colors">
+    <LoadingProvider>
+      <FotoPerfilProviderWrapper>
         <Navbar />
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
-    </AuthGuard>
+        {children}
+      </FotoPerfilProviderWrapper>
+    </LoadingProvider>
   );
+}
+
+// Wrapper client-side para pegar a matrícula
+function FotoPerfilProviderWrapper({ children }: { children: React.ReactNode }) {
+  "use client";
+  const user = Auth.getUser();
+  const matricula = user?.matricula ?? "";
+  return <FotoPerfilProvider matricula={matricula}>{children}</FotoPerfilProvider>;
 }

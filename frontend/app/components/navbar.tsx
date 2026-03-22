@@ -14,7 +14,8 @@ import { Menu, X, LogOut, User, Sun, Moon, CalendarDays, Megaphone, Settings } f
 import { Auth } from "@/src/service/auth.service";
 import { useLoading } from "@/app/components/LoadingContext";
 import { UserRole } from "@/src/types/user";
-
+import { PerfilService } from "@/src/service/perfil.service";
+import { useFotoPerfil } from "@/src/context/FotoPerfilContext";
 const NAV_ITEMS: { label: string; href: string; icon: React.ReactNode; roles?: UserRole[] }[] = [
   { label: "Evento", href: "/home/eventos", icon: <CalendarDays className="w-5 h-5" /> },
   { label: "Comunicado", href: "/home/comunicado", icon: <Megaphone className="w-5 h-5" /> },
@@ -26,7 +27,7 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
   const [mounted, setMounted] = useState(false);
-
+  const { foto } = useFotoPerfil();
   useEffect(() => { setMounted(true); }, []);
 
   const desktopProfileRef = useRef<HTMLDivElement>(null);
@@ -39,7 +40,6 @@ export default function Navbar() {
   const user = Auth.getUser();
   const apelido = user?.apelido ?? "Usuário";
   const role = user?.permission;
-
   const navItems = NAV_ITEMS.filter(
     (item) => !item.roles || (role && item.roles.includes(role))
   );
@@ -78,7 +78,7 @@ export default function Navbar() {
 
   const AvatarImg = ({ size }: { size: number }) => (
     <img
-      src={`https://ui-avatars.com/api/?name=${initials}&background=0f0f1e&color=fff`}
+      src={foto ?? `https://ui-avatars.com/api/?name=${initials}&background=0f0f1e&color=fff`}
       alt="Avatar"
       style={{ width: size, height: size }}
       className="rounded-full object-cover border border-[#FFDE00] dark:border-[#FFDE00]"
@@ -150,8 +150,8 @@ export default function Navbar() {
 
         {/* ── Direita: sino + avatar ── */}
         <div className="flex items-center gap-3">
-      
-  
+
+
 
           <div className="relative" ref={desktopProfileRef}>
             <button
