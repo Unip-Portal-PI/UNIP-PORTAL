@@ -6,16 +6,17 @@ from core.security import RoleChecker, oauth2_scheme, settings
 from business.services.news_service import NewsService
 from persistence.repositories.news_repository import NewsRepository
 from persistence.repositories.audit_repository import AuditRepository
-from schemas.news_schema import NewsCreate, NewsResponse, NewsReadCreate, NewsReadResponse # <--- ATUALIZADO (@Gabriel)
+from schemas.news_schema import NewsCreate, NewsResponse, NewsReadCreate, NewsReadResponse
 from persistence.models.news_model import NewsModel
 from datetime import datetime, timezone
 
 # ==============================================================================
 # CONFIGURAÇÃO DO ROTEADOR DE NOTÍCIAS (EDITORIAL ROUTER)
 # ==============================================================================
-router = APIRouter(prefix="/news", tags=["Notícias"]) #Adicionado prefixo para organização (@Gabriel)
+# AJUSTE: Removido prefix="/news" para não duplicar com a configuração do main.py
+router = APIRouter(tags=["Notícias"]) 
 
-# AJUSTE: Nomes das roles sincronizados com o banco de dados (users.py)
+# AJUSTE: Nomes das roles sincronizados com o banco de dados
 require_staff = RoleChecker(["admin", "staff"])
 
 def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
@@ -42,8 +43,12 @@ def list_news(skip: int = 0, limit: int = 5, area: str | None = None, db: Sessio
     service = NewsService(NewsRepository(db), AuditRepository(db))
     return service.list_news(skip=skip, limit=limit, area=area)
 
-# ENDPOINT DE REGISTRO DE LEITURA DE NOTÍCIAS (RN09) - ATUALIZADO (@Gabriel)
-@router.post("/read", response_model=NewsReadResponse, summary="Registra leitura do aluno")
+# ENDPOINT DE REGISTRO DE LEITURA DE NOTÍCIAS (RN09) - ATUALIZADO
+@router.post(
+    "/read", 
+    response_model=NewsReadResponse, 
+    summary="Registra leitura do aluno"
+)
 def register_news_read(
     news_id: int, 
     db: Session = Depends(get_db), 
@@ -54,9 +59,10 @@ def register_news_read(
     Atende ao requisito de Rastro de Auditoria injetado na lógica.
     """
     repo = NewsRepository(db)
-    # Chama a função que você criou no Repository para registrar a leitura, passando o ID da notícia e do usuário
+    # Registra a leitura vinculando a notícia ao ID do usuário extraído do Token
     log = repo.register_read(news_id=news_id, user_id=current_user_id)
     return log
+
 # ==============================================================================
 # SEÇÃO DE GESTÃO (EDITORIAL ADMIN)
 # ==============================================================================
@@ -70,7 +76,7 @@ def register_news_read(
 def create_news(
     news: NewsCreate, 
     db: Session = Depends(get_db), 
-    current_user_id: int = Depends(get_current_user_id) # Uso direto da dependência
+    current_user_id: int = Depends(get_current_user_id)
 ):
     """Cria uma nova notícia vinculada ao Admin/Staff logado."""
     
@@ -106,7 +112,7 @@ def delete_news(
     """Remove uma notícia registrando quem realizou a exclusão."""
     service = NewsService(NewsRepository(db), AuditRepository(db))
     
-    # AJUSTE: Passamos "admin" para manter a coerência da lógica de serviço
+    # Passamos "admin" para manter a coerência da lógica de serviço
     result = service.delete_news(news_id, current_user_id, "admin")
     
     if not result:

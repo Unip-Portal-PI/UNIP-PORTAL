@@ -19,31 +19,22 @@ class NewsModel(Base):
     # ==========================================================================
     # IDENTIFICADORES E CHAVES
     # ==========================================================================
-    # Chave primária autoincrementada
     id = Column(Integer, primary_key=True, index=True)
 
     # ==========================================================================
     # CONTEÚDO EDITORIAL
     # ==========================================================================
-    # Título chamativo para o comunicado (Ex: "InfoUnity: Novas Vagas de Estágio")
     title = Column(String(150), nullable=False)
-    
-    # Corpo completo do texto (Tipo Text para suportar grandes volumes de dados)
     content = Column(Text, nullable=False)
-    
-    # URL da imagem de destaque (Geralmente hospedada no servidor de estáticos)
     image_url = Column(String(255), nullable=True)
 
     # ==========================================================================
     # METADADOS E CONTROLE DE ESTADO
     # ==========================================================================
-    # Data de publicação (Uso de callable para garantir o tempo de execução)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    # Controle de Soft Delete: Define se a notícia está visível no feed
     is_active = Column(Boolean, default=True)
 
-    # Status detalhado conforme RN04 (Ativo, Inativo, Excluido) (@Gabriel)
+    # Status detalhado conforme RN04 (Ativo, Inativo, Excluido)
     status = Column(String(20), default="Ativo")
     
     # Área/curso relacionado ao comunicado para os filtros do Feed  (@João)
@@ -66,11 +57,13 @@ class NewsModel(Base):
     # ==========================================================================
     # Permite carregar o objeto do autor: news_obj.author.name
     author = relationship("UserModel")
-    # Permite carregar os registros de leitura associados: news_obj.reads (@Gabriel)
-    reads = relationship("NewsReadModel", back_populates="news")
+    
+    # Permite carregar os registros de leitura associados: news_obj.reads
+    reads = relationship("NewsReadModel", back_populates="news", cascade="all, delete-orphan")
+
 
 # ==========================================================================
-# REGISTRO DE LEITURA (AUDITORIA DE CONSUMO) - RN09 (@Gabriel)
+# REGISTRO DE LEITURA (AUDITORIA DE CONSUMO) - RN09
 # ==========================================================================
 class NewsReadModel(Base):
     """
@@ -87,7 +80,7 @@ class NewsReadModel(Base):
     # ID do usuário que leu a notícia (Vínculo com a tabela de usuários)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
         
-    # Data e hora da leitura (Uso de callable para garantir o tempo de execução)
+    # Data e hora da leitura
     read_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relacionamentos para facilitar consultas

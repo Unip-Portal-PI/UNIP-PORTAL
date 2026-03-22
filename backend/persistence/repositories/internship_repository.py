@@ -8,7 +8,7 @@ from typing import Optional, List
 class InternshipRepository:
     """
     Gerencia o mural de vagas de estágio e emprego.
-    Implementa Soft Delete e busca textual otimizada em múltiplos campos.
+    Implementa Soft Delete, controle de versão e busca textual otimizada.
     """
 
     def __init__(self, db: Session):
@@ -30,12 +30,13 @@ class InternshipRepository:
     # ==========================================================================
     def list(self, skip: int = 0, limit: int = 10, search: Optional[str] = None) -> List[InternshipModel]:
         """
-        Lista apenas vagas ativas (is_active=True). (que não foram excluidas <--- @Gabriel)
+        Lista apenas vagas ativas e não excluídas.
         Suporta busca case-insensitive por Empresa ou Cargo e ordena pelas mais novas.
         """
         query = self.db.query(InternshipModel).filter(
             InternshipModel.is_active == True,
-            InternshipModel.status != "Excluido")
+            InternshipModel.status != "Excluido"
+        )
         
         if search:
             # Filtro expandido: busca o termo no nome da empresa OU no cargo ocupado
@@ -49,11 +50,14 @@ class InternshipRepository:
                     .offset(skip).limit(limit).all()
 
     def get_by_id(self, internship_id: int) -> Optional[InternshipModel]:
-        """Recupera uma vaga ativa e não excluída pelo ID. Retorna None se estiver inativa ou inexistente."""
+        """
+        Recupera uma vaga ativa e não excluída pelo ID. 
+        Retorna None se estiver inativa ou inexistente.
+        """
         return self.db.query(InternshipModel).filter(
             InternshipModel.id == internship_id, 
             InternshipModel.is_active == True,
-            InternshipModel.status != "Excluido" # <-- (@Gabriel) Garante que vagas marcadas como "Excluido" não sejam recuperadas
+            InternshipModel.status != "Excluido"
         ).first()
 
     # ==========================================================================
@@ -61,15 +65,18 @@ class InternshipRepository:
     # ==========================================================================
     def update(self, internship_id: int, internship_data) -> Optional[InternshipModel]:
         """
-        Atualiza dados da vaga incrementando a versão para auditoria. Suporta PATCH (atualização parcial) 
-        através do mapeamento dinâmico de atributos.
+        Atualiza dados da vaga incrementando a versão para auditoria. 
+        Suporta PATCH através do mapeamento dinâmico de atributos.
         """
         internship = self.get_by_id(internship_id)
         if not internship:
             return None
         
-        # Converte o schema Pydantic para dicionário ignorando campos não enviados
-        data_dict = internship_data.dict(exclude_unset=True)
+        # Compatibilidade com Pydantic v1 (.dict) e v2 (.model_dump)
+        if hasattr(internship_data, 'model_dump'):
+            data_dict = internship_data.model_dump(exclude_unset=True)
+        else:
+            data_dict = internship_data.dict(exclude_unset=True)
 
         # Proteção: impede alteração manual da versão via payload
         data_dict.pop("version", None)
@@ -79,7 +86,7 @@ class InternshipRepository:
             if hasattr(internship, key):
                 setattr(internship, key, value)
 
-        # Mecanismo da Versão
+        # Mecanismo da Versão (RN04)
         internship.version += 1
             
         self.db.commit()
@@ -88,8 +95,9 @@ class InternshipRepository:
 
     def delete(self, internship_id: int) -> bool:
         """
-        Executa o desmembramento lógico (Soft Delete).
-        A vaga permanece no banco para auditoria, mas é removida de todas as listagens.
+        Executa a desativação lógica (Soft Delete).
+        A vaga permanece no banco para auditoria (status="Excluido"), 
+        mas é removida de todas as listagens públicas.
         """
         internship = self.db.query(InternshipModel).filter(
             InternshipModel.id == internship_id
@@ -99,6 +107,7 @@ class InternshipRepository:
             return False
         
         internship.is_active = False
-        internship.status = "Excluido"  # Rastreabilidade conforme RN04
+        internship.status = "Excluido"
+        
         self.db.commit()
         return True

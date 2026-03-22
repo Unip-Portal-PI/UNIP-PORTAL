@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from persistence.models.news_model import NewsModel
-from persistence.models.news_read_model import NewsReadLogModel
+from persistence.models.news_model import NewsModel, NewsReadModel
 from typing import Optional, List
 from datetime import datetime, timezone
 
@@ -14,6 +13,7 @@ class NewsRepository:
     """
 
     def __init__(self, db: Session):
+        """Injeta a sessão do SQLAlchemy para persistência."""
         self.db = db
 
     # ==========================================================================
@@ -28,18 +28,19 @@ class NewsRepository:
 
     def get_by_id(self, news_id: int) -> Optional[NewsModel]:
         """Busca notícia ativa. Registros em Soft Delete são ignorados."""
-        self.expire_outdate_news()
+        self.expire_news()
         
         return self.db.query(NewsModel).filter(
             NewsModel.id == news_id, 
             NewsModel.is_active == True,
             NewsModel.status == "Ativo" # <--- Filtro de segurança (@Gabriel)
+
         ).first()
 
     def list(self, skip: int = 0, limit: int = 10, area: Optional[str] = None) -> List[NewsModel]:
         """Retorna o feed de notícias ordenado das mais recentes para as antigas."""
         """Quando uma área é informada, restringe a listagem aos comunicados do curso selecionado.""" #(@Joao)
-        self.expire_outdate_news()
+        self.expire_news()
         
         query = self.db.query(NewsModel).filter(
             NewsModel.is_active == True,
@@ -62,7 +63,8 @@ class NewsRepository:
         if not news:
             return None
 
-        data_dict = news_data.dict(exclude_unset=True)
+        # Converte o Pydantic para dict (suporta Pydantic v1 e v2)
+        data_dict = news_data.dict(exclude_unset=True) if hasattr(news_data, 'dict') else news_data.model_dump(exclude_unset=True)
         
         # Proteção: impede que a versão seja alterada manualmente pelo payload
         data_dict.pop("version", None)
@@ -72,7 +74,7 @@ class NewsRepository:
             if hasattr(news, key):
                 setattr(news, key, value)
         
-        # Mecanismo de Versão
+        # Mecanismo de Versão (Incremento manual para auditoria/concorrência)
         news.version += 1
         
         self.db.commit()
@@ -80,43 +82,44 @@ class NewsRepository:
         return news
 
     # ==========================================================================
-    # ANALYTICS: RASTREAMENTO DE LEITURA
+    # ANALYTICS: RASTREAMENTO DE LEITURA (RN09)
     # ==========================================================================
     def register_read(self, news_id: int, user_id: int):
         """
-        Registra visualização única por usuário.
-        Garante que estatísticas de engajamento sejam reais.
+        Registra visualização única por usuário para estatísticas reais.
         """
-        exists = self.db.query(NewsReadLogModel).filter_by(
+        # AJUSTE: Sincronizado com NewsReadModel do seu news_model.py
+        exists = self.db.query(NewsReadModel).filter_by(
             news_id=news_id, user_id=user_id
         ).first()
         
         if not exists:
-            log = NewsReadLogModel(news_id=news_id, user_id=user_id)
+            log = NewsReadModel(news_id=news_id, user_id=user_id)
             self.db.add(log)
             self.db.commit()
+            self.db.refresh(log)
             return log
         return exists
 
     def count_reads(self, news_id: int) -> int:
         """Retorna o total de leitores únicos de uma notícia."""
-        return self.db.query(NewsReadLogModel).filter_by(news_id=news_id).count()
+        return self.db.query(NewsReadModel).filter_by(news_id=news_id).count()
 
     # ==========================================================================
     # ESTRATÉGIAS DE CICLO DE VIDA (CLEANUP)
     # ==========================================================================
     def soft_delete(self, news_id: int) -> bool:
-        """Executa a desativação lógica (Preserva histórico para o Dashboard)."""
+        """Executa a desativação lógica (RN04)."""
         news = self.db.query(NewsModel).filter_by(id=news_id).first()
         if news:
             news.is_active = False
-            news.status = "Excluido"  # <--- (@Gabriel)
+            news.status = "Excluido" # Rastro de auditoria
             self.db.commit()
             return True
         return False
 
     def physical_delete(self, news_id: int) -> bool:
-        """Executa a remoção física (Utilizado para notícias sem engajamento)."""
+        """Executa a remoção física definitiva do banco."""
         news = self.db.query(NewsModel).filter_by(id=news_id).first()
         if news:
             self.db.delete(news)
@@ -133,7 +136,7 @@ class NewsRepository:
         
         expired_itens = self.db.query(NewsModel).filter(
             NewsModel.is_active == True,
-            NewsModel.status == "ativo",
+            NewsModel.status == "Ativo",
             NewsModel.expires_at.isnot(None),
             NewsModel.expires_at < now
         ).all()
@@ -144,4 +147,3 @@ class NewsRepository:
         
         if expired_itens:
             self.db.commit()
-    
