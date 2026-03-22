@@ -15,6 +15,13 @@ class NewsBase(BaseModel):
     
     # Validação passiva: Opcional, mas se enviado, deve ser uma string coerente
     image_url: Optional[str] = Field(None, description="Link para imagem de destaque")
+    
+    # Área/curso usado para filtrar comunicados no feed (@João)
+    area: Optional[str] = Field(None, max_length=100, description="Área ou curso do comunicado")
+    
+    # Data limite de exibição do comunicado.
+    # Após o prazo, o item pode ser marcado como Expirado.
+    expires_at: Optional[datetime] = Field(None, description="Data de validade do comunidado")
 
 
 class NewsCreate(NewsBase):
@@ -45,6 +52,7 @@ class NewsResponse(NewsBase):
     status: str  # <--- (@Gabriel)
     author_id: int  
     version: int    
+    area: str  # (@Joao)
 
     class Config:
         from_attributes = True

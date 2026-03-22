@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from persistence.models.news_model import NewsModel
 from persistence.models.news_read_model import NewsReadLogModel
 from typing import Optional, List
+from datetime import datetime, timezone
 
 # ==============================================================================
 # REPOSITÓRIO DE CONTEÚDO EDITORIAL (NEWS & GOVERNANCE LAYER)
@@ -27,18 +28,28 @@ class NewsRepository:
 
     def get_by_id(self, news_id: int) -> Optional[NewsModel]:
         """Busca notícia ativa. Registros em Soft Delete são ignorados."""
+        self.expire_outdate_news()
+        
         return self.db.query(NewsModel).filter(
             NewsModel.id == news_id, 
-            NewsModel.is_active == True
+            NewsModel.is_active == True,
             NewsModel.status == "Ativo" # <--- Filtro de segurança (@Gabriel)
         ).first()
 
-    def list(self, skip: int = 0, limit: int = 10) -> List[NewsModel]:
+    def list(self, skip: int = 0, limit: int = 10, area: Optional[str] = None) -> List[NewsModel]:
         """Retorna o feed de notícias ordenado das mais recentes para as antigas."""
-        return self.db.query(NewsModel)\
-            .filter(NewsModel.is_active == True)\
-            .order_by(NewsModel.created_at.desc())\
-            .offset(skip).limit(limit).all()
+        """Quando uma área é informada, restringe a listagem aos comunicados do curso selecionado.""" #(@Joao)
+        self.expire_outdate_news()
+        
+        query = self.db.query(NewsModel).filter(
+            NewsModel.is_active == True,
+            NewsModel.status == "Ativo"
+        )
+        
+        if area:
+            query = query.filter(NewsModel.area == area)
+        
+        return query.order_by(NewsModel.created_at.desc()).offset(skip).limit(limit).all()
 
     # ==========================================================================
     # GOVERNANÇA: CONCORRÊNCIA OTIMISTA
@@ -112,3 +123,25 @@ class NewsRepository:
             self.db.commit()
             return True
         return False
+    
+    def expire_news(self):
+        """
+        Atualiza para Expirado os comunicados cuja data de validade já foi ultrapassada.
+        Os registros permanecem armazenados no banco para histórico.
+        """
+        now = datetime.now(timezone.utc)
+        
+        expired_itens = self.db.query(NewsModel).filter(
+            NewsModel.is_active == True,
+            NewsModel.status == "ativo",
+            NewsModel.expires_at.isnot(None),
+            NewsModel.expires_at < now
+        ).all()
+        
+        for news in expired_itens:
+            news.status = "Expirado"
+            news.is_active = False
+        
+        if expired_itens:
+            self.db.commit()
+    

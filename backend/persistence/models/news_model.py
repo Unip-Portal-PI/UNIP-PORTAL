@@ -45,6 +45,12 @@ class NewsModel(Base):
 
     # Status detalhado conforme RN04 (Ativo, Inativo, Excluido) (@Gabriel)
     status = Column(String(20), default="Ativo")
+    
+    # Área/curso relacionado ao comunicado para os filtros do Feed  (@João)
+    area = Column(String, nullable=True)
+    
+    # Data limite de exibição. Após o prazo, o comunicado pode expirar. 
+    expires_at = Column(DateTime, nullable=True)
 
     # ==========================================================================
     # GOVERNANÇA E INTEGRIDADE (BUSINESS RULES)
@@ -86,4 +92,3 @@ class NewsReadModel(Base):
 
     # Relacionamentos para facilitar consultas
     news = relationship("NewsModel", back_populates="reads")
-    user = relationship("UserModel")

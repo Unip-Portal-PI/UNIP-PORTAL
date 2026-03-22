@@ -113,6 +113,6 @@ class NewsService:
             )
         return result
 
-    def list_news(self, skip: int = 0, limit: int = 10):
+    def list_news(self, skip: int = 0, limit: int = 10, area: str | None = None):
         """Lista os comunicados ativos para o feed do sistema."""
-        return self.repo.list(skip=skip, limit=limit)
+        return self.repo.list(skip=skip, limit=limit, area=area)
