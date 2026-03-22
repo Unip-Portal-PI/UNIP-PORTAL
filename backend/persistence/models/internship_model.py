@@ -49,23 +49,23 @@ class InternshipModel(Base):
     # ==========================================================================
     # STATUS E RASTREABILIDADE
     # ==========================================================================
-    # Controle de exibição (Soft Delete): Define se a vaga está visível
+    # Controle de exibição (Soft Delete): Define se a vaga está visível no feed
     is_active = Column(Boolean, default=True) 
 
-    # Status detalhado conforme RN04 (Ativo, Encerrado, Excluido) <---(@Gabriel)
+    # Status detalhado: Ativo, Encerrado, Excluido
     status = Column(String(20), default="Ativo")
     
-    # Rastro de auditoria - Quem criou a vaga? <---(@Gabriel)
+    # Rastro de auditoria: Identifica quem (Admin/Staff) criou a vaga
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
    
-    # Registro automático do momento da criação da vaga
+    # Registro automático do momento da criação da vaga (UTC)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Controle de Versão para integridade de dados <---(@Gabriel)
+    # Controle de Versão: Proteção contra edições simultâneas (Concorrência Otimista)
     version = Column(Integer, default=1)
 
     # ==========================================================================
     # RELACIONAMENTOS (ORM MAPPING)
-    #==========================================================================
-    # Permite saber qual usuário/staff postou a vaga
+    # ==========================================================================
+    # Permite acessar os dados do autor da vaga: internship.author.name
     author = relationship("UserModel")
