@@ -4,11 +4,30 @@
 import { Comunicado, ComunicadoAnexo } from "@/src/types/comunicado";
 import { MOCK_COMUNICADO } from "@/src/data/comunicadoMock";
 
-
-
 export const ComunicadoService = {
+  // Só os comunicados que ainda não venceram (ou sem data de validade)
   getAll(): Promise<Comunicado[]> {
-    return new Promise((resolve) => setTimeout(() => resolve([...MOCK_COMUNICADO]), 400));
+    return new Promise((resolve) =>
+      setTimeout(() => {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        const ativos = MOCK_COMUNICADO.filter((c) => {
+          if (!c.dataValidade) return true; // sem validade → sempre aparece
+          const validade = new Date(c.dataValidade + "T00:00:00");
+          return validade >= hoje;
+        });
+
+        resolve([...ativos]);
+      }, 400)
+    );
+  },
+
+  // Busca tudo, incluindo comunicados vencidos
+  getAllIncludingExpired(): Promise<Comunicado[]> {
+    return new Promise((resolve) =>
+      setTimeout(() => resolve([...MOCK_COMUNICADO]), 400)
+    );
   },
 
   getById(id: string): Promise<Comunicado | null> {
@@ -17,11 +36,7 @@ export const ComunicadoService = {
     );
   },
 
-
-
-  async criar(
-    dados: Omit<Comunicado, "id" | "criadoEm">
-  ): Promise<Comunicado> {
+  async criar(dados: Omit<Comunicado, "id" | "criadoEm">): Promise<Comunicado> {
     return new Promise((resolve) => {
       setTimeout(() => {
         const novo: Comunicado = {

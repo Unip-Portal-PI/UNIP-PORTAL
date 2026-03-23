@@ -27,7 +27,10 @@ export const EventoService = {
         res([...ativos]);
       }, 600)
     ),
-
+  getAllIncludingPast: (): Promise<Evento[]> =>
+    new Promise((res) =>
+      setTimeout(() => res([..._eventos]), 600)
+    ),
   getById: (id: string): Promise<Evento | null> =>
     new Promise((res) =>
       setTimeout(() => res(_eventos.find((e) => e.id === id) ?? null), 400)

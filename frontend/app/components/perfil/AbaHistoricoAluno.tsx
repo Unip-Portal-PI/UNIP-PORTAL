@@ -72,7 +72,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
       setErro(false);
       try {
         // Busca todos os eventos (inclusive passados via getAllIncludingPast, senão getAll)
-        const todosEventos = await EventoService.getAll();
+        const todosEventos = await EventoService.getAllIncludingPast();
         // Pega inscrições do aluno logado
         const inscricoes = todosEventos.flatMap((e) =>
           EventoService.getInscricoesEvento(e.id).filter((i) => i.alunoId === matricula)
@@ -354,7 +354,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   </button>
 
                   {/* Certificado */}
-                  <button
+                  {/* <button
                     onClick={() => evento && handleDownloadCertificado(inscricao, evento)}
                     disabled={!confirmado || !evento}
                     title={confirmado ? "Baixar certificado" : "Disponível após confirmação de presença"}
@@ -364,7 +364,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                       }`}
                   >
                     <IconDownload size={14} /> Certificado
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>

@@ -50,8 +50,8 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
       setErro(false);
       try {
         const [todosEventos, todosComunicados] = await Promise.all([
-          EventoService.getAll(),
-          ComunicadoService.getAll(),
+          EventoService.getAllIncludingPast(),
+          ComunicadoService.getAllIncludingExpired(),
         ]);
         // Filtra eventos onde o colaborador é responsável
         // Como o mock de eventos não tem campo criadoPor, usamos os eventos cujo
