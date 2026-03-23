@@ -15,9 +15,15 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "portal-avp"
     MINIO_SECURE: bool = False
 
-    EMAIL_API_URL: str
-    EMAIL_API_KEY: str
+    RESEND_API_URL: str = "https://api.resend.com/emails"
+    RESEND_API_KEY: str = ""
+
+    EMAIL_API_URL: str = ""
+    EMAIL_API_KEY: str = ""
     EMAIL_FROM: str
+
+    OTP_LENGTH: int = 6
+    OTP_EXPIRATION_MINUTES: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",
