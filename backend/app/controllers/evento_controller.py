@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
 from app.schemas.evento import EventoResponse, EventoCreate, EventoUpdate
-from app.schemas.inscricao import InscricaoResponse
-from app.services import evento_service, inscricao_service
+from app.schemas.inscricao import (
+    InscricaoResponse,
+    PresencaConfirmRequest,
+    PresencaConfirmResponse,
+)
+from app.services import evento_service, inscricao_service, presenca_service
 
 router = APIRouter(prefix="/events", tags=["Eventos"])
 
@@ -20,6 +24,22 @@ def list_events(
     current_user=Depends(get_current_user),
 ):
     return evento_service.list_events(db)
+
+
+@router.get("/mine/created", response_model=list[EventoResponse])
+def list_my_created_events(
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_colaborador_adm),
+):
+    return evento_service.list_events_by_creator(current_user.id_usuario, db)
+
+
+@router.get("/mine/enrollments", response_model=list[InscricaoResponse])
+def list_my_enrollments(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return inscricao_service.list_my_enrollments(current_user.id_usuario, db)
 
 
 @router.get("/{evento_id}", response_model=EventoResponse)
@@ -68,6 +88,15 @@ def enroll(
     return inscricao_service.enroll(evento_id, current_user.id_usuario, db)
 
 
+@router.delete("/{evento_id}/enroll", status_code=204)
+def cancel_enrollment(
+    evento_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_aluno),
+):
+    inscricao_service.cancel_enrollment(evento_id, current_user.id_usuario, db)
+
+
 @router.get("/{evento_id}/enrollments", response_model=list[InscricaoResponse])
 def list_enrollments(
     evento_id: str,
@@ -84,3 +113,18 @@ def my_enrollment(
     current_user=Depends(get_current_user),
 ):
     return inscricao_service.get_my_enrollment(evento_id, current_user.id_usuario, db)
+
+
+@router.post("/{evento_id}/check-in", response_model=PresencaConfirmResponse)
+def confirm_presence_by_event(
+    evento_id: str,
+    data: PresencaConfirmRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_colaborador_adm),
+):
+    return presenca_service.confirm_presence(
+        qr_code=data.qr_code,
+        confirmado_por=current_user.id_usuario,
+        db=db,
+        evento_id=evento_id,
+    )

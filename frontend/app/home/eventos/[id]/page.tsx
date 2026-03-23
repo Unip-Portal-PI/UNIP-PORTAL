@@ -38,7 +38,7 @@ export default function DetalheEventoPage() {
   const sessao = Auth.getUser();
   const role = (sessao?.permission ?? "aluno") as UserRole;
   const user = {
-    id: sessao?.matricula ?? "",
+    id: sessao?.id ?? "",
     apelido: sessao?.apelido ?? "",
     nome: sessao?.nome ?? "",
     matricula: sessao?.matricula ?? "",
@@ -59,6 +59,8 @@ export default function DetalheEventoPage() {
   const [modalQR, setModalQR] = useState(false);
   const [modalInscritos, setModalInscritos] = useState(false);
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
+  const [inscricaoAluno, setInscricaoAluno] = useState<Inscricao | null>(null);
+  const [inscritosDoEvento, setInscritosDoEvento] = useState<Inscricao[]>([]);
   const [copiado, setCopiado] = useState(false);
   async function carregar() {
     setLoading(true);
@@ -70,6 +72,14 @@ export default function DetalheEventoPage() {
         return;
       }
       setEvento(data);
+
+      if (role === "aluno") {
+        setInscricaoAluno(await EventoService.getMinhaInscricao(id));
+      }
+
+      if (canEdit(role)) {
+        setInscritosDoEvento(await EventoService.getInscricoesEvento(id));
+      }
     } catch {
       setErro(true);
     } finally {
@@ -116,12 +126,9 @@ export default function DetalheEventoPage() {
 
   const status = getStatusVaga(evento);
   const encerrado = isInscricaoEncerrada(evento);
-  const isInscrito = !!EventoService.getMinhaInscricao(evento.id, user.id);
+  const isInscrito = !!inscricaoAluno;
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
-
-  // Inscrição do aluno — usada no botão e no modal QR
-  const inscricaoAluno = EventoService.getMinhaInscricao(evento.id, user.id);
 
   const barColor =
     status === "esgotado"
@@ -146,10 +153,18 @@ export default function DetalheEventoPage() {
   });
 
   async function handleConfirmarInscricao(): Promise<Inscricao> {
-    const result = await EventoService.inscrever(evento!.id, user);
+    const result = await EventoService.inscrever(evento!.id);
+    setInscricaoAluno(result);
     setModalInscricao(false); // ← fecha ANTES de recarregar
     await carregar();
     return result;
+  }
+
+  async function handleCancelarInscricao() {
+    await EventoService.cancelarInscricao(evento!.id);
+    setInscricaoAluno(null);
+    setModalQRAluno(false);
+    await carregar();
   }
 
   async function handleSalvarEvento(
@@ -166,23 +181,24 @@ export default function DetalheEventoPage() {
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
-    const result = await EventoService.confirmarPresenca(qrCode);
+    const result = await EventoService.confirmarPresenca(evento.id, qrCode);
     setPresencasConfirmadas((prev) => {
       const exists = prev.find((p) => p.id === result.id);
       return exists ? prev : [...prev, result];
     });
+    setInscritosDoEvento((prev) =>
+      prev.map((inscricao) => (inscricao.id === result.id ? result : inscricao))
+    );
     return result;
   }
 
-  function abrirModalQR() {
-    const confirmadas = EventoService.getInscricoesEvento(evento!.id).filter(
-      (i) => i.presencaConfirmada
-    );
+  async function abrirModalQR() {
+    const inscricoes = await EventoService.getInscricoesEvento(evento!.id);
+    setInscritosDoEvento(inscricoes);
+    const confirmadas = inscricoes.filter((i) => i.presencaConfirmada);
     setPresencasConfirmadas(confirmadas);
     setModalQR(true);
   }
-
-  const inscritosDoEvento = EventoService.getInscricoesEvento(evento.id);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -296,17 +312,17 @@ export default function DetalheEventoPage() {
                 </a>
               ) : (
                 <button
-                  onClick={() => setModalInscricao(true)}
-                  disabled={status === "esgotado" || encerrado || isInscrito}
+                  onClick={() => (isInscrito ? handleCancelarInscricao() : setModalInscricao(true))}
+                  disabled={!isInscrito && (status === "esgotado" || encerrado)}
                   className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
-                    ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800]/60 dark:border-[#FFDE00]/40 cursor-default"
+                    ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
                     : status === "esgotado" || encerrado
                       ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
                       : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
                     }`}
                 >
                   {isInscrito
-                    ? "Você já está inscrito ✓"
+                    ? "Cancelar minha inscricao"
                     : encerrado
                       ? "Inscrições encerradas"
                       : status === "esgotado"

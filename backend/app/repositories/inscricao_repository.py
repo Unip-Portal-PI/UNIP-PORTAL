@@ -18,6 +18,12 @@ class InscricaoRepository:
         self.db.refresh(inscricao)
         return inscricao
 
+    def update(self, inscricao: InscricaoModel) -> InscricaoModel:
+        self.db.add(inscricao)
+        self.db.commit()
+        self.db.refresh(inscricao)
+        return inscricao
+
     def get_by_user_and_event(self, id_usuario: str, id_evento: str) -> InscricaoModel | None:
         return self._base_query().filter(
             InscricaoModel.id_usuario == id_usuario,
@@ -32,3 +38,7 @@ class InscricaoRepository:
 
     def get_by_qr_code(self, qr_code: str) -> InscricaoModel | None:
         return self._base_query().filter(InscricaoModel.qr_code_usuario == qr_code).first()
+
+    def delete(self, inscricao: InscricaoModel) -> None:
+        self.db.delete(inscricao)
+        self.db.commit()
