@@ -15,6 +15,7 @@ export default function Login() {
   const router = useRouter();
   const { showLoading } = useLoading();
   const [erro, setErro] = useState(false);
+  const [erroRecuperacao, setErroRecuperacao] = useState("");
   const [lembrar, setLembrar] = useState(false);
   const [matriculaInicial, setMatriculaInicial] = useState("");
   const { resolvedTheme } = useTheme();
@@ -31,6 +32,7 @@ export default function Login() {
   async function handleLogin() {
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
+    setErroRecuperacao("");
 
     if (lembrar) {
       localStorage.setItem("matricula_lembrar", matricula);
@@ -46,6 +48,19 @@ export default function Login() {
     } else {
       setErro(true);
     }
+  }
+
+  function handleIrParaRecuperacaoSenha() {
+    const matriculaAtual =
+      (document.getElementById("matricula") as HTMLInputElement | null)?.value?.trim() ?? "";
+
+    if (!matriculaAtual) {
+      setErroRecuperacao("Informe sua matricula para recuperar a senha.");
+      return;
+    }
+
+    setErroRecuperacao("");
+    router.push(`/auth/reset-senha?matricula=${encodeURIComponent(matriculaAtual)}`);
   }
 
   return (
@@ -103,10 +118,18 @@ export default function Login() {
                     />
                     <span className="text-xm text-slate-600 dark:text-slate-400">Lembre de mim</span>
                   </label>
-                  <Link href="/auth/reset-senha" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                  <button
+                    type="button"
+                    onClick={handleIrParaRecuperacaoSenha}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
                     Esqueceu sua senha?
-                  </Link>
+                  </button>
                 </div>
+
+                {erroRecuperacao && (
+                  <span className="text-xs text-red-500 mt-1">{erroRecuperacao}</span>
+                )}
 
                 {erro && (
                   <span className="text-xs text-red-500 mt-1">
