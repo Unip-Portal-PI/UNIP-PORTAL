@@ -71,25 +71,14 @@ export function AbaHistoricoAluno({ matricula }: Props) {
       setLoading(true);
       setErro(false);
       try {
-        // Busca todos os eventos (inclusive passados via getAllIncludingPast, senão getAll)
-        const todosEventos = await EventoService.getAll();
-        // Pega inscrições do aluno logado
-        const inscricoes = todosEventos.flatMap((e) =>
-          EventoService.getInscricoesEvento(e.id).filter((i) => i.alunoId === matricula)
+        const inscricoes = await EventoService.getMinhasInscricoes();
+        const eventos = await Promise.all(
+          inscricoes.map((insc) => EventoService.getById(insc.eventoId))
         );
-        // Também pega inscrições de eventos que podem não ter aparecido no getAll (passados)
-        // Para cobrir esse caso, buscamos direto do estado interno via getInscricoesAluno
-        const todasInscricoes: Inscricao[] = [];
-        const eventosMap: Record<string, Evento> = {};
-        todosEventos.forEach((e) => { eventosMap[e.id] = e; });
 
-        inscricoes.forEach((i) => {
-          if (!todasInscricoes.find((x) => x.id === i.id)) todasInscricoes.push(i);
-        });
-
-        const lista: InscricaoComEvento[] = todasInscricoes.map((insc) => ({
+        const lista: InscricaoComEvento[] = inscricoes.map((insc, index) => ({
           inscricao: insc,
-          evento: eventosMap[insc.eventoId] ?? null,
+          evento: eventos[index] ?? null,
         }));
 
         // Ordena por data de inscrição mais recente
