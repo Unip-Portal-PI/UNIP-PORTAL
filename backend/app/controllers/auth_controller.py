@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.schemas.auth import (
     LoginRequest, LoginResponse,
     CadastroRequest, CadastroResponse,
+    ResetPreviewRequest, ResetPreviewResponse,
     ResetSolicitarRequest, ResetValidarRequest, ResetValidarResponse,
     ResetRedefinirRequest, MensagemResponse,
 )
@@ -47,7 +48,12 @@ def cadastro(data: CadastroRequest, db: Session = Depends(get_db)):
 
 @router.post("/reset-senha/solicitar", response_model=MensagemResponse)
 def reset_solicitar(data: ResetSolicitarRequest, db: Session = Depends(get_db)):
-    return auth_service.request_reset(data.email, db)
+    return auth_service.request_reset(data.matricula, data.email, db)
+
+
+@router.post("/reset-senha/preview", response_model=ResetPreviewResponse)
+def reset_preview(data: ResetPreviewRequest, db: Session = Depends(get_db)):
+    return auth_service.preview_reset_target_by_matricula(data.matricula, db)
 
 
 @router.post("/reset-senha/validar", response_model=ResetValidarResponse)
