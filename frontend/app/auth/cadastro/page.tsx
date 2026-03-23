@@ -1,6 +1,7 @@
 // app/auth/cadastro/page.tsx
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { InputCad, SelectCad } from "@/app/components/inputCad";
 import { User, AtSign, Lock, Hash, Phone, BookOpen, Calendar } from "lucide-react";
@@ -9,24 +10,53 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import PublicGuard from "@/src/guard/PublicGuard";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import { Auth } from "@/src/service/auth.service";
 
 export default function Cadastro() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleCadastro(e: React.FormEvent) {
+  async function handleCadastro(e: React.FormEvent) {
     e.preventDefault();
 
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
+    const nome = (document.getElementById("nome") as HTMLInputElement).value;
+    const apelido = (document.getElementById("apelido") as HTMLInputElement).value;
+    const telefone = (document.getElementById("telefone") as HTMLInputElement).value;
+    const dataNascimento = (document.getElementById("data_nasc") as HTMLInputElement).value;
+    const area = (document.getElementById("area") as HTMLSelectElement).value;
+    const email = (document.getElementById("email") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
     const confirmar = (document.getElementById("confirmar") as HTMLInputElement).value;
 
-    if (senha !== confirmar) return; // validação básica
+    if (senha !== confirmar) {
+      setErro("As senhas nao coincidem.");
+      return;
+    }
 
-    // ✅ Salva matrícula para o "Lembre de mim" do login
+    setLoading(true);
+    setErro("");
+    const resultado = await Auth.register({
+      matricula,
+      nome,
+      apelido,
+      telefone,
+      dataNascimento,
+      area,
+      email,
+      senha,
+    });
+    setLoading(false);
+
+    if (!resultado.sucesso) {
+      setErro(resultado.mensagem);
+      return;
+    }
+
     localStorage.setItem("matricula_lembrar", matricula);
-
     router.push("/auth/login");
   }
 
@@ -65,17 +95,18 @@ export default function Cadastro() {
               <InputCad id="apelido" label="Apelido" type="text" placeholder="Como prefere ser chamado(a)" Icon={User} autoComplete="nickname" />
               <InputCad id="telefone" label="Telefone" type="tel" placeholder="(00) 00000-0000" Icon={Phone} autoComplete="tel" />
               <InputCad id="data_nasc" label="Data de Nascimento" type="date" placeholder="" Icon={Calendar} autoComplete="bday" />
-              <SelectCad id="area" label="Área" placeholder="Selecione sua Área" options={CURSOS} Icon={BookOpen} />
+              <SelectCad id="area" label="Área" placeholder="Selecione sua Área" options={CURSOS.filter((curso) => curso !== "Todos")} Icon={BookOpen} />
               <InputCad id="email" label="E-mail" type="email" placeholder="Digite seu e-mail" Icon={AtSign} autoComplete="email" />
               <InputCad id="senha" label="Senha" type="password" placeholder="Digite sua senha" Icon={Lock} autoComplete="new-password" />
               <InputCad id="confirmar" label="Confirmar senha" type="password" placeholder="Repita sua senha" Icon={Lock} autoComplete="new-password" />
 
-              {/* ✅ type="submit" para o browser reconhecer como cadastro e oferecer salvar */}
+              {erro && <p className="text-sm text-red-500">{erro}</p>}
               <button
                 type="submit"
+                disabled={loading}
                 className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
-                Cadastrar
+                {loading ? "Cadastrando..." : "Cadastrar"}
               </button>
             </form>
 
