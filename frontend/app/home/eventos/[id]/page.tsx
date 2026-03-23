@@ -127,6 +127,7 @@ export default function DetalheEventoPage() {
   const status = getStatusVaga(evento);
   const encerrado = isInscricaoEncerrada(evento);
   const isInscrito = !!inscricaoAluno;
+  const canCancelarInscricao = !!inscricaoAluno && !inscricaoAluno.presencaConfirmada;
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
 
@@ -311,24 +312,32 @@ export default function DetalheEventoPage() {
                   Inscrever-se (site externo)
                 </a>
               ) : (
-                <button
-                  onClick={() => (isInscrito ? handleCancelarInscricao() : setModalInscricao(true))}
-                  disabled={!isInscrito && (status === "esgotado" || encerrado)}
-                  className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
-                    ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
-                    : status === "esgotado" || encerrado
-                      ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                      : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                    }`}
-                >
-                  {isInscrito
-                    ? "Cancelar minha inscricao"
-                    : encerrado
-                      ? "Inscrições encerradas"
-                      : status === "esgotado"
-                        ? "Esgotado"
-                        : "Inscrever-se neste evento"}
-                </button>
+                <>
+                  {isInscrito && !canCancelarInscricao ? (
+                    <div className="w-full py-3 rounded-md text-sm font-bold text-center bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
+                      Presença confirmada
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => (isInscrito ? handleCancelarInscricao() : setModalInscricao(true))}
+                      disabled={!isInscrito && (status === "esgotado" || encerrado)}
+                      className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
+                        ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                        : status === "esgotado" || encerrado
+                          ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                          : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                        }`}
+                    >
+                      {isInscrito
+                        ? "Cancelar minha inscricao"
+                        : encerrado
+                          ? "Inscrições encerradas"
+                          : status === "esgotado"
+                            ? "Esgotado"
+                            : "Inscrever-se neste evento"}
+                    </button>
+                  )}
+                </>
               )}
 
               {/* Botão Ver QR Code — só quando inscrito */}

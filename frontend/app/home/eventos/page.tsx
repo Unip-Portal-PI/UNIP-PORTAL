@@ -269,6 +269,7 @@ export default function EventosPage() {
                 evento={evento}
                 role={role}
                 isInscrito={isInscrito(evento.id)}
+                canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
                 onInscrever={handleInscrever}
                 onCancelarInscricao={handleCancelarInscricao}
                 onEditar={(e) => setModalForm(e)}
