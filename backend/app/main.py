@@ -1,22 +1,15 @@
-import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
 from app.controllers.auth_controller import router as auth_router
+from app.controllers.comunicado_controller import router as comunicado_router
 from app.controllers.evento_controller import router as evento_router
+from app.controllers.file_controller import router as file_router
 from app.controllers.inscricao_controller import router as inscricao_router
-
-
-def bootstrap_storage():
-    directories = ["static/banners", "static/qrcodes"]
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
-
-
-bootstrap_storage()
+from app.controllers.usuario_controller import router as usuario_router
+from app.core.storage import storage_service
 
 app = FastAPI(
     title="AVP Conecta",
@@ -41,12 +34,16 @@ async def integrity_exception_handler(request: Request, exc: IntegrityError):
     )
 
 
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.on_event("startup")
+def setup_storage():
+    storage_service.ensure_bucket()
 
 app.include_router(auth_router)
+app.include_router(comunicado_router)
 app.include_router(evento_router)
+app.include_router(file_router)
 app.include_router(inscricao_router)
+app.include_router(usuario_router)
 
 
 @app.get("/", tags=["Diagnostico"])
@@ -60,4 +57,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=7000, reload=True)

@@ -8,6 +8,12 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    MINIO_ENDPOINT: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BUCKET: str = "portal-avp"
+    MINIO_SECURE: bool = False
+
     EMAIL_API_URL: str
     EMAIL_API_KEY: str
     EMAIL_FROM: str

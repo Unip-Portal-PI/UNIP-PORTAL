@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app.models.evento import EventoModel, EventoCurso, EventoPalestrante
+from app.models.anexo import AnexoModel
 from app.models.inscricao import InscricaoModel
 
 
@@ -18,6 +19,11 @@ class EventoRepository:
 
     def list_all(self) -> list[EventoModel]:
         return self._base_query().all()
+
+    def list_by_creator(self, creator_id: str) -> list[EventoModel]:
+        return self._base_query().filter(
+            EventoModel.id_criador == creator_id
+        ).all()
 
     def get_by_id(self, evento_id: str) -> EventoModel | None:
         return self._base_query().filter(EventoModel.id_evento == evento_id).first()
@@ -51,3 +57,14 @@ class EventoRepository:
         self.db.query(EventoPalestrante).filter(EventoPalestrante.id_evento == evento_id).delete()
         for palestrante_id in palestrantes_ids:
             self.db.add(EventoPalestrante(id_evento=evento_id, id_palestrante=palestrante_id))
+
+    def set_anexos(self, evento_id: str, anexos: list[dict]) -> None:
+        self.db.query(AnexoModel).filter(AnexoModel.id_evento == evento_id).delete()
+        for anexo in anexos:
+            self.db.add(
+                AnexoModel(
+                    id_evento=evento_id,
+                    nome=anexo["nome"],
+                    url=anexo["url"],
+                )
+            )

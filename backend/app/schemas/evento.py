@@ -13,6 +13,14 @@ class AnexoResponse(BaseModel):
     url: str
 
 
+class AnexoRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    id: str | None = None
+    nome: str
+    url: str
+
+
 class EventoResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -52,6 +60,7 @@ class EventoCreate(BaseModel):
     tipo_inscricao: TipoInscricao = TipoInscricao.INTERNA
     url_externa: str | None = None
     visibilidade: Visibilidade = Visibilidade.PUBLICA
+    anexos: list[AnexoRequest] = []
     cursos_ids: list[str] = []
     palestrantes_ids: list[str] = []
 
@@ -72,5 +81,6 @@ class EventoUpdate(BaseModel):
     tipo_inscricao: TipoInscricao | None = None
     url_externa: str | None = None
     visibilidade: Visibilidade | None = None
+    anexos: list[AnexoRequest] | None = None
     cursos_ids: list[str] | None = None
     palestrantes_ids: list[str] | None = None
