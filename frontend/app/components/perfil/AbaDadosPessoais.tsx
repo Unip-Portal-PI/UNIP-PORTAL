@@ -117,7 +117,7 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
 
       // Só propaga a foto para a navbar APÓS salvar com sucesso
       if (fotoTemp) {
-        atualizarFoto(matricula, fotoTemp);
+        await atualizarFoto(matricula, fotoTemp);
         setFotoTemp(null);
       }
 
