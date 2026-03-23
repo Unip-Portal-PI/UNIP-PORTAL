@@ -3,9 +3,7 @@
 
 import { UsuarioGestor } from "@/src/types/usuarioGestor";
 import { Auth } from "@/src/service/auth.service";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:7000";
+import { API_BASE_URL } from "@/src/service/api-base-url";
 
 function getAuthHeaders() {
   const token = Auth.getToken();

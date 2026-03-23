@@ -1,13 +1,11 @@
 // src/services/auth.service.ts
 
 import { decodeJwt } from "jose";
+import { API_BASE_URL } from "@/src/service/api-base-url";
 import { ResultadoLogin, ResultadoPadraoAuth, UsuarioSessao } from "@/src/types/user";
 
 const TOKEN_KEY = "avp_token";
 const USER_KEY = "avp_user";
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:7000";
-
 // ---------------------------------------------------------------------------
 // Helpers internos
 // ---------------------------------------------------------------------------

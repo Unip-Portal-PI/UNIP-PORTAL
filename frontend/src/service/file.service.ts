@@ -1,9 +1,9 @@
 "use client";
 
+import { API_BASE_URL } from "@/src/service/api-base-url";
 import { Auth } from "@/src/service/auth.service";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:7000";
+export { API_BASE_URL };
 
 type UploadResponse = {
   path: string;

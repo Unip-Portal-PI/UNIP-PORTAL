@@ -3,6 +3,7 @@
 
 import { Usuario } from "@/src/types/user";
 import { Auth } from "@/src/service/auth.service";
+import { API_BASE_URL } from "@/src/service/api-base-url";
 
 // Fotos de perfil em memória (matricula → dataURL)
 const _fotos: Record<string, string> = {};
@@ -10,9 +11,6 @@ const _fotos: Record<string, string> = {};
 // Listeners para mudança de foto
 type FotoListener = (matricula: string, dataURL: string | null) => void;
 const _listeners: Set<FotoListener> = new Set();
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:7000";
-
 function getAuthHeaders() {
   const token = Auth.getToken();
   return {
