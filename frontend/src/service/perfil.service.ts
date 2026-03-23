@@ -1,8 +1,8 @@
 // src/service/perfil.service.ts
 "use client";
 
-import { MOCK_USUARIOS } from "@/src/data/usersMock";
 import { Usuario } from "@/src/types/user";
+import { Auth } from "@/src/service/auth.service";
 
 // Fotos de perfil em memória (matricula → dataURL)
 const _fotos: Record<string, string> = {};
@@ -10,64 +10,172 @@ const _fotos: Record<string, string> = {};
 // Listeners para mudança de foto
 type FotoListener = (matricula: string, dataURL: string | null) => void;
 const _listeners: Set<FotoListener> = new Set();
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:7000";
+
+function getAuthHeaders() {
+  const token = Auth.getToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      data?.detail || data?.mensagem || "Nao foi possivel concluir a operacao.";
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
+function mapUsuario(data: {
+  id: string;
+  matricula: string;
+  nome: string;
+  apelido?: string | null;
+  email: string;
+  telefone?: string | null;
+  dataNascimento?: string | null;
+  area?: string | null;
+  permission: string;
+  fotoUrl?: string | null;
+  ativo?: boolean;
+  criadoEm?: string | null;
+  atualizadoEm?: string | null;
+}): Usuario {
+  if (data.fotoUrl) {
+    _fotos[data.matricula] = data.fotoUrl;
+  }
+
+  Auth.updateStoredUser({
+    id: data.id,
+    matricula: data.matricula,
+    nome: data.nome,
+    apelido: data.apelido ?? "",
+    email: data.email,
+    area: data.area ?? "",
+    permission: data.permission as Usuario["permission"],
+    fotoUrl: data.fotoUrl ?? null,
+  });
+
+  return {
+    id: data.id,
+    matricula: data.matricula,
+    nome: data.nome,
+    apelido: data.apelido ?? "",
+    telefone: data.telefone ?? "",
+    dataNascimento: data.dataNascimento ?? "",
+    area: data.area ?? "",
+    permission: data.permission as Usuario["permission"],
+    email: data.email,
+    senha: "",
+    fotoUrl: data.fotoUrl ?? null,
+    ativo: data.ativo,
+    criadoEm: data.criadoEm ?? undefined,
+    atualizadoEm: data.atualizadoEm ?? undefined,
+  };
+}
 
 export const PerfilService = {
-  getDadosCompletos(matricula: string): Promise<Usuario | null> {
-    return new Promise((resolve) =>
-      setTimeout(() => {
-        const u = MOCK_USUARIOS.find((u) => u.matricula === matricula) ?? null;
-        resolve(u ? { ...u } : null);
-      }, 400)
-    );
+  async getDadosCompletos(_matricula: string): Promise<Usuario | null> {
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<{
+      id: string;
+      matricula: string;
+      nome: string;
+      apelido?: string | null;
+      email: string;
+      telefone?: string | null;
+      dataNascimento?: string | null;
+      area?: string | null;
+      permission: string;
+      fotoUrl?: string | null;
+      ativo?: boolean;
+      criadoEm?: string | null;
+      atualizadoEm?: string | null;
+    }>(response);
+    return mapUsuario(data);
   },
 
-  emailEmUso(email: string, ignorarMatricula: string): boolean {
-    return MOCK_USUARIOS.some(
-      (u) =>
-        u.email.toLowerCase() === email.toLowerCase() &&
-        u.matricula !== ignorarMatricula
-    );
-  },
-
-  atualizarDados(
-    matricula: string,
+  async atualizarDados(
+    _matricula: string,
     dados: Partial<Pick<Usuario, "nome" | "apelido" | "email" | "telefone" | "dataNascimento" | "area">>
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const idx = MOCK_USUARIOS.findIndex((u) => u.matricula === matricula);
-        if (idx === -1) { reject(new Error("Usuário não encontrado.")); return; }
-        if (dados.email && PerfilService.emailEmUso(dados.email, matricula)) {
-          reject(new Error("Este e-mail já está sendo usado por outra conta.")); return;
-        }
-        Object.assign(MOCK_USUARIOS[idx], dados);
-        resolve();
-      }, 600);
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        nome: dados.nome,
+        apelido: dados.apelido,
+        email: dados.email,
+        telefone: dados.telefone,
+        dataNascimento: dados.dataNascimento || null,
+        area: dados.area,
+      }),
     });
+    const data = await parseResponse<{
+      id: string;
+      matricula: string;
+      nome: string;
+      apelido?: string | null;
+      email: string;
+      telefone?: string | null;
+      dataNascimento?: string | null;
+      area?: string | null;
+      permission: string;
+      fotoUrl?: string | null;
+      ativo?: boolean;
+      criadoEm?: string | null;
+      atualizadoEm?: string | null;
+    }>(response);
+    mapUsuario(data);
   },
 
-  alterarSenha(matricula: string, senhaAtual: string, novaSenha: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const idx = MOCK_USUARIOS.findIndex((u) => u.matricula === matricula);
-        if (idx === -1) { reject(new Error("Usuário não encontrado.")); return; }
-        if (MOCK_USUARIOS[idx].senha !== senhaAtual) {
-          reject(new Error("Senha atual incorreta.")); return;
-        }
-        MOCK_USUARIOS[idx].senha = novaSenha;
-        resolve();
-      }, 600);
+  async alterarSenha(_matricula: string, senhaAtual: string, novaSenha: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/users/me/password`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        senhaAtual,
+        novaSenha,
+      }),
     });
+    await parseResponse(response);
   },
 
   getFoto(matricula: string): string | null {
-    return _fotos[matricula] ?? null;
+    if (_fotos[matricula]) return _fotos[matricula];
+    const user = Auth.getUser();
+    if (user?.matricula === matricula && user.fotoUrl) {
+      _fotos[matricula] = user.fotoUrl;
+      return user.fotoUrl;
+    }
+    return null;
   },
 
-  // Salva a foto E notifica todos os listeners (navbar, perfil, etc.)
-  salvarFoto(matricula: string, dataURL: string): void {
+  async salvarFoto(matricula: string, dataURL: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/users/me/photo`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ fotoUrl: dataURL }),
+    });
+    await parseResponse(response);
+
     _fotos[matricula] = dataURL;
+    Auth.updateStoredUser({ fotoUrl: dataURL });
     _listeners.forEach((fn) => fn(matricula, dataURL));
+  },
+
+  async carregarFoto(matricula: string): Promise<string | null> {
+    const dados = await this.getDadosCompletos(matricula);
+    return dados?.fotoUrl ?? null;
   },
 
   // Inscreve um componente para receber atualizações de foto
