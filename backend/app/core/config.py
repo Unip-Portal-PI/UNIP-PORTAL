@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     DATABASE_URL: str
+    CORS_ALLOW_ORIGINS: str = "*"
 
     MINIO_ENDPOINT: str
     MINIO_ACCESS_KEY: str

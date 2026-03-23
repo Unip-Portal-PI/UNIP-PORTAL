@@ -9,6 +9,7 @@ from app.controllers.evento_controller import router as evento_router
 from app.controllers.file_controller import router as file_router
 from app.controllers.inscricao_controller import router as inscricao_router
 from app.controllers.usuario_controller import router as usuario_router
+from app.core.config import settings
 from app.core.storage import storage_service
 
 app = FastAPI(
@@ -17,10 +18,18 @@ app = FastAPI(
     version="2.0.0",
 )
 
+cors_allowed_origins = [
+    origin.strip()
+    for origin in settings.CORS_ALLOW_ORIGINS.split(",")
+    if origin.strip()
+]
+if not cors_allowed_origins:
+    cors_allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
