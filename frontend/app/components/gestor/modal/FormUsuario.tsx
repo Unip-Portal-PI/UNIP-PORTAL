@@ -5,7 +5,6 @@ import { useState, useImperativeHandle, forwardRef } from "react";
 import { IconEye, IconEyeOff } from "@tabler/icons-react";
 import { UsuarioGestor, StatusUsuario } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
-import { UsuarioGestorService } from "@/src/service/usuarioGestor.service";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 
 export interface FormUsuarioRef {
@@ -67,7 +66,7 @@ const INITIAL: FormData = {
   apelido: "",
   email: "",
   senha: "",
-  area: CURSOS[0],
+  area: CURSOS[1],
   permission: "aluno",
   status: "ativo",
   ativo: true,
@@ -96,11 +95,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
       if (!form.email.trim()) e.email = "E-mail é obrigatório.";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
         e.email = "E-mail inválido.";
-      else if (UsuarioGestorService.emailEmUso(form.email, inicial?.id))
-        e.email = "E-mail já está em uso.";
       if (!form.matricula.trim()) e.matricula = "Matrícula é obrigatória.";
-      else if (UsuarioGestorService.matriculaEmUso(form.matricula, inicial?.id))
-        e.matricula = "Matrícula já está em uso.";
 
       // Senha obrigatória só na criação
       if (!isEdicao) {
@@ -127,6 +122,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             status: form.status,
             ativo: form.status === "ativo",
             criadoPor,
+            senha: form.senha,
           });
         } finally {
           onLoadingChange?.(false);
@@ -215,7 +211,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
               onChange={(e) => set("area", e.target.value)}
               className={`${inputCls} border-slate-300 dark:border-[#505050] focus:border-[#FFDE00] appearance-none pr-10 w-full`}
             >
-              {CURSOS.map((a) => <option key={a}>{a}</option>)}
+              {CURSOS.filter((curso) => curso !== "Todos").map((a) => <option key={a}>{a}</option>)}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
               <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

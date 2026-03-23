@@ -91,15 +91,19 @@ export function TabelaUsuarios() {
   const totalExcluidos = usuariosFiltrados.filter((u) => !!u.deletedAt).length;
 
   async function handleSalvar(dados: Omit<UsuarioGestor, "id" | "criadoEm" | "atualizadoEm">) {
-    if (modalForm === "novo") {
-      await UsuarioGestorService.criar(dados);
-      setSucesso("Usuário criado com sucesso!");
-    } else if (modalForm && typeof modalForm !== "string") {
-      await UsuarioGestorService.editar(modalForm.id, dados);
-      setSucesso("Usuário atualizado com sucesso!");
+    try {
+      if (modalForm === "novo") {
+        await UsuarioGestorService.criar(dados);
+        setSucesso("Usuário criado com sucesso!");
+      } else if (modalForm && typeof modalForm !== "string") {
+        await UsuarioGestorService.editar(modalForm.id, dados);
+        setSucesso("Usuário atualizado com sucesso!");
+      }
+      await carregar();
+      setModalForm(null);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Falha ao salvar usuário.");
     }
-    await carregar();
-    setModalForm(null);
   }
 
   async function handleExcluir() {
