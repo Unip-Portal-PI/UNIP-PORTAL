@@ -12,7 +12,7 @@ import {
   IconCircleCheck,
   IconExternalLink,
 } from "@tabler/icons-react";
-import { Evento } from "@/src/types/evento";
+import { Evento, Inscricao } from "@/src/types/evento";
 import { Comunicado } from "@/src/types/comunicado";
 import { EventoService } from "@/src/service/evento.service";
 import { ComunicadoService } from "@/src/service/comunicado.service";
@@ -20,6 +20,11 @@ import { useRouter } from "next/navigation";
 
 interface Props {
   matricula: string;
+}
+
+interface EventoHistorico {
+  evento: Evento;
+  inscricoes: Inscricao[];
 }
 
 function SectionHeader({ icone, titulo, contagem }: { icone: React.ReactNode; titulo: string; contagem: number }) {
@@ -38,7 +43,7 @@ function SectionHeader({ icone, titulo, contagem }: { icone: React.ReactNode; ti
 
 export function AbaHistoricoColaborador({ matricula }: Props) {
   const router = useRouter();
-  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [eventos, setEventos] = useState<EventoHistorico[]>([]);
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
@@ -50,16 +55,17 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
       setErro(false);
       try {
         const [todosEventos, todosComunicados] = await Promise.all([
-          EventoService.getAll(),
-          ComunicadoService.getAll(),
+          EventoService.getMeusEventosCriados(),
+          ComunicadoService.getMine(),
         ]);
-        // Filtra eventos onde o colaborador é responsável
-        // Como o mock de eventos não tem campo criadoPor, usamos os eventos cujo
-        // alunoId nas inscrições corresponde — mas para colaborador o padrão é
-        // mostrar todos os eventos que ele teria criado. Como não há campo criadoPor
-        // no tipo Evento, exibimos todos (simulação) e filtramos comunicados por criadoPor.
-        setEventos(todosEventos);
-        setComunicados(todosComunicados.filter((c) => c.criadoPor === matricula));
+        const eventosComInscricoes = await Promise.all(
+          todosEventos.map(async (evento) => ({
+            evento,
+            inscricoes: await EventoService.getInscricoesEvento(evento.id),
+          }))
+        );
+        setEventos(eventosComInscricoes);
+        setComunicados(todosComunicados);
       } catch {
         setErro(true);
       } finally {
@@ -116,8 +122,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {eventos.map((evento) => {
-              const inscricoes = EventoService.getInscricoesEvento(evento.id);
+            {eventos.map(({ evento, inscricoes }) => {
               const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
               const total = inscricoes.length;
               const porcento = total > 0 ? Math.round((confirmados / total) * 100) : 0;
