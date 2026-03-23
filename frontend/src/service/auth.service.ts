@@ -161,12 +161,44 @@ export const authService = {
     }
   },
 
-  async requestPasswordReset(email: string): Promise<ResultadoPadraoAuth> {
+  async previewPasswordReset(matricula: string): Promise<{
+    sucesso: boolean;
+    mensagem: string;
+    matricula?: string;
+    emailPreview?: string;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-senha/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matricula }),
+      });
+      const data = await parseResponse<{
+        sucesso: boolean;
+        mensagem: string;
+        matricula?: string | null;
+        emailPreview?: string | null;
+      }>(response);
+      return {
+        sucesso: data.sucesso,
+        mensagem: data.mensagem,
+        matricula: data.matricula ?? undefined,
+        emailPreview: data.emailPreview ?? undefined,
+      };
+    } catch (error) {
+      return {
+        sucesso: false,
+        mensagem: error instanceof Error ? error.message : "Falha ao validar e-mail.",
+      };
+    }
+  },
+
+  async requestPasswordReset(matricula: string, email: string): Promise<ResultadoPadraoAuth> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/reset-senha/solicitar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ matricula, email }),
       });
       return await parseResponse<ResultadoPadraoAuth>(response);
     } catch (error) {
