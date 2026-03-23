@@ -20,6 +20,7 @@ export interface UsuarioGestor {
   criadoEm: string;
   atualizadoEm: string;
   criadoPor: string;
+  senha?: string;
 }
 
 // Labels e cores mapeados para o padrão do projeto

@@ -2,6 +2,7 @@
 
 
 export interface Usuario {
+  id?: string;
   matricula: string;
   nome: string;
   apelido: string;
@@ -11,17 +12,23 @@ export interface Usuario {
   permission: UserRole;
   email: string;
   senha: string;
+  fotoUrl?: string | null;
+  ativo?: boolean;
+  criadoEm?: string;
+  atualizadoEm?: string;
 }
 
 export type UsuarioPublico = Omit<Usuario, "senha">;
 
 export interface UsuarioSessao {
+  id: string;
   nome: string;
   apelido: string;
   email: string;
   matricula: string;
   area: string;
   permission: UserRole;
+  fotoUrl?: string | null;
 }
 
 export interface PayloadToken {
@@ -33,6 +40,11 @@ export interface ResultadoLogin {
   sucesso: boolean;
   mensagem: string;
   usuario?: UsuarioSessao;
+}
+
+export interface ResultadoPadraoAuth {
+  sucesso: boolean;
+  mensagem: string;
 }
 
 

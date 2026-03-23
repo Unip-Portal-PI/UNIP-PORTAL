@@ -12,6 +12,7 @@ class UsuarioResumo(BaseModel):
     matricula: str
     email: str
     area: str | None = None
+    foto_url: str | None = None
     permission: str
 
 
