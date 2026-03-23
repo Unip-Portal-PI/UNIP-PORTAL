@@ -24,6 +24,7 @@ def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
         matricula=user.username,
         email=user.email,
         area=user.curso.nome_curso if user.curso else None,
+        foto_url=user.foto_url,
         permission=user.nivel_acesso.nome_perfil,
     )
 
