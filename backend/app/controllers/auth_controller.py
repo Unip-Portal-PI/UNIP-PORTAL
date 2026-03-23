@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,11 +12,32 @@ from app.schemas.auth import (
 from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["Autenticacao"])
+logger = logging.getLogger("app.auth")
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    return auth_service.login(data, db)
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info("login_request ip=%s value=%s", client_ip, data.matricula.strip())
+    try:
+        response = auth_service.login(data, db)
+        logger.info(
+            "login_response ip=%s value=%s success=%s message=%s",
+            client_ip,
+            data.matricula.strip(),
+            response.sucesso,
+            response.mensagem,
+        )
+        return response
+    except HTTPException as exc:
+        logger.warning(
+            "login_http_exception ip=%s value=%s status=%s detail=%s",
+            client_ip,
+            data.matricula.strip(),
+            exc.status_code,
+            exc.detail,
+        )
+        raise
 
 
 @router.post("/cadastro", response_model=CadastroResponse)

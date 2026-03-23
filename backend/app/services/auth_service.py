@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,8 @@ from app.schemas.auth import (
     ResetSolicitarRequest, ResetValidarResponse,
     ResetRedefinirRequest, MensagemResponse,
 )
+
+logger = logging.getLogger("app.auth")
 
 
 def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
@@ -31,12 +34,26 @@ def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
 
 def login(data: LoginRequest, db: Session) -> LoginResponse:
     repo = UsuarioRepository(db)
-    user = repo.get_by_username(data.matricula.strip())
+    login_value = data.matricula.strip()
+    logger.info("login_attempt value=%s", login_value)
+    user = repo.get_by_username(login_value)
+    found_by = "username"
+
+    # Allow login using either matricula (username) or e-mail.
+    if not user and "@" in login_value:
+        user = repo.get_by_email(login_value)
+        found_by = "email"
 
     if not user or not verify_password(data.senha, user.password):
+        logger.warning("login_failure value=%s reason=invalid_credentials", login_value)
         return LoginResponse(sucesso=False, mensagem="Matricula ou senha incorretos.")
 
     if not user.ativo:
+        logger.warning(
+            "login_failure user_id=%s value=%s reason=inactive_account",
+            user.id_usuario,
+            login_value,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Esta conta esta desativada.",
@@ -46,6 +63,14 @@ def login(data: LoginRequest, db: Session) -> LoginResponse:
         "sub": user.id_usuario,
         "role": user.nivel_acesso.nome_perfil,
     })
+
+    logger.info(
+        "login_success user_id=%s value=%s matched_by=%s role=%s",
+        user.id_usuario,
+        login_value,
+        found_by,
+        user.nivel_acesso.nome_perfil,
+    )
 
     return LoginResponse(
         sucesso=True,
@@ -120,8 +145,16 @@ def validate_otp(email: str, codigo: str, db: Session) -> ResetValidarResponse:
     if not user or not user.otp_code:
         raise HTTPException(status_code=400, detail="Codigo invalido ou expirado.")
 
-    if user.otp_expires_at and user.otp_expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Codigo expirado. Solicite um novo.")
+    if user.otp_expires_at:
+        expires_at = user.otp_expires_at
+        now_utc = datetime.now(timezone.utc)
+        if expires_at.tzinfo is None:
+            now_ref = now_utc.replace(tzinfo=None)
+        else:
+            now_ref = now_utc
+
+        if expires_at < now_ref:
+            raise HTTPException(status_code=400, detail="Codigo expirado. Solicite um novo.")
 
     if not verify_password(codigo, user.otp_code):
         raise HTTPException(status_code=400, detail="Codigo invalido.")
