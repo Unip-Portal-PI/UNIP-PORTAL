@@ -45,3 +45,6 @@ next-env.d.ts
 __init__.py
 __pycache__/
 
+# requests
+http/
+
