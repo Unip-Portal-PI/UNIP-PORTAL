@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -24,8 +24,11 @@ function Logos({ isDark }: { isDark: boolean }) {
 
 export default function ResetSenha() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [etapa, setEtapa] = useState<Etapa>("email");
+  const [matricula, setMatricula] = useState("");
   const [email, setEmail] = useState("");
+  const [emailPreview, setEmailPreview] = useState("");
   const [codigo, setCodigo] = useState(["", "", "", "", "", ""]);
   const [erroSenha, setErroSenha] = useState("");
   const [erroFluxo, setErroFluxo] = useState("");
@@ -55,16 +58,61 @@ export default function ResetSenha() {
     }
   }
 
-  async function handleEnviarEmail(emailDestino: string) {
-    if (!emailDestino) return;
+  function isEmailFormatoValido(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  async function carregarPreviewUsuario(matriculaValor: string) {
+    const matriculaNormalizada = matriculaValor.trim();
+    if (!matriculaNormalizada) return;
     setLoading(true);
     setErroFluxo("");
-    const resultado = await Auth.requestPasswordReset(emailDestino);
+    const resultado = await Auth.previewPasswordReset(matriculaNormalizada);
+    setLoading(false);
+
+    if (!resultado.sucesso || !resultado.emailPreview) {
+      setEmailPreview("");
+      setErroFluxo(resultado.mensagem || "Usuario nao encontrado para a matricula informada.");
+      return;
+    }
+
+    setMatricula(resultado.matricula ?? matriculaNormalizada);
+    setEmailPreview(resultado.emailPreview);
+  }
+
+  useEffect(() => {
+    const matriculaFromQuery = searchParams.get("matricula")?.trim() ?? "";
+    const chosen = matriculaFromQuery;
+
+    if (chosen) {
+      setMatricula(chosen);
+      void carregarPreviewUsuario(chosen);
+    } else {
+      setErroFluxo("Informe sua matricula na tela de login antes de recuperar a senha.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleEnviarEmail(emailDestino: string) {
+    const normalized = emailDestino.trim().toLowerCase();
+    if (!normalized) return;
+    if (!isEmailFormatoValido(normalized)) {
+      setErroFluxo("Informe um e-mail valido.");
+      return;
+    }
+    if (!matricula || !emailPreview) {
+      setErroFluxo("Nao foi possivel identificar a matricula. Volte ao login e tente novamente.");
+      return;
+    }
+    setLoading(true);
+    setErroFluxo("");
+    const resultado = await Auth.requestPasswordReset(matricula, normalized);
     setLoading(false);
     if (!resultado.sucesso) {
       setErroFluxo(resultado.mensagem);
       return;
     }
+    setEmail(normalized);
     setEtapa("codigo");
   }
 
@@ -122,7 +170,7 @@ export default function ResetSenha() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recuperação de senha</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Informe o e-mail cadastrado, enviaremos um código de recuperação.
+                  Informe o e-mail completo da conta para a matricula <strong>{matricula || "-"}</strong>.
                 </p>
               </div>
 
@@ -136,14 +184,19 @@ export default function ResetSenha() {
                 />
               </div>
 
+              {emailPreview && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-3 text-center">
+                  E-mail cadastrado para esta matricula: <strong>{emailPreview}</strong>
+                </p>
+              )}
+
               <button
                 onClick={() => {
                   const val = (document.getElementById("email") as HTMLInputElement).value;
-                  setEmail(val);
                   handleEnviarEmail(val);
                 }}
-                disabled={loading}
-                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                disabled={loading || !matricula || !emailPreview}
+                className="bg-[#0f0f1e] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
                 {loading ? "Enviando..." : "Enviar"}
               </button>
@@ -199,7 +252,7 @@ export default function ResetSenha() {
               {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
 
               <p className="text-center text-sm mt-6">
-                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline Z cursor-pointer">
+                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                   Voltar
                 </button>
               </p>
