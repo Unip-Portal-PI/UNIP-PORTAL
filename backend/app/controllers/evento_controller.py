@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -12,6 +13,7 @@ from app.schemas.inscricao import (
 from app.services import evento_service, inscricao_service, presenca_service
 
 router = APIRouter(prefix="/events", tags=["Eventos"])
+logger = logging.getLogger("app.qr")
 
 allow_colaborador_adm = RoleChecker(["colaborador", "adm"])
 allow_adm = RoleChecker(["adm"])
@@ -119,12 +121,41 @@ def my_enrollment(
 def confirm_presence_by_event(
     evento_id: str,
     data: PresencaConfirmRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return presenca_service.confirm_presence(
-        qr_code=data.qr_code,
-        confirmado_por=current_user.id_usuario,
-        db=db,
-        evento_id=evento_id,
+    client_ip = request.client.host if request.client else "unknown"
+    qr_preview = (data.qr_code or "")[:24]
+    logger.info(
+        "qr_checkin_request ip=%s evento_id=%s user_id=%s qr_prefix=%s",
+        client_ip,
+        evento_id,
+        current_user.id_usuario,
+        qr_preview,
     )
+    try:
+        result = presenca_service.confirm_presence(
+            qr_code=data.qr_code,
+            confirmado_por=current_user.id_usuario,
+            db=db,
+            evento_id=evento_id,
+        )
+        logger.info(
+            "qr_checkin_response ip=%s evento_id=%s success=%s message=%s",
+            client_ip,
+            evento_id,
+            result.sucesso,
+            result.mensagem,
+        )
+        return result
+    except HTTPException as exc:
+        logger.warning(
+            "qr_checkin_failure ip=%s evento_id=%s status=%s detail=%s qr_prefix=%s",
+            client_ip,
+            evento_id,
+            exc.status_code,
+            exc.detail,
+            qr_preview,
+        )
+        raise

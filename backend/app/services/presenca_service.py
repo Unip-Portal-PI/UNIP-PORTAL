@@ -1,3 +1,4 @@
+import logging
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
@@ -7,6 +8,8 @@ from app.models.presenca import PresencaModel
 from app.repositories.inscricao_repository import InscricaoRepository
 from app.repositories.presenca_repository import PresencaRepository
 from app.schemas.inscricao import InscricaoResponse, PresencaConfirmResponse
+
+logger = logging.getLogger("app.qr")
 
 
 def _serialize_inscricao(inscricao) -> InscricaoResponse:
@@ -27,6 +30,7 @@ def _validate_qr_code_token(qr_code: str, inscricao, evento_id: str | None = Non
     try:
         payload = jwt.decode(qr_code, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
+        logger.info("qr_token_decode skipped reason=non_jwt_or_invalid_signature")
         return
 
     if payload.get("type") != "event_checkin":
@@ -51,10 +55,17 @@ def confirm_presence(
     db: Session,
     evento_id: str | None = None,
 ) -> PresencaConfirmResponse:
+    logger.info(
+        "qr_confirm_presence_start evento_id=%s confirmado_por=%s qr_prefix=%s",
+        evento_id,
+        confirmado_por,
+        (qr_code or "")[:24],
+    )
     insc_repo = InscricaoRepository(db)
     inscricao = insc_repo.get_by_qr_code(qr_code)
 
     if not inscricao:
+        logger.warning("qr_confirm_presence_not_found evento_id=%s", evento_id)
         raise HTTPException(status_code=404, detail="QR Code invalido ou inscricao nao encontrada.")
 
     if evento_id and inscricao.id_evento != evento_id:
@@ -74,6 +85,12 @@ def confirm_presence(
 
     inscricao = insc_repo.get_by_qr_code(qr_code)
 
+    logger.info(
+        "qr_confirm_presence_success evento_id=%s inscricao_id=%s aluno_id=%s",
+        inscricao.id_evento,
+        inscricao.id_inscricao,
+        inscricao.id_usuario,
+    )
     return PresencaConfirmResponse(
         sucesso=True,
         mensagem="Presenca confirmada com sucesso.",
