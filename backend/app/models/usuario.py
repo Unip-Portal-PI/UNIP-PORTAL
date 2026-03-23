@@ -19,7 +19,7 @@ class UsuarioModel(Base):
     data_nascimento = Column(Date, nullable=True)
     foto_url = Column(Text, nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
-    otp_code = Column(String(6), nullable=True)
+    otp_code = Column(String(255), nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
     deleted_at = Column(DateTime, nullable=True)
