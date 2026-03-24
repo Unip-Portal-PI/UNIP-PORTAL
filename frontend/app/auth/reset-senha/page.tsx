@@ -1,7 +1,7 @@
 // app/auth/reset-senha/page.tsx
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,7 +22,7 @@ function Logos({ isDark }: { isDark: boolean }) {
   );
 }
 
-export default function ResetSenha() {
+function ResetSenhaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [etapa, setEtapa] = useState<Etapa>("email");
@@ -328,4 +328,12 @@ export default function ResetSenha() {
       </footer>
     </main>
   );
+}
+
+export default function ResetSenha() {
+  return(
+     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <ResetSenhaContent />
+    </Suspense>
+  )
 }

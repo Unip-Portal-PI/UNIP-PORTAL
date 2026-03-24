@@ -21,7 +21,7 @@ export interface Usuario {
 export type UsuarioPublico = Omit<Usuario, "senha">;
 
 export interface UsuarioSessao {
-  id: string;
+  id?: string;
   nome: string;
   apelido: string;
   email: string;

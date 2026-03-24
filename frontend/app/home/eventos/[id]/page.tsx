@@ -182,6 +182,7 @@ export default function DetalheEventoPage() {
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
+    if (!evento) throw new Error("Evento não encontrado.");
     const result = await EventoService.confirmarPresenca(evento.id, qrCode);
     setPresencasConfirmadas((prev) => {
       const exists = prev.find((p) => p.id === result.id);

@@ -12,7 +12,7 @@ type UploadResponse = {
   content_type?: string | null;
 };
 
-function getAuthHeaders() {
+function getAuthHeaders() : Record<string, string> {
   const token = Auth.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
