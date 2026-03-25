@@ -1,50 +1,64 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Any, Dict
 
 # ==============================================================================
 # SCHEMAS DE NOTÍCIAS (EDITORIAL GOVERNANCE DTOs)
 # ==============================================================================
+
 class NewsBase(BaseModel):
     """
     Camada Base: Define as regras de integridade de conteúdo.
-    Proteção contra inputs inválidos que prejudicam a UI/UX.
+    Atualizada com os novos campos de resumo, assunto e mídias.
     """
-    title: str = Field(..., min_length=5, max_length=150, description="Título do comunicado")
-    content: str = Field(..., min_length=10, description="Conteúdo detalhado da notícia")
+    title: str = Field(..., min_length=5, max_length=200, description="Título do comunicado")
+    subject: Optional[str] = Field(None, max_length=120, description="Assunto ou categoria")
+    summary: str = Field(..., min_length=10, max_length=255, description="Resumo para listagens")
+    content: str = Field(..., min_length=10, description="Conteúdo completo")
     
-    # Validação passiva: Opcional, mas se enviado, deve ser uma string coerente
-    image_url: Optional[str] = Field(None, description="Link para imagem de destaque")
-
+    # Usamos str para URLs pois podem ser caminhos relativos ou complexos
+    image_url: Optional[str] = Field(None, description="URL da imagem de destaque")
+    
+    # Novos campos de suporte a dados complexos
+    attachments: List[Dict[str, Any]] = Field(default=[], description="Lista de anexos (nome, url)")
+    visibility: Dict[str, Any] = Field(default={}, description="Regras de visibilidade")
 
 class NewsCreate(NewsBase):
     """
     Schema de Criação (POST).
-    Implementa a criação simplificada de avisos oficiais.
+    O author_id é enviado aqui (ou capturado via Token no Controller).
     """
-    pass
+    author_id: str = Field(..., description="ID do autor (UUID)")
+    expires_at: Optional[datetime] = Field(None, description="Data opcional de expiração")
 
-
-class NewsUpdate(NewsBase):
+class NewsUpdate(BaseModel):
     """
-    Schema de Atualização (PUT/PATCH).
-    Implementa Concorrência Otimista no lado do Cliente.
-    Exige a versão atual para validar o estado do registro.
+    Schema de Atualização (PATCH).
+    Permite atualização parcial. Exige current_version para concorrência otimista.
     """
-    current_version: int = Field(..., description="Versão atual para evitar sobrescrita cega")
-
+    title: Optional[str] = None
+    subject: Optional[str] = None
+    summary: Optional[str] = None
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    attachments: Optional[List[Dict[str, Any]]] = None
+    visibility: Optional[Dict[str, Any]] = None
+    expires_at: Optional[datetime] = None
+    
+    current_version: int = Field(..., description="Versão atual no banco para evitar sobrescrita")
 
 class NewsResponse(NewsBase):
     """
     Schema de Saída (GET).
-    Provê rastreabilidade de autoria e controle de versão para o Front-end.
+    Reflete as mudanças de UUID e timestamps.
     """
-    id: int
+    id: str = Field(..., description="ID único (UUID)")
+    author_id: str
     created_at: datetime
+    updated_at: datetime
+    expires_at: Optional[datetime]
     is_active: bool
-    status: str  # <--- (@Gabriel)
-    author_id: int  
-    version: int    
+    version: int
 
     class Config:
         from_attributes = True
@@ -53,19 +67,11 @@ class NewsResponse(NewsBase):
 class NewsReadResponse(BaseModel):
     """ 
     Schema de Log de Leitura.
-    Base de dados para a inteligência de exclusão condicional.
+    IDs atualizados para String (UUID).
     """
-    news_id: int
-    user_id: int
+    news_id: str
+    user_id: str
     read_at: datetime
 
     class Config:
         from_attributes = True
-
-class NewsReadCreate(BaseModel): # (@Gabriel)
-    """ 
-    Schema de Criação de Log de Leitura.
-    Registra a leitura de um aviso por um usuário específico.
-    """
-    news_id: int
-   # user_id: int  # O ID do usuário pode ser inferido a partir do token de autenticação
