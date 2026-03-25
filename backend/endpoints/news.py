@@ -6,26 +6,24 @@ from core.security import RoleChecker, oauth2_scheme, settings
 from business.services.news_service import NewsService
 from persistence.repositories.news_repository import NewsRepository
 from persistence.repositories.audit_repository import AuditRepository
-from schemas.news_schema import NewsCreate, NewsResponse, NewsReadCreate, NewsReadResponse
+from schemas.news_schema import NewsCreate, NewsResponse, NewsUpdate
 from persistence.models.news_model import NewsModel
 
 # ==============================================================================
 # CONFIGURAÇÃO DO ROTEADOR DE NOTÍCIAS (EDITORIAL ROUTER)
 # ==============================================================================
-# AJUSTE: Removido prefix="/news" para não duplicar com a configuração do main.py
-router = APIRouter(tags=["Notícias"]) 
+router = APIRouter()
 
-# AJUSTE: Nomes das roles sincronizados com o banco de dados
 require_staff = RoleChecker(["admin", "staff"])
 
-def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
-    """Extrai o ID do usuário de forma segura e padronizada."""
+def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
+    """Extrai o ID (UUID) do usuário de forma segura."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Token inválido.")
-        return int(user_id)
+        return str(user_id) # Retorna como string para compatibilidade com UUID
     except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
 
@@ -34,6 +32,7 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
 # ==============================================================================
 @router.get(
     "/", 
+    # List[NewsResponse] agora aceita os novos campos automaticamente
     response_model=list[NewsResponse],
     summary="Lista comunicados ativos",
     tags=["Notícias"]
@@ -41,26 +40,6 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
 def list_news(skip: int = 0, limit: int = 5, db: Session = Depends(get_db)):
     service = NewsService(NewsRepository(db), AuditRepository(db))
     return service.list_news(skip=skip, limit=limit)
-
-# ENDPOINT DE REGISTRO DE LEITURA DE NOTÍCIAS (RN09) - ATUALIZADO
-@router.post(
-    "/read", 
-    response_model=NewsReadResponse, 
-    summary="Registra leitura do aluno"
-)
-def register_news_read(
-    news_id: int, 
-    db: Session = Depends(get_db), 
-    current_user_id: int = Depends(get_current_user_id)
-):
-    """
-    Registra que o usuário logado leu a notícia. 
-    Atende ao requisito de Rastro de Auditoria injetado na lógica.
-    """
-    repo = NewsRepository(db)
-    # Registra a leitura vinculando a notícia ao ID do usuário extraído do Token
-    log = repo.register_read(news_id=news_id, user_id=current_user_id)
-    return log
 
 # ==============================================================================
 # SEÇÃO DE GESTÃO (EDITORIAL ADMIN)
@@ -75,18 +54,44 @@ def register_news_read(
 def create_news(
     news: NewsCreate, 
     db: Session = Depends(get_db), 
-    current_user_id: int = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
-    """Cria uma nova notícia vinculada ao Admin/Staff logado."""
+    """Cria uma nova notícia incluindo os novos campos editoriais."""
+    # Mapeamento atualizado para incluir summary, subject e campos JSON
     new_post = NewsModel(
-        title=news.title, 
+        title=news.title,
+        subject=news.subject,
+        summary=news.summary,
         content=news.content, 
         image_url=news.image_url,
-        status="Ativo" # Garante compatibilidade com os filtros do Repository (RN04)
+        attachments=news.attachments,
+        visibility=news.visibility
     )
     
     service = NewsService(NewsRepository(db), AuditRepository(db))
     return service.create_news(new_post, current_user_id)
+
+@router.patch(
+    "/{news_id}",
+    response_model=NewsResponse,
+    dependencies=[Depends(require_staff)],
+    summary="Atualiza um comunicado existente",
+    tags=["Notícias"]
+)
+def update_news(
+    news_id: str, # UUID como string
+    news_data: NewsUpdate,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Atualiza a notícia com suporte a concorrência otimista (versão)."""
+    service = NewsService(NewsRepository(db), AuditRepository(db))
+    updated_news = service.update_news(news_id, news_data, current_user_id)
+    
+    if not updated_news:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada ou conflito de versão.")
+    
+    return updated_news
 
 @router.delete(
     "/{news_id}", 
@@ -95,14 +100,13 @@ def create_news(
     tags=["Notícias"]
 )
 def delete_news(
-    news_id: int, 
+    news_id: str, # Alterado para str (UUID)
     db: Session = Depends(get_db), 
-    current_user_id: int = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """Remove uma notícia registrando quem realizou a exclusão."""
     service = NewsService(NewsRepository(db), AuditRepository(db))
     
-    # Passamos "admin" para manter a coerência da lógica de serviço
     result = service.delete_news(news_id, current_user_id, "admin")
     
     if not result:
