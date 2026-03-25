@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from persistence.models.news_model import NewsModel, NewsReadModel
+from persistence.models.news_model import NewsModel
+from persistence.models.news_read_model import NewsReadLogModel
 from typing import Optional, List
 
 # ==============================================================================
@@ -7,16 +8,15 @@ from typing import Optional, List
 # ==============================================================================
 class NewsRepository:
     """
-    Gerencia o ciclo de vida das notícias, integrando logs de leitura,
-    controle de concorrência e estratégias de exclusão condicional.
+    Gerencia o ciclo de vida das notícias. 
+    Atualizado para suportar IDs em formato UUID (String) e novos campos editoriais.
     """
 
     def __init__(self, db: Session):
-        """Injeta a sessão do SQLAlchemy para persistência."""
         self.db = db
 
     # ==========================================================================
-    # PERSISTÊNCIA E CONSULTA (VISIBILIDADE PÚBLICA)
+    # PERSISTÊNCIA E CONSULTA
     # ==========================================================================
     def create(self, news: NewsModel) -> NewsModel:
         """Persiste uma nova notícia oficial no portal."""
@@ -25,47 +25,57 @@ class NewsRepository:
         self.db.refresh(news)
         return news
 
-    def get_by_id(self, news_id: int) -> Optional[NewsModel]:
-        """Busca notícia ativa. Registros em Soft Delete ou Excluídos são ignorados."""
+    def get_by_id(self, news_id: str) -> Optional[NewsModel]:
+        """
+        Busca notícia ativa por UUID.
+        Nota: news_id agora espera uma String (UUID).
+        """
         return self.db.query(NewsModel).filter(
             NewsModel.id == news_id, 
-            NewsModel.is_active == True,
-            NewsModel.status == "Ativo"
+            NewsModel.is_active == True
         ).first()
 
-    def list(self, skip: int = 0, limit: int = 10) -> List[NewsModel]:
-        """Retorna o feed de notícias ordenado das mais recentes para as antigas."""
-        return self.db.query(NewsModel)\
-            .filter(
-                NewsModel.is_active == True,
-                NewsModel.status == "Ativo"
-            )\
-            .order_by(NewsModel.created_at.desc())\
+    def list(self, skip: int = 0, limit: int = 10, include_expired: bool = False) -> List[NewsModel]:
+        """
+        Retorna o feed de notícias ordenado das mais recentes.
+        Filtra automaticamente notícias inativas.
+        """
+        query = self.db.query(NewsModel).filter(NewsModel.is_active == True)
+        
+        # Opcional: Filtro para não listar notícias cuja data de validade já passou
+        # if not include_expired:
+        #     from datetime import datetime, timezone
+        #     query = query.filter(
+        #         (NewsModel.expires_at == None) | (NewsModel.expires_at > datetime.now(timezone.utc))
+        #     )
+
+        return query.order_by(NewsModel.created_at.desc())\
             .offset(skip).limit(limit).all()
 
     # ==========================================================================
-    # GOVERNANÇA: CONCORRÊNCIA OTIMISTA
+    # GOVERNANÇA: ATUALIZAÇÃO E VERSIONAMENTO
     # ==========================================================================
-    def update(self, news_id: int, news_data) -> Optional[NewsModel]:
+    def update(self, news_id: str, news_data) -> Optional[NewsModel]:
         """
-        Atualiza a notícia incrementando a versão para evitar conflitos de edição.
+        Atualiza a notícia incrementando a versão e gerenciando campos JSON.
         """
         news = self.get_by_id(news_id)
         if not news:
             return None
 
-        # Converte o Pydantic para dict (suporta Pydantic v1 e v2)
-        data_dict = news_data.dict(exclude_unset=True) if hasattr(news_data, 'dict') else news_data.model_dump(exclude_unset=True)
+        # Converte o schema/Dato em dicionário
+        data_dict = news_data.dict(exclude_unset=True)
         
-        # Proteção: impede que a versão seja alterada manualmente pelo payload
-        data_dict.pop("version", None)
-        data_dict.pop("current_version", None)
+        # Proteção: impede alteração manual de campos de controle
+        protected_fields = ["id", "version", "created_at", "author_id"]
+        for field in protected_fields:
+            data_dict.pop(field, None)
 
         for key, value in data_dict.items():
             if hasattr(news, key):
                 setattr(news, key, value)
         
-        # Mecanismo de Versão (Incremento manual para auditoria/concorrência)
+        # O SQLAlchemy tratará o onupdate do updated_at automaticamente
         news.version += 1
         
         self.db.commit()
@@ -73,44 +83,39 @@ class NewsRepository:
         return news
 
     # ==========================================================================
-    # ANALYTICS: RASTREAMENTO DE LEITURA (RN09)
+    # ANALYTICS: RASTREAMENTO DE LEITURA
     # ==========================================================================
-    def register_read(self, news_id: int, user_id: int):
-        """
-        Registra visualização única por usuário para estatísticas reais.
-        """
-        # AJUSTE: Sincronizado com NewsReadModel do seu news_model.py
-        exists = self.db.query(NewsReadModel).filter_by(
+    def register_read(self, news_id: str, user_id: str):
+        """Registra visualização única. news_id e user_id agora são UUIDs."""
+        exists = self.db.query(NewsReadLogModel).filter_by(
             news_id=news_id, user_id=user_id
         ).first()
         
         if not exists:
-            log = NewsReadModel(news_id=news_id, user_id=user_id)
+            log = NewsReadLogModel(news_id=news_id, user_id=user_id)
             self.db.add(log)
             self.db.commit()
             self.db.refresh(log)
             return log
         return exists
 
-    def count_reads(self, news_id: int) -> int:
-        """Retorna o total de leitores únicos de uma notícia."""
-        return self.db.query(NewsReadModel).filter_by(news_id=news_id).count()
+    def count_reads(self, news_id: str) -> int:
+        return self.db.query(NewsReadLogModel).filter_by(news_id=news_id).count()
 
     # ==========================================================================
-    # ESTRATÉGIAS DE CICLO DE VIDA (CLEANUP)
+    # CICLO DE VIDA (CLEANUP)
     # ==========================================================================
-    def soft_delete(self, news_id: int) -> bool:
-        """Executa a desativação lógica (RN04)."""
+    def soft_delete(self, news_id: str) -> bool:
+        """Desativação lógica por UUID."""
         news = self.db.query(NewsModel).filter_by(id=news_id).first()
         if news:
             news.is_active = False
-            news.status = "Excluido" # Rastro de auditoria
             self.db.commit()
             return True
         return False
 
-    def physical_delete(self, news_id: int) -> bool:
-        """Executa a remoção física definitiva do banco."""
+    def physical_delete(self, news_id: str) -> bool:
+        """Remoção física por UUID."""
         news = self.db.query(NewsModel).filter_by(id=news_id).first()
         if news:
             self.db.delete(news)
