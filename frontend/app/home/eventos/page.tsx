@@ -21,7 +21,7 @@ export default function EventosPage() {
   const sessao = Auth.getUser();
   const role = (sessao?.permission ?? "aluno") as UserRole;
   const user = {
-    id: sessao?.matricula ?? "",
+    id: sessao?.id ?? "",
     apelido: sessao?.apelido ?? "",
     nome: sessao?.nome ?? "",
     matricula: sessao?.matricula ?? "",
@@ -46,6 +46,7 @@ export default function EventosPage() {
   const [modalForm, setModalForm] = useState<Evento | null | "novo">(null);
   const [modalQR, setModalQR] = useState<Evento | null>(null);
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
+  const [minhasInscricoes, setMinhasInscricoes] = useState<Record<string, Inscricao>>({});
 
   // ── Carga ────────────────────────────────────────────────────────────────────
   async function carregarEventos() {
@@ -54,6 +55,21 @@ export default function EventosPage() {
     try {
       const data = await EventoService.getAll();
       setEventos(data);
+
+      if (role === "aluno") {
+        const inscricoes = await Promise.all(
+          data.map(async (evento) => {
+            const inscricao = await EventoService.getMinhaInscricao(evento.id);
+            return inscricao ? [evento.id, inscricao] : null;
+          })
+        );
+
+        setMinhasInscricoes(
+          Object.fromEntries(
+            inscricoes.filter((item): item is [string, Inscricao] => item !== null)
+          )
+        );
+      }
     } catch {
       setErroCarga(true);
     } finally {
@@ -81,7 +97,7 @@ export default function EventosPage() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   function isInscrito(eventoId: string) {
-    return !!EventoService.getMinhaInscricao(eventoId, user.id);
+    return !!minhasInscricoes[eventoId];
   }
 
   // ── Ações ─────────────────────────────────────────────────────────────────────
@@ -96,9 +112,14 @@ export default function EventosPage() {
 
   async function handleConfirmarInscricao(evento: Evento): Promise<Inscricao> {
     console.log('Inscrição User: ', user.area);
-    const result = await EventoService.inscrever(evento.id, user);
+    const result = await EventoService.inscrever(evento.id);
     await carregarEventos();
     return result;
+  }
+
+  async function handleCancelarInscricao(evento: Evento) {
+    await EventoService.cancelarInscricao(evento.id);
+    await carregarEventos();
   }
 
   async function handleSalvarEvento(
@@ -119,7 +140,11 @@ export default function EventosPage() {
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
-    const result = await EventoService.confirmarPresenca(qrCode);
+    if (!modalQR) {
+      throw new Error("Evento nao selecionado para check-in.");
+    }
+
+    const result = await EventoService.confirmarPresenca(modalQR.id, qrCode);
     setPresencasConfirmadas((prev) => {
       const exists = prev.find((p) => p.id === result.id);
       return exists ? prev : [...prev, result];
@@ -129,10 +154,9 @@ export default function EventosPage() {
 
   // ✅ A função já está certa, só certifique que o modal
   // chama getUserMedia internamente ao montar
-  function abrirModalQR(evento: Evento) {
-    const confirmadas = EventoService.getInscricoesEvento(evento.id).filter(
-      (i) => i.presencaConfirmada
-    );
+  async function abrirModalQR(evento: Evento) {
+    const inscricoes = await EventoService.getInscricoesEvento(evento.id);
+    const confirmadas = inscricoes.filter((i) => i.presencaConfirmada);
     setPresencasConfirmadas(confirmadas);
     setModalQR(evento); // O modal abre → câmera é pedida lá dentro
   }
@@ -245,7 +269,9 @@ export default function EventosPage() {
                 evento={evento}
                 role={role}
                 isInscrito={isInscrito(evento.id)}
+                canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
                 onInscrever={handleInscrever}
+                onCancelarInscricao={handleCancelarInscricao}
                 onEditar={(e) => setModalForm(e)}
                 onExcluir={(e) => setModalExcluir(e)}
               />

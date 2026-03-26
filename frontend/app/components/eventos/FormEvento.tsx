@@ -3,6 +3,7 @@
 
 import { useState, useRef, useImperativeHandle, forwardRef } from "react";
 import { IconUpload, IconX, IconPaperclip, IconCalendar } from "@tabler/icons-react";
+import { FileService } from "@/src/service/file.service";
 import { Evento } from "@/src/types/evento";
 import { TURNOS } from "@/src/utils/evento.helpers";
 import { CURSOS } from "@/src/utils/cursos.helpers";
@@ -74,8 +75,11 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
   ({ inicial, onSalvar, onLoadingChange }, ref) => {
     const [form, setForm] = useState<FormData>({ ...INITIAL, ...inicial });
     const [erros, setErros] = useState<Record<string, string>>({});
-    const [anexoNome, setAnexoNome] = useState("");
+    const [uploadingBanner, setUploadingBanner] = useState(false);
+    const [erroAnexo, setErroAnexo] = useState("");
+    const [uploadingAnexo, setUploadingAnexo] = useState(false);
     const bannerInputRef = useRef<HTMLInputElement>(null);
+    const anexoInputRef = useRef<HTMLInputElement>(null);
 
     function set<K extends keyof FormData>(key: K, value: FormData[K]) {
       setForm((prev) => ({ ...prev, [key]: value }));
@@ -112,27 +116,60 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       },
     }));
 
-    function adicionarAnexo() {
-      if (!anexoNome.trim()) return;
-      set("anexos", [
-        ...form.anexos,
-        { id: String(Date.now()), nome: anexoNome.trim(), url: "#" },
-      ]);
-      setAnexoNome("");
-    }
-
     function removerAnexo(id: string) {
       set("anexos", form.anexos.filter((a) => a.id !== id));
+    }
+
+    async function handleBannerUpload(file: File) {
+      onLoadingChange?.(true);
+      setUploadingBanner(true);
+      setErros((prev) => ({ ...prev, banner: "" }));
+      try {
+        const uploaded = await FileService.upload(file, "events/banners");
+        set("banner", uploaded.url);
+      } catch (error) {
+        setErros((prev) => ({
+          ...prev,
+          banner: error instanceof Error ? error.message : "Nao foi possivel enviar o banner.",
+        }));
+      } finally {
+        setUploadingBanner(false);
+        onLoadingChange?.(false);
+      }
+    }
+
+    async function handleAnexoUpload(file: File) {
+      setErroAnexo("");
+      onLoadingChange?.(true);
+      setUploadingAnexo(true);
+      try {
+        const uploaded = await FileService.upload(file, "events/attachments");
+        set("anexos", [
+          ...form.anexos,
+          {
+            id: String(Date.now()),
+            nome: file.name,
+            url: uploaded.url,
+          },
+        ]);
+      } catch (error) {
+        setErroAnexo(
+          error instanceof Error ? error.message : "Nao foi possivel enviar o anexo."
+        );
+      } finally {
+        setUploadingAnexo(false);
+        onLoadingChange?.(false);
+      }
     }
 
     return (
       <div className="flex flex-col gap-5 pb-2">
 
         {/* Banner */}
-        <Campo label="Banner do evento">
+        <Campo label="Banner do evento" erro={erros.banner}>
           <div
             className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl h-36 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors relative overflow-hidden"
-            onClick={() => bannerInputRef.current?.click()}
+            onClick={() => !uploadingBanner && bannerInputRef.current?.click()}
           >
             {form.banner ? (
               <>
@@ -148,7 +185,9 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             ) : (
               <>
                 <IconUpload size={24} className="text-slate-400" />
-                <p className="text-sm text-slate-400">Clique para fazer upload do banner</p>
+                <p className="text-sm text-slate-400">
+                  {uploadingBanner ? "Enviando banner..." : "Clique para fazer upload do banner"}
+                </p>
                 <p className="text-xs text-slate-300 dark:text-slate-500">PNG, JPG — recomendado 800×400px</p>
               </>
             )}
@@ -158,13 +197,12 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => set("banner", ev.target?.result as string);
-                reader.readAsDataURL(file);
+                await handleBannerUpload(file);
               }
+              e.target.value = "";
             }}
           />
         </Campo>
@@ -340,27 +378,29 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         </Campo>
 
         {/* Anexos */}
-        <Campo label="Anexos (PDF)">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={anexoNome}
-              onChange={(e) => setAnexoNome(e.target.value)}
-              placeholder="Nome do arquivo..."
-              className={`flex-1 ${inputCls} border-slate-300 dark:border-[#505050] focus:border-[#FFDE00]`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); adicionarAnexo(); }
-              }}
-            />
-            <button
-              type="button"
-              onClick={adicionarAnexo}
-              disabled={!anexoNome.trim()}
-              className="px-3 py-2 bg-slate-200 dark:bg-[#363636] hover:bg-slate-300 dark:hover:bg-[#404040] disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-md text-sm transition-colors"
-            >
-              <IconPaperclip size={16} />
-            </button>
+        <Campo label="Anexos">
+          <div
+            className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors"
+            onClick={() => !uploadingAnexo && anexoInputRef.current?.click()}
+          >
+            <IconPaperclip size={20} className="text-slate-400" />
+            <p className="text-sm text-slate-400">
+              {uploadingAnexo ? "Enviando anexo..." : "Clique para adicionar um anexo"}
+            </p>
           </div>
+          <input
+            ref={anexoInputRef}
+            type="file"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                await handleAnexoUpload(file);
+              }
+              e.target.value = "";
+            }}
+          />
+          {erroAnexo && <p className="text-xs text-red-500">{erroAnexo}</p>}
 
           {form.anexos.length > 0 && (
             <div className="mt-2 space-y-1.5">

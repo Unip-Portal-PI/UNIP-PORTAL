@@ -1,22 +1,39 @@
 // app/auth/reset-senha/page.tsx
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { AtSign, Lock, CheckCircle } from "lucide-react";
 import { InputCad } from "@/app/components/inputCad";
+import { Auth } from "@/src/service/auth.service";
 
 type Etapa = "email" | "codigo" | "nova-senha" | "sucesso";
 
-export default function ResetSenha() {
+function Logos({ isDark }: { isDark: boolean }) {
+  return (
+    <div className="flex items-center justify-center gap-4 mb-6">
+      <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={100} height={60} className="object-contain" />
+      <div className="w-6" />
+      <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={100} height={60} className="object-contain" />
+    </div>
+  );
+}
+
+function ResetSenhaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [etapa, setEtapa] = useState<Etapa>("email");
+  const [matricula, setMatricula] = useState("");
   const [email, setEmail] = useState("");
-  const [codigo, setCodigo] = useState(["", "", "", "", ""]);
+  const [emailPreview, setEmailPreview] = useState("");
+  const [codigo, setCodigo] = useState(["", "", "", "", "", ""]);
   const [erroSenha, setErroSenha] = useState("");
+  const [erroFluxo, setErroFluxo] = useState("");
+  const [tokenRedefinicao, setTokenRedefinicao] = useState("");
+  const [loading, setLoading] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -32,7 +49,7 @@ export default function ResetSenha() {
     const novo = [...codigo];
     novo[index] = value.slice(-1);
     setCodigo(novo);
-    if (value && index < 4) inputsRef.current[index + 1]?.focus();
+    if (value && index < codigo.length - 1) inputsRef.current[index + 1]?.focus();
   }
 
   function handleOtpKeyDown(e: React.KeyboardEvent, index: number) {
@@ -41,18 +58,80 @@ export default function ResetSenha() {
     }
   }
 
-  function handleEnviarEmail() {
-    if (!email) return;
+  function isEmailFormatoValido(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  async function carregarPreviewUsuario(matriculaValor: string) {
+    const matriculaNormalizada = matriculaValor.trim();
+    if (!matriculaNormalizada) return;
+    setLoading(true);
+    setErroFluxo("");
+    const resultado = await Auth.previewPasswordReset(matriculaNormalizada);
+    setLoading(false);
+
+    if (!resultado.sucesso || !resultado.emailPreview) {
+      setEmailPreview("");
+      setErroFluxo(resultado.mensagem || "Usuario nao encontrado para a matricula informada.");
+      return;
+    }
+
+    setMatricula(resultado.matricula ?? matriculaNormalizada);
+    setEmailPreview(resultado.emailPreview);
+  }
+
+  useEffect(() => {
+    const matriculaFromQuery = searchParams.get("matricula")?.trim() ?? "";
+    const chosen = matriculaFromQuery;
+
+    if (chosen) {
+      setMatricula(chosen);
+      void carregarPreviewUsuario(chosen);
+    } else {
+      setErroFluxo("Informe sua matricula na tela de login antes de recuperar a senha.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleEnviarEmail(emailDestino: string) {
+    const normalized = emailDestino.trim().toLowerCase();
+    if (!normalized) return;
+    if (!isEmailFormatoValido(normalized)) {
+      setErroFluxo("Informe um e-mail valido.");
+      return;
+    }
+    if (!matricula || !emailPreview) {
+      setErroFluxo("Nao foi possivel identificar a matricula. Volte ao login e tente novamente.");
+      return;
+    }
+    setLoading(true);
+    setErroFluxo("");
+    const resultado = await Auth.requestPasswordReset(matricula, normalized);
+    setLoading(false);
+    if (!resultado.sucesso) {
+      setErroFluxo(resultado.mensagem);
+      return;
+    }
+    setEmail(normalized);
     setEtapa("codigo");
   }
 
-  function handleConfirmarCodigo() {
-    if (codigo.join("").length === 5) {
-      setEtapa("nova-senha");
+  async function handleConfirmarCodigo() {
+    const codigoCompleto = codigo.join("");
+    if (codigoCompleto.length !== 6) return;
+    setLoading(true);
+    setErroFluxo("");
+    const resultado = await Auth.validateResetCode(email, codigoCompleto);
+    setLoading(false);
+    if (!resultado.sucesso || !resultado.tokenRedefinicao) {
+      setErroFluxo(resultado.mensagem || "Codigo invalido.");
+      return;
     }
+    setTokenRedefinicao(resultado.tokenRedefinicao);
+    setEtapa("nova-senha");
   }
 
-  function handleRedefinirSenha() {
+  async function handleRedefinirSenha() {
     const novaSenha = (document.getElementById("nova-senha") as HTMLInputElement).value;
     const confirmSenha = (document.getElementById("confirm-senha") as HTMLInputElement).value;
 
@@ -65,16 +144,16 @@ export default function ResetSenha() {
       return;
     }
     setErroSenha("");
+    setLoading(true);
+    setErroFluxo("");
+    const resultado = await Auth.resetPassword(tokenRedefinicao, novaSenha);
+    setLoading(false);
+    if (!resultado.sucesso) {
+      setErroFluxo(resultado.mensagem);
+      return;
+    }
     setEtapa("sucesso");
   }
-
-  const Logos = () => (
-    <div className="flex items-center justify-center gap-4 mb-6">
-      <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={100} height={60} className="object-contain" />
-      <div className="w-6" />
-      <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={100} height={60} className="object-contain" />
-    </div>
-  );
 
   return (
     <main className="min-h-screen bg-white dark:bg-[#303030] flex flex-col items-center justify-between p-4 transition-colors">
@@ -84,14 +163,14 @@ export default function ResetSenha() {
           {/* ── ETAPA 1: E-mail ── */}
           {etapa === "email" && (
             <>
-              <Logos />
+              <Logos isDark={isDark} />
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recuperação de senha</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Informe o e-mail cadastrado, enviaremos um código de recuperação.
+                  Informe o e-mail completo da conta para a matricula <strong>{matricula || "-"}</strong>.
                 </p>
               </div>
 
@@ -105,16 +184,23 @@ export default function ResetSenha() {
                 />
               </div>
 
+              {emailPreview && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-3 text-center">
+                  E-mail cadastrado para esta matricula: <strong>{emailPreview}</strong>
+                </p>
+              )}
+
               <button
                 onClick={() => {
                   const val = (document.getElementById("email") as HTMLInputElement).value;
-                  setEmail(val);
-                  handleEnviarEmail();
+                  handleEnviarEmail(val);
                 }}
-                className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                disabled={loading || !matricula || !emailPreview}
+                className="bg-[#0f0f1e] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
-                Enviar
+                {loading ? "Enviando..." : "Enviar"}
               </button>
+              {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
 
               <p className="text-center text-sm mt-6">
                 <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline">
@@ -127,7 +213,7 @@ export default function ResetSenha() {
           {/* ── ETAPA 2: Código OTP ── */}
           {etapa === "codigo" && (
             <>
-              <Logos />
+              <Logos isDark={isDark} />
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
@@ -158,13 +244,15 @@ export default function ResetSenha() {
 
               <button
                 onClick={handleConfirmarCodigo}
+                disabled={loading}
                 className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
-                Confirmar
+                {loading ? "Validando..." : "Confirmar"}
               </button>
+              {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
 
               <p className="text-center text-sm mt-6">
-                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline Z cursor-pointer">
+                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                   Voltar
                 </button>
               </p>
@@ -174,7 +262,7 @@ export default function ResetSenha() {
           {/* ── ETAPA 3: Nova senha ── */}
           {etapa === "nova-senha" && (
             <>
-              <Logos />
+              <Logos isDark={isDark} />
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
@@ -204,10 +292,12 @@ export default function ResetSenha() {
 
               <button
                 onClick={handleRedefinirSenha}
+                disabled={loading}
                 className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
-                Confirmar
+                {loading ? "Salvando..." : "Confirmar"}
               </button>
+              {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
             </>
           )}
 
@@ -238,4 +328,12 @@ export default function ResetSenha() {
       </footer>
     </main>
   );
+}
+
+export default function ResetSenha() {
+  return(
+     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <ResetSenhaContent />
+    </Suspense>
+  )
 }

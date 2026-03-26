@@ -6,26 +6,27 @@ import { PerfilService } from "@/src/service/perfil.service";
 
 interface FotoPerfilContextType {
   foto: string | null;
-  atualizarFoto: (matricula: string, dataURL: string) => void;
-  recarregarFoto: (matricula: string) => void;
+  atualizarFoto: (matricula: string, dataURL: string) => Promise<void>;
+  recarregarFoto: (matricula: string) => Promise<void>;
 }
 
 const FotoPerfilContext = createContext<FotoPerfilContextType>({
   foto: null,
-  atualizarFoto: () => {},
-  recarregarFoto: () => {},
+  atualizarFoto: async () => {},
+  recarregarFoto: async () => {},
 });
 
 export function FotoPerfilProvider({ matricula, children }: { matricula: string; children: ReactNode }) {
   const [foto, setFoto] = useState<string | null>(PerfilService.getFoto(matricula));
 
-  const atualizarFoto = useCallback((mat: string, dataURL: string) => {
-    PerfilService.salvarFoto(mat, dataURL);
+  const atualizarFoto = useCallback(async (mat: string, dataURL: string) => {
+    await PerfilService.salvarFoto(mat, dataURL);
     setFoto(dataURL);
   }, []);
 
-  const recarregarFoto = useCallback((mat: string) => {
-    setFoto(PerfilService.getFoto(mat));
+  const recarregarFoto = useCallback(async (mat: string) => {
+    const fotoAtual = PerfilService.getFoto(mat) ?? (await PerfilService.carregarFoto(mat));
+    setFoto(fotoAtual);
   }, []);
 
   return (

@@ -1,126 +1,290 @@
 // src/service/evento.service.ts
 
 import { Evento, Inscricao } from "@/src/types/evento";
-import { UserProfile } from "@/src/types/user";
-import { MOCK_EVENTOS } from "@/src/data/eventoMock";
-import { MOCK_INSCRICOES } from "@/src/data/inscricoesMock";
+import { Auth } from "@/src/service/auth.service";
+import { API_BASE_URL, buildFileUrl, extractFilePath } from "@/src/service/file.service";
 
-// ─── ESTADO INTERNO (substituído pela API futuramente) ────────────────────────
+type ApiEvento = {
+  id: string;
+  banner?: string | null;
+  nome: string;
+  descricaoBreve?: string | null;
+  descricaoCompleta?: string | null;
+  area?: string | null;
+  data: string;
+  horario?: string | null;
+  turno?: string | null;
+  local?: string | null;
+  dataLimiteInscricao?: string | null;
+  vagas?: number | null;
+  vagasOcupadas?: number | null;
+  tipoInscricao: Evento["tipoInscricao"];
+  urlExterna?: string | null;
+  visibilidade: Evento["visibilidade"];
+  anexos?: Evento["anexos"];
+  criadoEm?: string | null;
+};
 
-let _eventos = [...MOCK_EVENTOS];
-let _inscricoes: Inscricao[] = [...MOCK_INSCRICOES];
+type ApiInscricao = {
+  id: string;
+  eventoId: string;
+  alunoId: string;
+  alunoNome: string;
+  alunoArea?: string | null;
+  alunoMatricula: string;
+  dataInscricao: string;
+  presencaConfirmada: boolean;
+  qrCode?: string | null;
+};
 
-// ─── SERVICE ──────────────────────────────────────────────────────────────────
+type ApiPresencaResponse = {
+  sucesso: boolean;
+  mensagem: string;
+  inscricao?: ApiInscricao | null;
+};
+
+function mapTurnoFromApi(turno?: string | null): string {
+  if (!turno) return "";
+  const map: Record<string, string> = {
+    manha: "Manhã",
+    tarde: "Tarde",
+    noite: "Noite",
+  };
+  return map[turno] ?? turno;
+}
+
+function mapTurnoToApi(turno?: string | null): string | null {
+  if (!turno) return null;
+  const map: Record<string, string> = {
+    "Manhã": "manha",
+    "Tarde": "tarde",
+    "Noite": "noite",
+    manha: "manha",
+    tarde: "tarde",
+    noite: "noite",
+  };
+  return map[turno] ?? turno.toLowerCase();
+}
+
+function getAuthHeaders() {
+  const token = Auth.getToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      data?.detail || data?.mensagem || "Nao foi possivel concluir a operacao.";
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
+function mapEvento(evento: ApiEvento): Evento {
+  return {
+    id: evento.id,
+    banner: evento.banner ? buildFileUrl(evento.banner) : undefined,
+    nome: evento.nome,
+    descricaoBreve: evento.descricaoBreve ?? "",
+    descricaoCompleta: evento.descricaoCompleta ?? "",
+    area: evento.area ?? "",
+    data: evento.data,
+    horario: evento.horario ? evento.horario.slice(0, 5) : "",
+    turno: mapTurnoFromApi(evento.turno),
+    local: evento.local ?? "",
+    dataLimiteInscricao: evento.dataLimiteInscricao ?? "",
+    vagas: evento.vagas ?? 0,
+    vagasOcupadas: evento.vagasOcupadas ?? 0,
+    tipoInscricao: evento.tipoInscricao,
+    urlExterna: evento.urlExterna ?? undefined,
+    visibilidade: evento.visibilidade,
+    anexos: (evento.anexos ?? []).map((anexo) => ({
+      ...anexo,
+      url: buildFileUrl(anexo.url),
+    })),
+    criadoEm: evento.criadoEm ?? new Date().toISOString(),
+  };
+}
+
+function mapInscricao(inscricao: ApiInscricao): Inscricao {
+  return {
+    id: inscricao.id,
+    eventoId: inscricao.eventoId,
+    alunoId: inscricao.alunoId,
+    alunoNome: inscricao.alunoNome,
+    alunoArea: inscricao.alunoArea ?? "",
+    alunoMatricula: inscricao.alunoMatricula,
+    dataInscricao: inscricao.dataInscricao,
+    presencaConfirmada: inscricao.presencaConfirmada,
+    qrCode: inscricao.qrCode ?? "",
+  };
+}
 
 export const EventoService = {
-  getAll: (): Promise<Evento[]> =>
-    new Promise((res) =>
-      setTimeout(() => {
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0); // ignora a hora — compara só a data
+  async getAll(): Promise<Evento[]> {
+    const response = await fetch(`${API_BASE_URL}/events/`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<ApiEvento[]>(response);
+    return data.map(mapEvento);
+  },
 
-        const ativos = _eventos.filter((e) => {
-          const dataEvento = new Date(e.data + "T00:00:00");
-          return dataEvento >= hoje; // hoje ainda aparece, ontem não
-        });
+  async getById(id: string): Promise<Evento | null> {
+    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+      headers: getAuthHeaders(),
+    });
 
-        res([...ativos]);
-      }, 600)
-    ),
-  getAllIncludingPast: (): Promise<Evento[]> =>
-    new Promise((res) =>
-      setTimeout(() => res([..._eventos]), 600)
-    ),
-  getById: (id: string): Promise<Evento | null> =>
-    new Promise((res) =>
-      setTimeout(() => res(_eventos.find((e) => e.id === id) ?? null), 400)
-    ),
+    if (response.status === 404) {
+      return null;
+    }
 
-  criar: (dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">): Promise<Evento> =>
-    new Promise((res) =>
-      setTimeout(() => {
-        const novo: Evento = {
-          ...dados,
-          id: String(Date.now()),
-          vagasOcupadas: 0,
-          criadoEm: new Date().toISOString(),
-        };
-        _eventos = [novo, ..._eventos];
-        res(novo);
-      }, 800)
-    ),
+    const data = await parseResponse<ApiEvento>(response);
+    return mapEvento(data);
+  },
 
-  editar: (id: string, dados: Partial<Evento>): Promise<Evento> =>
-    new Promise((res, rej) =>
-      setTimeout(() => {
-        const idx = _eventos.findIndex((e) => e.id === id);
-        if (idx === -1) return rej(new Error("Evento não encontrado"));
-        _eventos[idx] = { ..._eventos[idx], ...dados };
-        res(_eventos[idx]);
-      }, 600)
-    ),
+  async criar(dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">): Promise<Evento> {
+    const response = await fetch(`${API_BASE_URL}/events/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        nome: dados.nome,
+        descricao: dados.descricaoCompleta,
+        descricaoBreve: dados.descricaoBreve,
+        bannerUrl: extractFilePath(dados.banner),
+        data: dados.data,
+        horario: dados.horario || null,
+        turno: mapTurnoToApi(dados.turno),
+        vagas: dados.vagas,
+        dataLimiteInscricao: dados.dataLimiteInscricao || null,
+        tipoInscricao: dados.tipoInscricao,
+        urlExterna: dados.urlExterna || null,
+        visibilidade: dados.visibilidade,
+        anexos: (dados.anexos ?? []).map((anexo) => ({
+          id: anexo.id,
+          nome: anexo.nome,
+          url: extractFilePath(anexo.url),
+        })),
+        cursosIds: [],
+        palestrantesIds: [],
+        idSala: null,
+      }),
+    });
 
-  excluir: (id: string): Promise<void> =>
-    new Promise((res) =>
-      setTimeout(() => {
-        _eventos = _eventos.filter((e) => e.id !== id);
-        res();
-      }, 500)
-    ),
+    const data = await parseResponse<ApiEvento>(response);
+    return mapEvento(data);
+  },
 
-  inscrever: (eventoId: string, user: UserProfile): Promise<Inscricao> =>
-    new Promise((res, rej) =>
-      setTimeout(() => {
-        const jaInscrito = _inscricoes.find(
-          (i) => i.eventoId === eventoId && i.alunoId === user.id
-        );
-        if (jaInscrito) return rej(new Error("Você já está inscrito neste evento."));
+  async editar(id: string, dados: Partial<Evento>): Promise<Evento> {
+    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        nome: dados.nome,
+        descricao: dados.descricaoCompleta,
+        descricaoBreve: dados.descricaoBreve,
+        bannerUrl: extractFilePath(dados.banner),
+        data: dados.data,
+        horario: dados.horario || null,
+        turno: mapTurnoToApi(dados.turno),
+        vagas: dados.vagas,
+        dataLimiteInscricao: dados.dataLimiteInscricao || null,
+        tipoInscricao: dados.tipoInscricao,
+        urlExterna: dados.urlExterna || null,
+        visibilidade: dados.visibilidade,
+        anexos: dados.anexos?.map((anexo) => ({
+          id: anexo.id,
+          nome: anexo.nome,
+          url: extractFilePath(anexo.url),
+        })),
+      }),
+    });
 
-        const evento = _eventos.find((e) => e.id === eventoId);
-        if (!evento) return rej(new Error("Evento não encontrado."));
-        if (evento.vagasOcupadas >= evento.vagas)
-          return rej(new Error("Não há mais vagas disponíveis."));
+    const data = await parseResponse<ApiEvento>(response);
+    return mapEvento(data);
+  },
 
-        if (!user.nome || !user.matricula || !user.area)
-          return rej(
-            new Error(
-              "Seus dados de perfil estão incompletos. Atualize antes de se inscrever."
-            )
-          );
+  async excluir(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
 
-        const nova: Inscricao = {
-          id: `insc_${user.matricula}_${eventoId}_${Date.now()}`,
-          eventoId,
-          alunoId: user.id,
-          alunoNome: user.nome,
-          alunoArea: user.area,
-          alunoMatricula: user.matricula,
-          dataInscricao: new Date().toISOString(),
-          presencaConfirmada: false,
-          qrCode: `QR_${user.matricula}_${eventoId}`,
-        };
-        _inscricoes.push(nova);
-        const evIdx = _eventos.findIndex((e) => e.id === eventoId);
-        if (evIdx !== -1) _eventos[evIdx].vagasOcupadas += 1;
-        res(nova);
-      }, 700)
-    ),
+    if (!response.ok) {
+      await parseResponse(response);
+    }
+  },
 
-  getMinhaInscricao: (eventoId: string, userId: string): Inscricao | null =>
-    _inscricoes.find((i) => i.eventoId === eventoId && i.alunoId === userId) ?? null,
+  async inscrever(eventoId: string): Promise<Inscricao> {
+    const response = await fetch(`${API_BASE_URL}/events/${eventoId}/enroll`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<ApiInscricao>(response);
+    return mapInscricao(data);
+  },
 
-  getInscricoesEvento: (eventoId: string): Inscricao[] =>
-    _inscricoes.filter((i) => i.eventoId === eventoId),
+  async cancelarInscricao(eventoId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/events/${eventoId}/enroll`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
 
-  confirmarPresenca: (qrCode: string): Promise<Inscricao> =>
-    new Promise((res, rej) =>
-      setTimeout(() => {
-        const idx = _inscricoes.findIndex((i) => i.qrCode === qrCode);
-        if (idx === -1) return rej(new Error("QR Code inválido ou não encontrado."));
-        if (_inscricoes[idx].presencaConfirmada)
-          return rej(new Error("Presença já confirmada anteriormente."));
-        _inscricoes[idx].presencaConfirmada = true;
-        res(_inscricoes[idx]);
-      }, 500)
-    ),
+    if (!response.ok) {
+      await parseResponse(response);
+    }
+  },
+
+  async getMinhaInscricao(eventoId: string): Promise<Inscricao | null> {
+    const response = await fetch(`${API_BASE_URL}/events/${eventoId}/my-enrollment`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await parseResponse<ApiInscricao | null>(response);
+    return data ? mapInscricao(data) : null;
+  },
+
+  async getInscricoesEvento(eventoId: string): Promise<Inscricao[]> {
+    const response = await fetch(`${API_BASE_URL}/events/${eventoId}/enrollments`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<ApiInscricao[]>(response);
+    return data.map(mapInscricao);
+  },
+
+  async getMinhasInscricoes(): Promise<Inscricao[]> {
+    const response = await fetch(`${API_BASE_URL}/events/mine/enrollments`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<ApiInscricao[]>(response);
+    return data.map(mapInscricao);
+  },
+
+  async getMeusEventosCriados(): Promise<Evento[]> {
+    const response = await fetch(`${API_BASE_URL}/events/mine/created`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await parseResponse<ApiEvento[]>(response);
+    return data.map(mapEvento);
+  },
+
+  async confirmarPresenca(eventoId: string, qrCode: string): Promise<Inscricao> {
+    const response = await fetch(`${API_BASE_URL}/events/${eventoId}/check-in`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ qrCode }),
+    });
+    const data = await parseResponse<ApiPresencaResponse>(response);
+
+    if (!data.inscricao) {
+      throw new Error(data.mensagem || "Nao foi possivel confirmar a presenca.");
+    }
+
+    return mapInscricao(data.inscricao);
+  },
 };

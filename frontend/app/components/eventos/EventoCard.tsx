@@ -18,7 +18,9 @@ interface EventoCardProps {
   evento: Evento;
   role: UserRole;
   isInscrito: boolean;
+  canCancelarInscricao: boolean;
   onInscrever: (evento: Evento) => void;
+  onCancelarInscricao: (evento: Evento) => void;
   onEditar: (evento: Evento) => void;
   onExcluir: (evento: Evento) => void;
 }
@@ -27,7 +29,9 @@ export function EventoCard({
   evento,
   role,
   isInscrito,
+  canCancelarInscricao,
   onInscrever,
+  onCancelarInscricao,
   onEditar,
   onExcluir,
 }: EventoCardProps) {
@@ -170,24 +174,32 @@ export function EventoCard({
         <div className="flex items-center gap-2 mt-auto pt-1">
           {/* Aluno: inscrever-se */}
           {role === "aluno" && (
-            <button
-              onClick={() => onInscrever(evento)}
-              disabled={status === "esgotado" || encerrado || isInscrito}
-              className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${isInscrito
-                ? "bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800] dark:border-[#FFDE00]/60 cursor-default"
-                : status === "esgotado" || encerrado
-                  ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                  : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                }`}
-            >
-              {isInscrito
-                ? "Inscrito ✓"
-                : encerrado
-                  ? "Inscrições encerradas"
-                  : status === "esgotado"
-                    ? "Esgotado"
-                    : "Inscrever-se"}
-            </button>
+            <>
+              {isInscrito && !canCancelarInscricao ? (
+                <div className="flex-1 py-2 rounded-md text-center text-sm font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
+                  Presença confirmada
+                </div>
+              ) : (
+                <button
+                  onClick={() => (isInscrito ? onCancelarInscricao(evento) : onInscrever(evento))}
+                  disabled={!isInscrito && (status === "esgotado" || encerrado)}
+                  className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${isInscrito
+                    ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                    : status === "esgotado" || encerrado
+                      ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                      : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                    }`}
+                >
+                  {isInscrito
+                    ? "Cancelar inscricao"
+                    : encerrado
+                      ? "Inscrições encerradas"
+                      : status === "esgotado"
+                        ? "Esgotado"
+                        : "Inscrever-se"}
+                </button>
+              )}
+            </>
           )}
 
           {/* Colaborador/Adm: editar e excluir */}

@@ -85,6 +85,7 @@ export function toUsuarioPublico(usuario: {
  * Mapeia usuário completo para o formato de sessão (mínimo necessário no token)
  */
 export function toUsuarioSessao(usuario: {
+  id: string;
   matricula: string;
   nome: string;
   apelido: string;
@@ -93,6 +94,7 @@ export function toUsuarioSessao(usuario: {
   permission: UsuarioSessao["permission"];
 }): UsuarioSessao {
   return {
+    id: usuario.id,
     matricula: usuario.matricula,
     nome: usuario.nome,
     apelido: usuario.apelido,
