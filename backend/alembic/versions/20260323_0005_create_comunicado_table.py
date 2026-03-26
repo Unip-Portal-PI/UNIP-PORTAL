@@ -2,8 +2,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
 
-revision = "20260322_0001"
-down_revision = None
+revision = "20260323_0005"
+down_revision = "20260323_0004"
 branch_labels = None
 depends_on = None
 
@@ -13,26 +13,6 @@ def upgrade() -> None:
     inspector = inspect(bind)
     table_names = set(inspector.get_table_names())
 
-    if "usuario" in table_names:
-        usuario_columns = {column["name"] for column in inspector.get_columns("usuario")}
-        usuario_fks = {fk["name"] for fk in inspector.get_foreign_keys("usuario") if fk.get("name")}
-
-        if "foto_url" not in usuario_columns:
-            op.add_column("usuario", sa.Column("foto_url", sa.Text(), nullable=True))
-        if "id_criador" not in usuario_columns:
-            op.add_column("usuario", sa.Column("id_criador", sa.String(length=36), nullable=True))
-        if "deleted_at" not in usuario_columns:
-            op.add_column("usuario", sa.Column("deleted_at", sa.DateTime(), nullable=True))
-        if "fk_usuario_criador" not in usuario_fks:
-            op.create_foreign_key(
-                "fk_usuario_criador",
-                "usuario",
-                "usuario",
-                ["id_criador"],
-                ["id_usuario"],
-            )
-
-    # Só cria comunicado se usuario já existir
     if "usuario" in table_names and "comunicado" not in table_names:
         op.create_table(
             "comunicado",
@@ -63,16 +43,3 @@ def downgrade() -> None:
 
     if "comunicado" in table_names:
         op.drop_table("comunicado")
-
-    if "usuario" in table_names:
-        usuario_columns = {column["name"] for column in inspector.get_columns("usuario")}
-        usuario_fks = {fk["name"] for fk in inspector.get_foreign_keys("usuario") if fk.get("name")}
-
-        if "fk_usuario_criador" in usuario_fks:
-            op.drop_constraint("fk_usuario_criador", "usuario", type_="foreignkey")
-        if "deleted_at" in usuario_columns:
-            op.drop_column("usuario", "deleted_at")
-        if "id_criador" in usuario_columns:
-            op.drop_column("usuario", "id_criador")
-        if "foto_url" in usuario_columns:
-            op.drop_column("usuario", "foto_url")

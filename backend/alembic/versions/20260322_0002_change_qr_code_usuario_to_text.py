@@ -20,6 +20,9 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = inspect(bind)
 
+    if "inscricao" not in set(inspector.get_table_names()):
+        return
+
     unique_constraints = inspector.get_unique_constraints("inscricao")
     for constraint in unique_constraints:
         columns = constraint.get("column_names") or []
@@ -36,6 +39,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+
+    if "inscricao" not in set(inspector.get_table_names()):
+        return
+
     op.alter_column(
         "inscricao",
         "qr_code_usuario",

@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
+import app.models
+
 from app.controllers.auth_controller import router as auth_router
 from app.controllers.comunicado_controller import router as comunicado_router
 from app.controllers.evento_controller import router as evento_router
