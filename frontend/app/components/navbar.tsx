@@ -250,9 +250,29 @@ export default function Navbar() {
           {/* Perfil + logout */}
           <div className="flex items-center gap-3 px-3 py-2 mt-1">
             <AvatarImg size={36} />
-            <div className="flex flex-col leading-tight min-w-0 flex-1">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{apelido}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500">{ROLE_LABELS[role ?? ""] ?? "Usuário"}</span>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setProfileOpen(false);
+                setMenuOpen(false);
+                router.push("/home/perfil");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setProfileOpen(false);
+                  setMenuOpen(false);
+                  router.push("/home/perfil");
+                }
+              }}
+              className="flex flex-col leading-tight min-w-0 flex-1 cursor-pointer"
+            >
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {apelido}
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                {ROLE_LABELS[role ?? ""] ?? "Usuário"}
+              </span>
             </div>
             <button
               onClick={() => { setMenuOpen(false); setLogoutModal(true); }}
