@@ -1,3 +1,4 @@
+// /src/data/termsBlockMock.ts
 export const BLOCKED_TERMS = [
   // palavrões / xingamentos
   "caralho",

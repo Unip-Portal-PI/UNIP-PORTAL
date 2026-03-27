@@ -12,12 +12,38 @@ import { Auth } from "@/src/service/auth.service";
 
 type Etapa = "email" | "codigo" | "nova-senha" | "sucesso";
 
-function Logos({ isDark }: { isDark: boolean }) {
+function Logos({ mounted, isDark }: { mounted: boolean; isDark: boolean }) {
+  const avpLogo = !mounted
+    ? "/img/logo_avp.png"
+    : isDark
+      ? "/img/logo_avp_dark.png"
+      : "/img/logo_avp.png";
+
+  const unipLogo = !mounted
+    ? "/img/logo_unip.png"
+    : isDark
+      ? "/img/logo_unip_dark.png"
+      : "/img/logo_unip.png";
+
   return (
     <div className="flex items-center justify-center gap-4 mb-6">
-      <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={100} height={60} className="object-contain" />
+      <Image
+        src={avpLogo}
+        alt="AVP Conecta"
+        width={100}
+        height={60}
+        className="object-contain"
+        priority
+      />
       <div className="w-6" />
-      <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={100} height={60} className="object-contain" />
+      <Image
+        src={unipLogo}
+        alt="UNIP"
+        width={100}
+        height={60}
+        className="object-contain"
+        priority
+      />
     </div>
   );
 }
@@ -25,6 +51,7 @@ function Logos({ isDark }: { isDark: boolean }) {
 function ResetSenhaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [etapa, setEtapa] = useState<Etapa>("email");
   const [matricula, setMatricula] = useState("");
   const [email, setEmail] = useState("");
@@ -34,9 +61,16 @@ function ResetSenhaContent() {
   const [erroFluxo, setErroFluxo] = useState("");
   const [tokenRedefinicao, setTokenRedefinicao] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (etapa === "codigo") {
@@ -45,16 +79,75 @@ function ResetSenhaContent() {
   }, [etapa]);
 
   function handleOtpChange(value: string, index: number) {
-    if (!/^\d*$/.test(value)) return;
+    const onlyDigits = value.replace(/\D/g, "");
+
+    if (!onlyDigits) {
+      const novo = [...codigo];
+      novo[index] = "";
+      setCodigo(novo);
+      return;
+    }
+
+    if (onlyDigits.length > 1) {
+      const chars = onlyDigits.slice(0, 6).split("");
+      const novo = ["", "", "", "", "", ""];
+
+      for (let i = 0; i < 6; i++) {
+        novo[i] = chars[i] ?? "";
+      }
+
+      setCodigo(novo);
+
+      const focusIndex = Math.min(chars.length, 6) - 1;
+      if (focusIndex >= 0) {
+        inputsRef.current[focusIndex]?.focus();
+      }
+      return;
+    }
+
     const novo = [...codigo];
-    novo[index] = value.slice(-1);
+    novo[index] = onlyDigits;
     setCodigo(novo);
-    if (value && index < codigo.length - 1) inputsRef.current[index + 1]?.focus();
+
+    if (index < codigo.length - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
   }
 
-  function handleOtpKeyDown(e: React.KeyboardEvent, index: number) {
-    if (e.key === "Backspace" && !codigo[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus();
+  function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+
+    if (!pasted) return;
+
+    const chars = pasted.split("");
+    const novo = ["", "", "", "", "", ""];
+
+    for (let i = 0; i < 6; i++) {
+      novo[i] = chars[i] ?? "";
+    }
+
+    setCodigo(novo);
+
+    const focusIndex = Math.min(pasted.length, 6) - 1;
+    if (focusIndex >= 0) {
+      inputsRef.current[focusIndex]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(e: React.KeyboardEvent<HTMLInputElement>, index: number) {
+    if (e.key === "Backspace") {
+      if (codigo[index]) {
+        const novo = [...codigo];
+        novo[index] = "";
+        setCodigo(novo);
+        return;
+      }
+
+      if (index > 0) {
+        inputsRef.current[index - 1]?.focus();
+      }
     }
   }
 
@@ -64,10 +157,14 @@ function ResetSenhaContent() {
 
   async function carregarPreviewUsuario(matriculaValor: string) {
     const matriculaNormalizada = matriculaValor.trim();
+
     if (!matriculaNormalizada) return;
+
     setLoading(true);
     setErroFluxo("");
+
     const resultado = await Auth.previewPasswordReset(matriculaNormalizada);
+
     setLoading(false);
 
     if (!resultado.sucesso || !resultado.emailPreview) {
@@ -95,82 +192,125 @@ function ResetSenhaContent() {
 
   async function handleEnviarEmail(emailDestino: string) {
     const normalized = emailDestino.trim().toLowerCase();
-    if (!normalized) return;
+
+    if (!normalized) {
+      setErroFluxo("Informe o e-mail antes de enviar.");
+      return;
+    }
+
     if (!isEmailFormatoValido(normalized)) {
       setErroFluxo("Informe um e-mail valido.");
       return;
     }
+
     if (!matricula || !emailPreview) {
       setErroFluxo("Nao foi possivel identificar a matricula. Volte ao login e tente novamente.");
       return;
     }
+
     setLoading(true);
     setErroFluxo("");
+
     const resultado = await Auth.requestPasswordReset(matricula, normalized);
+
     setLoading(false);
+
     if (!resultado.sucesso) {
-      setErroFluxo(resultado.mensagem);
+      setErroFluxo(
+        resultado.mensagem === "Nao foi possivel enviar o e-mail de recuperacao. Verifique as credenciais do provedor."
+          ? "No momento nao foi possivel enviar o e-mail de recuperacao. Tente novamente em instantes ou contate o suporte."
+          : resultado.mensagem
+      );
       return;
     }
+
     setEmail(normalized);
     setEtapa("codigo");
   }
 
   async function handleConfirmarCodigo() {
     const codigoCompleto = codigo.join("");
-    if (codigoCompleto.length !== 6) return;
+
+    if (!codigoCompleto) {
+      setErroFluxo("Informe o codigo recebido no e-mail.");
+      return;
+    }
+
+    if (codigoCompleto.length !== 6) {
+      setErroFluxo("O codigo deve ter 6 digitos.");
+      return;
+    }
+
     setLoading(true);
     setErroFluxo("");
+
     const resultado = await Auth.validateResetCode(email, codigoCompleto);
+
     setLoading(false);
+
     if (!resultado.sucesso || !resultado.tokenRedefinicao) {
       setErroFluxo(resultado.mensagem || "Codigo invalido.");
       return;
     }
+
     setTokenRedefinicao(resultado.tokenRedefinicao);
     setEtapa("nova-senha");
   }
 
   async function handleRedefinirSenha() {
     const novaSenha = (document.getElementById("nova-senha") as HTMLInputElement).value;
-    const confirmSenha = (document.getElementById("confirm-senha") as HTMLInputElement).value;
+    const confirmarSenha = (document.getElementById("confirmar-senha") as HTMLInputElement).value;
 
-    if (!novaSenha || novaSenha !== confirmSenha) {
-      setErroSenha("As senhas não coincidem");
+    if (!novaSenha || !confirmarSenha) {
+      setErroSenha("Preencha os dois campos de senha.");
       return;
     }
-    if (novaSenha.length < 4) {
-      setErroSenha("A senha deve ter pelo menos 4 caracteres");
+
+    if (novaSenha.length < 6) {
+      setErroSenha("A senha deve ter ao menos 6 caracteres.");
       return;
     }
-    setErroSenha("");
+
+    if (novaSenha !== confirmarSenha) {
+      setErroSenha("As senhas nao coincidem.");
+      return;
+    }
+
     setLoading(true);
-    setErroFluxo("");
+    setErroSenha("");
+
     const resultado = await Auth.resetPassword(tokenRedefinicao, novaSenha);
+
     setLoading(false);
+
     if (!resultado.sucesso) {
-      setErroFluxo(resultado.mensagem);
+      setErroSenha(resultado.mensagem || "Nao foi possivel redefinir a senha.");
       return;
     }
+
     setEtapa("sucesso");
   }
 
   return (
     <main className="min-h-screen bg-white dark:bg-[#303030] flex flex-col items-center justify-between p-4 transition-colors">
       <div className="flex-1 flex items-center justify-center w-full">
-        <div className="w-full md:min-w-[400px] md:max-w-[460px] rounded-2xl p-8 flex flex-col">
-
-          {/* ── ETAPA 1: E-mail ── */}
+        <div className="w-full md:min-w-[400px] md:max-w-[500px] rounded-2xl p-8 flex flex-col">
           {etapa === "email" && (
             <>
-              <Logos isDark={isDark} />
+              <Logos mounted={mounted} isDark={isDark} />
+
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recuperação de senha</h2>
+
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Recuperação de senha
+                </h2>
+
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Informe o e-mail completo da conta para a matricula <strong>{matricula || "-"}</strong>.
+                  Informe o e-mail completo da conta para a matricula{" "}
+                  <strong>{matricula || "-"}</strong>.
                 </p>
               </div>
 
@@ -200,29 +340,36 @@ function ResetSenhaContent() {
               >
                 {loading ? "Enviando..." : "Enviar"}
               </button>
+
               {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
 
               <p className="text-center text-sm mt-6">
-                <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline">
+                <Link
+                  href="/auth/login"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
                   Voltar ao login
                 </Link>
               </p>
             </>
           )}
 
-          {/* ── ETAPA 2: Código OTP ── */}
           {etapa === "codigo" && (
             <>
-              <Logos isDark={isDark} />
+              <Logos mounted={mounted} isDark={isDark} />
+
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
+
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white text-center">
                   Informe o código enviado para seu e-mail
                 </h2>
+
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Enviamos um código para <strong className="dark:text-slate-200">{email}</strong>
+                  Enviamos um código para{" "}
+                  <strong className="dark:text-slate-200">{email}</strong>
                 </p>
               </div>
 
@@ -230,12 +377,15 @@ function ResetSenhaContent() {
                 {codigo.map((val, i) => (
                   <input
                     key={i}
-                    ref={(el) => { inputsRef.current[i] = el; }}
+                    ref={(el) => {
+                      inputsRef.current[i] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
-                    maxLength={1}
+                    maxLength={6}
                     value={val}
                     onChange={(e) => handleOtpChange(e.target.value, i)}
+                    onPaste={handleOtpPaste}
                     onKeyDown={(e) => handleOtpKeyDown(e, i)}
                     className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md outline-none focus:border-[#0f0f1e] dark:focus:border-white transition-colors"
                   />
@@ -249,25 +399,32 @@ function ResetSenhaContent() {
               >
                 {loading ? "Validando..." : "Confirmar"}
               </button>
+
               {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
 
               <p className="text-center text-sm mt-6">
-                <button onClick={() => setEtapa("email")} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                <button
+                  onClick={() => setEtapa("email")}
+                  className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
                   Voltar
                 </button>
               </p>
             </>
           )}
 
-          {/* ── ETAPA 3: Nova senha ── */}
           {etapa === "nova-senha" && (
             <>
-              <Logos isDark={isDark} />
+              <Logos mounted={mounted} isDark={isDark} />
+
               <div className="flex flex-col items-center mb-6 gap-2">
                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
                   <Lock className="w-8 h-8 text-slate-600 dark:text-slate-300" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Crie uma nova senha</h2>
+
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Crie uma nova senha
+                </h2>
               </div>
 
               <div className="flex flex-col gap-4 mb-4">
@@ -278,16 +435,14 @@ function ResetSenhaContent() {
                   placeholder="Digite a nova senha"
                   Icon={Lock}
                 />
+
                 <InputCad
-                  id="confirm-senha"
-                  label="Confirmar senha"
+                  id="confirmar-senha"
+                  label="Confirmar nova senha"
                   type="password"
-                  placeholder="Confirme a nova senha"
+                  placeholder="Repita a nova senha"
                   Icon={Lock}
                 />
-                {erroSenha && (
-                  <span className="text-xs text-red-500">{erroSenha}</span>
-                )}
               </div>
 
               <button
@@ -295,31 +450,39 @@ function ResetSenhaContent() {
                 disabled={loading}
                 className="bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
               >
-                {loading ? "Salvando..." : "Confirmar"}
+                {loading ? "Redefinindo..." : "Redefinir senha"}
               </button>
-              {erroFluxo && <p className="text-sm text-red-500 mt-3">{erroFluxo}</p>}
+
+              {erroSenha && <p className="text-sm text-red-500 mt-3">{erroSenha}</p>}
             </>
           )}
 
-          {/* ── ETAPA 4: Sucesso ── */}
           {etapa === "sucesso" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="bg-green-100 dark:bg-green-900/40 p-5 rounded-full">
-                <CheckCircle className="w-12 h-12 text-green-500 dark:text-green-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Senha redefinida!</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                Sua senha foi redefinida com sucesso.
-              </p>
-              <button
-                onClick={() => router.push("/auth/login")}
-                className="w-full cursor-pointer bg-[#0f0f1e] dark:bg-white dark:text-slate-900 text-white font-bold py-3 rounded-md mt-4 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
-              >
-                Ir para o login
-              </button>
-            </div>
-          )}
+            <>
+              <Logos mounted={mounted} isDark={isDark} />
 
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="bg-emerald-100 dark:bg-emerald-900/40 p-4 rounded-full">
+                  <CheckCircle className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                </div>
+
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Senha redefinida com sucesso
+                </h2>
+
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Agora você já pode entrar novamente com sua nova senha.
+                </p>
+
+                <button
+                  onClick={() => router.push("/auth/login")}
+                  className="mt-4 bg-[#0f0f1e] cursor-pointer dark:bg-white dark:text-slate-900 text-white font-bold py-3 px-6 rounded-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all text-lg"
+                >
+                  Ir para o login
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -330,10 +493,16 @@ function ResetSenhaContent() {
   );
 }
 
-export default function ResetSenha() {
-  return(
-     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+export default function ResetSenhaPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-white dark:bg-[#303030] flex items-center justify-center">
+          <p className="text-slate-600 dark:text-slate-300">Carregando...</p>
+        </main>
+      }
+    >
       <ResetSenhaContent />
     </Suspense>
-  )
+  );
 }

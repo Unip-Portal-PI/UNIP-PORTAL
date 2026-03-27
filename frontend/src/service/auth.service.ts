@@ -5,6 +5,13 @@ import { ResultadoLogin, ResultadoPadraoAuth, UsuarioSessao } from "@/src/types/
 const TOKEN_KEY = "avp_token";
 const USER_KEY = "avp_user";
 
+type ParsedResponse<T> = {
+  ok: boolean;
+  data: T | null;
+  message: string;
+  status: number;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers internos
 // ---------------------------------------------------------------------------
@@ -78,7 +85,7 @@ function tokenExpirado(token: string): boolean {
   }
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+async function parseResponse<T>(response: Response): Promise<ParsedResponse<T>> {
   console.log("[auth.service] parseResponse status:", response.status);
   console.log("[auth.service] parseResponse ok:", response.ok);
   console.log("[auth.service] parseResponse url:", response.url);
@@ -94,11 +101,26 @@ async function parseResponse<T>(response: Response): Promise<T> {
     const message =
       data?.detail || data?.mensagem || "Nao foi possivel concluir a operacao.";
 
-    console.error("[auth.service] Resposta com erro:", message);
-    throw new Error(message);
+    console.warn("[auth.service] Resposta rejeitada pela API:", message);
+
+    return {
+      ok: false,
+      data: null,
+      message,
+      status: response.status,
+    };
   }
 
-  return data as T;
+  return {
+    ok: true,
+    data: data as T,
+    message: "",
+    status: response.status,
+  };
+}
+
+function normalizeRequiredValue(value?: string | null): string {
+  return String(value ?? "").trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +150,7 @@ export const authService = {
         body: JSON.stringify({ matricula, senha }),
       });
 
-      const data = await parseResponse<{
+      const result = await parseResponse<{
         sucesso: boolean;
         mensagem: string;
         token?: string | null;
@@ -144,6 +166,15 @@ export const authService = {
         } | null;
       }>(response);
 
+      if (!result.ok || !result.data) {
+        removerToken();
+        return {
+          sucesso: false,
+          mensagem: result.message || "Falha ao realizar login.",
+        };
+      }
+
+      const data = result.data;
       console.log("[auth.service] Resposta do login:", data);
 
       if (!data.sucesso || !data.token || !data.usuario) {
@@ -200,6 +231,35 @@ export const authService = {
   }): Promise<ResultadoPadraoAuth> {
     console.log("[auth.service] register chamado com payload:", payload);
 
+    const matricula = normalizeRequiredValue(payload.matricula);
+    const nome = normalizeRequiredValue(payload.nome);
+    const apelido = normalizeRequiredValue(payload.apelido);
+    const area = normalizeRequiredValue(payload.area);
+    const email = normalizeRequiredValue(payload.email);
+    const senha = normalizeRequiredValue(payload.senha);
+
+    if (!matricula || !nome || !apelido || !area || !email || !senha) {
+      console.warn("[auth.service] Cadastro bloqueado: campos obrigatorios ausentes");
+      return {
+        sucesso: false,
+        mensagem:
+          "Preencha os campos obrigatórios: matrícula, nome completo, nome social, área, e-mail e senha.",
+      };
+    }
+
+    const body = {
+      matricula,
+      nome,
+      apelido,
+      area,
+      email,
+      senha,
+      ...(payload.telefone?.trim() ? { telefone: payload.telefone.trim() } : {}),
+      ...(payload.dataNascimento?.trim()
+        ? { dataNascimento: payload.dataNascimento.trim() }
+        : {}),
+    };
+
     try {
       const url = `${API_BASE_URL}/auth/cadastro`;
       console.log("[auth.service] Fazendo POST para:", url);
@@ -207,18 +267,29 @@ export const authService = {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
 
-      const data = await parseResponse<ResultadoPadraoAuth>(response);
-      console.log("[auth.service] Resposta do cadastro:", data);
+      const result = await parseResponse<ResultadoPadraoAuth>(response);
 
-      return data;
+      if (!result.ok || !result.data) {
+        return {
+          sucesso: false,
+          mensagem: result.message || "Falha ao realizar cadastro.",
+        };
+      }
+
+      console.log("[auth.service] Resposta do cadastro:", result.data);
+      return result.data;
     } catch (error) {
-      console.error("[auth.service] Erro no cadastro:", error);
+      const message =
+        error instanceof Error ? error.message : "Falha ao realizar cadastro.";
+
+      console.warn("[auth.service] Cadastro recusado:", message);
+
       return {
         sucesso: false,
-        mensagem: error instanceof Error ? error.message : "Falha ao realizar cadastro.",
+        mensagem: message,
       };
     }
   },
@@ -241,13 +312,21 @@ export const authService = {
         body: JSON.stringify({ matricula }),
       });
 
-      const data = await parseResponse<{
+      const result = await parseResponse<{
         sucesso: boolean;
         mensagem: string;
         matricula?: string | null;
         emailPreview?: string | null;
       }>(response);
 
+      if (!result.ok || !result.data) {
+        return {
+          sucesso: false,
+          mensagem: result.message || "Falha ao validar e-mail.",
+        };
+      }
+
+      const data = result.data;
       console.log("[auth.service] Resposta previewPasswordReset:", data);
 
       return {
@@ -278,10 +357,18 @@ export const authService = {
         body: JSON.stringify({ matricula, email }),
       });
 
-      const data = await parseResponse<ResultadoPadraoAuth>(response);
-      console.log("[auth.service] Resposta requestPasswordReset:", data);
+      const result = await parseResponse<ResultadoPadraoAuth>(response);
 
-      return data;
+      if (!result.ok || !result.data) {
+        return {
+          sucesso: false,
+          mensagem:
+            result.message || "Nao foi possivel enviar o e-mail de recuperacao.",
+        };
+      }
+
+      console.log("[auth.service] Resposta requestPasswordReset:", result.data);
+      return result.data;
     } catch (error) {
       console.error("[auth.service] Erro em requestPasswordReset:", error);
       return {
@@ -308,10 +395,21 @@ export const authService = {
         body: JSON.stringify({ email, codigo }),
       });
 
-      const data = await parseResponse<{ sucesso: boolean; tokenRedefinicao: string }>(response);
-      console.log("[auth.service] Resposta validateResetCode:", data);
+      const result = await parseResponse<{
+        sucesso: boolean;
+        tokenRedefinicao: string;
+        mensagem?: string;
+      }>(response);
 
-      return data;
+      if (!result.ok || !result.data) {
+        return {
+          sucesso: false,
+          mensagem: result.message || "Codigo invalido.",
+        };
+      }
+
+      console.log("[auth.service] Resposta validateResetCode:", result.data);
+      return result.data;
     } catch (error) {
       console.error("[auth.service] Erro em validateResetCode:", error);
       return {
@@ -337,10 +435,17 @@ export const authService = {
         body: JSON.stringify({ tokenRedefinicao, novaSenha }),
       });
 
-      const data = await parseResponse<ResultadoPadraoAuth>(response);
-      console.log("[auth.service] Resposta resetPassword:", data);
+      const result = await parseResponse<ResultadoPadraoAuth>(response);
 
-      return data;
+      if (!result.ok || !result.data) {
+        return {
+          sucesso: false,
+          mensagem: result.message || "Falha ao redefinir senha.",
+        };
+      }
+
+      console.log("[auth.service] Resposta resetPassword:", result.data);
+      return result.data;
     } catch (error) {
       console.error("[auth.service] Erro em resetPassword:", error);
       return {
