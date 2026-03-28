@@ -7,3 +7,4 @@ from app.models.evento import EventoModel, EventoCurso, EventoPalestrante
 from app.models.inscricao import InscricaoModel
 from app.models.presenca import PresencaModel
 from app.models.anexo import AnexoModel
+from app.models.comunicado import ComunicadoModel, ComunicadoCurso, ComunicadoAnexoModel

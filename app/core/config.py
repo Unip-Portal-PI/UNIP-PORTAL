@@ -7,10 +7,23 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     DATABASE_URL: str
+    CORS_ALLOW_ORIGINS: str = "*"
 
-    EMAIL_API_URL: str
-    EMAIL_API_KEY: str
+    MINIO_ENDPOINT: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BUCKET: str = "portal-avp"
+    MINIO_SECURE: bool = False
+
+    RESEND_API_URL: str = "https://api.resend.com/emails"
+    RESEND_API_KEY: str = ""
+
+    EMAIL_API_URL: str = ""
+    EMAIL_API_KEY: str = ""
     EMAIL_FROM: str
+
+    OTP_LENGTH: int = 6
+    OTP_EXPIRATION_MINUTES: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",

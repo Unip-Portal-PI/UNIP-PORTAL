@@ -55,6 +55,7 @@ urllib3==2.6.3
 charset-normalizer==3.4.5
 idna==3.11
 certifi==2026.2.25
+minio==7.2.18
 PyYAML==6.0.3
 MarkupSafe==3.0.3
 defusedxml==0.7.1

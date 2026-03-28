@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -11,9 +12,23 @@ from app.repositories.curso_repository import CursoRepository
 from app.schemas.auth import (
     LoginRequest, LoginResponse, UsuarioResumo,
     CadastroRequest, CadastroResponse,
-    ResetSolicitarRequest, ResetValidarResponse,
+    ResetSolicitarRequest, ResetPreviewResponse, ResetValidarResponse,
     ResetRedefinirRequest, MensagemResponse,
 )
+
+logger = logging.getLogger("app.auth")
+
+
+def _mask_email(email: str) -> str:
+    try:
+        local, domain = email.split("@", 1)
+    except ValueError:
+        return "***"
+    if len(local) <= 2:
+        masked_local = local[0] + "*"
+    else:
+        masked_local = local[:2] + "*" * max(2, len(local) - 2)
+    return f"{masked_local}@{domain}"
 
 
 def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
@@ -24,18 +39,33 @@ def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
         matricula=user.username,
         email=user.email,
         area=user.curso.nome_curso if user.curso else None,
+        foto_url=user.foto_url,
         permission=user.nivel_acesso.nome_perfil,
     )
 
 
 def login(data: LoginRequest, db: Session) -> LoginResponse:
     repo = UsuarioRepository(db)
-    user = repo.get_by_username(data.matricula.strip())
+    login_value = data.matricula.strip()
+    logger.info("login_attempt value=%s", login_value)
+    user = repo.get_by_username(login_value)
+    found_by = "username"
+
+    # Allow login using either matricula (username) or e-mail.
+    if not user and "@" in login_value:
+        user = repo.get_by_email(login_value)
+        found_by = "email"
 
     if not user or not verify_password(data.senha, user.password):
+        logger.warning("login_failure value=%s reason=invalid_credentials", login_value)
         return LoginResponse(sucesso=False, mensagem="Matricula ou senha incorretos.")
 
     if not user.ativo:
+        logger.warning(
+            "login_failure user_id=%s value=%s reason=inactive_account",
+            user.id_usuario,
+            login_value,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Esta conta esta desativada.",
@@ -45,6 +75,14 @@ def login(data: LoginRequest, db: Session) -> LoginResponse:
         "sub": user.id_usuario,
         "role": user.nivel_acesso.nome_perfil,
     })
+
+    logger.info(
+        "login_success user_id=%s value=%s matched_by=%s role=%s",
+        user.id_usuario,
+        login_value,
+        found_by,
+        user.nivel_acesso.nome_perfil,
+    )
 
     return LoginResponse(
         sucesso=True,
@@ -88,39 +126,81 @@ def register(data: CadastroRequest, db: Session) -> CadastroResponse:
     return CadastroResponse(sucesso=True, mensagem="Cadastro realizado com sucesso.")
 
 
-def request_reset(email: str, db: Session) -> MensagemResponse:
+def request_reset(matricula: str, email: str, db: Session) -> MensagemResponse:
+    from app.core.config import settings
+
     repo = UsuarioRepository(db)
-    user = repo.get_by_email(email)
+    matricula_norm = matricula.strip()
+    email_norm = email.strip().lower()
+    user = repo.get_by_username(matricula_norm)
+    logger.info(
+        "request_reset matricula=%s email=%s user_found=%s",
+        matricula_norm,
+        email_norm,
+        bool(user),
+    )
 
     if not user:
-        return MensagemResponse(
-            sucesso=True,
-            mensagem="Se o e-mail estiver cadastrado, voce recebera um codigo de verificacao.",
-        )
+        raise HTTPException(status_code=404, detail="Usuario nao encontrado para a matricula informada.")
+
+    if user.email.strip().lower() != email_norm:
+        raise HTTPException(status_code=400, detail="E-mail nao corresponde ao usuario informado.")
 
     otp = generate_otp()
     user.otp_code = hash_password(otp)
-    user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRATION_MINUTES)
     repo.update(user)
+    logger.info("request_reset_otp_saved user_id=%s email=%s", user.id_usuario, user.email)
 
     email_service = EmailService()
-    email_service.send_verification_code(user.email, otp)
+    sent = email_service.send_verification_code(user.email, otp)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Nao foi possivel enviar o e-mail de recuperacao. Verifique as credenciais do provedor.",
+        )
 
     return MensagemResponse(
         sucesso=True,
-        mensagem="Se o e-mail estiver cadastrado, voce recebera um codigo de verificacao.",
+        mensagem="Codigo de verificacao enviado para o e-mail informado.",
+    )
+
+
+def preview_reset_target_by_matricula(matricula: str, db: Session) -> ResetPreviewResponse:
+    repo = UsuarioRepository(db)
+    matricula_norm = matricula.strip()
+    user = repo.get_by_username(matricula_norm)
+    logger.info("preview_reset_target matricula=%s user_found=%s", matricula_norm, bool(user))
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Nenhum usuario encontrado para esta matricula.")
+
+    return ResetPreviewResponse(
+        sucesso=True,
+        mensagem="Usuario encontrado para recuperacao.",
+        matricula=user.username,
+        email_preview=_mask_email(user.email),
     )
 
 
 def validate_otp(email: str, codigo: str, db: Session) -> ResetValidarResponse:
     repo = UsuarioRepository(db)
     user = repo.get_by_email(email)
+    logger.info("validate_otp email=%s user_found=%s", email, bool(user))
 
     if not user or not user.otp_code:
         raise HTTPException(status_code=400, detail="Codigo invalido ou expirado.")
 
-    if user.otp_expires_at and user.otp_expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Codigo expirado. Solicite um novo.")
+    if user.otp_expires_at:
+        expires_at = user.otp_expires_at
+        now_utc = datetime.now(timezone.utc)
+        if expires_at.tzinfo is None:
+            now_ref = now_utc.replace(tzinfo=None)
+        else:
+            now_ref = now_utc
+
+        if expires_at < now_ref:
+            raise HTTPException(status_code=400, detail="Codigo expirado. Solicite um novo.")
 
     if not verify_password(codigo, user.otp_code):
         raise HTTPException(status_code=400, detail="Codigo invalido.")
@@ -133,6 +213,7 @@ def validate_otp(email: str, codigo: str, db: Session) -> ResetValidarResponse:
         {"sub": user.id_usuario, "purpose": "reset"},
         expires_delta=timedelta(minutes=15),
     )
+    logger.info("validate_otp_success user_id=%s email=%s", user.id_usuario, user.email)
 
     return ResetValidarResponse(sucesso=True, token_redefinicao=token)
 
@@ -145,6 +226,7 @@ def reset_password(token_redefinicao: str, nova_senha: str, db: Session) -> Mens
         payload = jwt.decode(token_redefinicao, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         purpose = payload.get("purpose")
+        logger.info("reset_password_token_decoded sub=%s purpose=%s", user_id, purpose)
 
         if not user_id or purpose != "reset":
             raise HTTPException(status_code=400, detail="Token de redefinicao invalido.")
@@ -158,7 +240,48 @@ def reset_password(token_redefinicao: str, nova_senha: str, db: Session) -> Mens
     if not user:
         raise HTTPException(status_code=404, detail="Usuario nao encontrado.")
 
-    user.password = hash_password(nova_senha)
-    repo.update(user)
+    logger.info("reset_password_attempt user_id=%s", user.id_usuario)
 
+    if verify_password(nova_senha, user.password):
+        raise HTTPException(
+            status_code=400,
+            detail="A nova senha deve ser diferente da senha atual.",
+        )
+
+    previous_hash = user.password
+    new_hash = hash_password(nova_senha)
+    updated_rows = (
+        db.query(UsuarioModel)
+        .filter(UsuarioModel.id_usuario == user_id)
+        .update({UsuarioModel.password: new_hash}, synchronize_session=False)
+    )
+    db.commit()
+
+    if updated_rows != 1:
+        logger.error(
+            "reset_password_failed user_id=%s reason=unexpected_rowcount rowcount=%s",
+            user_id,
+            updated_rows,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Nao foi possivel atualizar a senha. Tente novamente.",
+        )
+
+    db.expire_all()
+    reloaded_user = repo.get_by_id(user_id)
+    logger.info(
+        "reset_password_post_update user_id=%s rowcount=%s hash_changed=%s",
+        user_id,
+        updated_rows,
+        bool(reloaded_user and reloaded_user.password != previous_hash),
+    )
+    if not reloaded_user or not verify_password(nova_senha, reloaded_user.password):
+        logger.error("reset_password_failed user_id=%s reason=password_not_persisted", user_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Nao foi possivel atualizar a senha. Tente novamente.",
+        )
+
+    logger.info("reset_password_success user_id=%s", user.id_usuario)
     return MensagemResponse(sucesso=True, mensagem="Senha redefinida com sucesso.")

@@ -11,7 +11,7 @@ from app.core.database import get_db
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login/swagger")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 def hash_password(password: str) -> str:

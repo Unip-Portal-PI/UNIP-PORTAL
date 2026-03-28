@@ -1,12 +1,23 @@
-import uuid
 from datetime import date
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from jose import jwt
 
+from app.core.config import settings
 from app.models.inscricao import InscricaoModel
 from app.repositories.inscricao_repository import InscricaoRepository
 from app.repositories.evento_repository import EventoRepository
 from app.schemas.inscricao import InscricaoResponse
+
+
+def _build_qr_code_payload(id_evento: str, id_usuario: str, id_inscricao: str) -> str:
+    payload = {
+        "type": "event_checkin",
+        "evento_id": id_evento,
+        "usuario_id": id_usuario,
+        "inscricao_id": id_inscricao,
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def _serialize_inscricao(insc: InscricaoModel) -> InscricaoResponse:
@@ -43,15 +54,18 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
         if count >= evento.vagas:
             raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
 
-    qr_code = str(uuid.uuid4())
-
     inscricao = InscricaoModel(
         id_evento=id_evento,
         id_usuario=id_usuario,
-        qr_code_usuario=qr_code,
     )
 
     inscricao = insc_repo.create(inscricao)
+    inscricao.qr_code_usuario = _build_qr_code_payload(
+        id_evento=id_evento,
+        id_usuario=id_usuario,
+        id_inscricao=inscricao.id_inscricao,
+    )
+    inscricao = insc_repo.update(inscricao)
 
     inscricao = insc_repo.get_by_user_and_event(id_usuario, id_evento)
     return _serialize_inscricao(inscricao)
@@ -69,3 +83,28 @@ def list_enrollments(id_evento: str, db: Session) -> list[InscricaoResponse]:
     repo = InscricaoRepository(db)
     inscricoes = repo.list_by_event(id_evento)
     return [_serialize_inscricao(i) for i in inscricoes]
+
+
+def list_my_enrollments(id_usuario: str, db: Session) -> list[InscricaoResponse]:
+    repo = InscricaoRepository(db)
+    inscricoes = repo.list_by_user(id_usuario)
+    return [_serialize_inscricao(i) for i in inscricoes]
+
+
+def cancel_enrollment(id_evento: str, id_usuario: str, db: Session) -> None:
+    evento = EventoRepository(db).get_by_id(id_evento)
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento nao encontrado.")
+
+    repo = InscricaoRepository(db)
+    inscricao = repo.get_by_user_and_event(id_usuario, id_evento)
+    if not inscricao:
+        raise HTTPException(status_code=404, detail="Inscricao nao encontrada.")
+
+    if inscricao.presenca is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Nao e possivel cancelar uma inscricao com presenca confirmada.",
+        )
+
+    repo.delete(inscricao)

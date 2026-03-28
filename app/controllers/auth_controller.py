@@ -1,32 +1,44 @@
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.auth import (
     LoginRequest, LoginResponse,
     CadastroRequest, CadastroResponse,
+    ResetPreviewRequest, ResetPreviewResponse,
     ResetSolicitarRequest, ResetValidarRequest, ResetValidarResponse,
     ResetRedefinirRequest, MensagemResponse,
 )
 from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["Autenticacao"])
+logger = logging.getLogger("app.auth")
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    return auth_service.login(data, db)
-
-
-@router.post("/login/swagger", include_in_schema=False)
-def login_swagger(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    data = LoginRequest(matricula=form.username, senha=form.password)
-    result = auth_service.login(data, db)
-    if not result.sucesso:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=401, detail=result.mensagem)
-    return {"access_token": result.token, "token_type": "bearer"}
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info("login_request ip=%s value=%s", client_ip, data.matricula.strip())
+    try:
+        response = auth_service.login(data, db)
+        logger.info(
+            "login_response ip=%s value=%s success=%s message=%s",
+            client_ip,
+            data.matricula.strip(),
+            response.sucesso,
+            response.mensagem,
+        )
+        return response
+    except HTTPException as exc:
+        logger.warning(
+            "login_http_exception ip=%s value=%s status=%s detail=%s",
+            client_ip,
+            data.matricula.strip(),
+            exc.status_code,
+            exc.detail,
+        )
+        raise
 
 
 @router.post("/cadastro", response_model=CadastroResponse)
@@ -36,7 +48,12 @@ def cadastro(data: CadastroRequest, db: Session = Depends(get_db)):
 
 @router.post("/reset-senha/solicitar", response_model=MensagemResponse)
 def reset_solicitar(data: ResetSolicitarRequest, db: Session = Depends(get_db)):
-    return auth_service.request_reset(data.email, db)
+    return auth_service.request_reset(data.matricula, data.email, db)
+
+
+@router.post("/reset-senha/preview", response_model=ResetPreviewResponse)
+def reset_preview(data: ResetPreviewRequest, db: Session = Depends(get_db)):
+    return auth_service.preview_reset_target_by_matricula(data.matricula, db)
 
 
 @router.post("/reset-senha/validar", response_model=ResetValidarResponse)

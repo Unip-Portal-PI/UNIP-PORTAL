@@ -12,6 +12,7 @@ class UsuarioResumo(BaseModel):
     matricula: str
     email: str
     area: str | None = None
+    foto_url: str | None = None
     permission: str
 
 
@@ -54,7 +55,23 @@ class CadastroResponse(BaseModel):
 class ResetSolicitarRequest(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
+    matricula: str
     email: EmailStr
+
+
+class ResetPreviewResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    sucesso: bool
+    mensagem: str
+    matricula: str | None = None
+    email_preview: str | None = None
+
+
+class ResetPreviewRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    matricula: str
 
 
 class ResetValidarRequest(BaseModel):
