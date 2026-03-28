@@ -25,8 +25,9 @@ interface SelectProps {
   options: string[];
   Icon?: LucideIcon;
   erro?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }
-
 function formatTelefone(value: string): string {
   const nums = value.replace(/\D/g, "").slice(0, 11);
 
@@ -135,6 +136,19 @@ export function InputCad({
   const isPassword = type === "password";
   const isTel = type === "tel";
   const isMatricula = id === "matricula";
+
+const shouldTrimOnBlur =
+  id === "nome" ||
+  id === "apelido" ||
+  id === "nome_social" ||
+  id === "email" ||
+  id === "senha" ||
+  id === "confirmar" ||
+  id === "confirmarSenha" ||
+  id === "confirmar_senha" ||
+  type === "email" ||
+  type === "password";  
+
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
   const currentValue = useMemo(() => {
@@ -146,14 +160,17 @@ export function InputCad({
     setValidationMessage(message);
   }, [currentValue, validator]);
 
+  function emitValidation(nextValue: string) {
+    const message = validator ? validator(nextValue) : "";
+    setValidationMessage(message);
+    onValidatedChange?.(!message, message, nextValue);
+  }
+
   function handleValueChange(nextValue: string) {
     if (isTel) {
       const formatted = formatTelefone(nextValue);
-      const message = validator ? validator(formatted) : "";
-
+      emitValidation(formatted);
       setTelValue(formatted);
-      setValidationMessage(message);
-      onValidatedChange?.(!message, message, formatted);
       return;
     }
 
@@ -163,27 +180,31 @@ export function InputCad({
       const numbers = cleaned.slice(2).replace(/\D/g, "").slice(0, 8);
       const finalValue = `${letters}${numbers}`;
 
-      const message = validator ? validator(finalValue) : "";
       setValue(finalValue);
-      setValidationMessage(message);
-      onValidatedChange?.(!message, message, finalValue);
+      emitValidation(finalValue);
       return;
     }
 
     if (isPassword) {
       const limitedValue = nextValue.slice(0, 48);
-      const message = validator ? validator(limitedValue) : "";
-
       setValue(limitedValue);
-      setValidationMessage(message);
-      onValidatedChange?.(!message, message, limitedValue);
+      emitValidation(limitedValue);
       return;
     }
 
-    const message = validator ? validator(nextValue) : "";
     setValue(nextValue);
-    setValidationMessage(message);
-    onValidatedChange?.(!message, message, nextValue);
+    emitValidation(nextValue);
+  }
+
+  function handleBlur() {
+    if (!shouldTrimOnBlur || isTel || isMatricula) return;
+
+    const trimmedValue = currentValue.trim();
+
+    if (trimmedValue === currentValue) return;
+
+    setValue(trimmedValue);
+    emitValidation(trimmedValue);
   }
 
   return (
@@ -204,14 +225,16 @@ export function InputCad({
           autoComplete={autoComplete}
           value={currentValue}
           onChange={(e) => handleValueChange(e.target.value)}
+          onBlur={handleBlur}
           inputMode={isTel ? "numeric" : undefined}
           maxLength={isPassword ? 48 : undefined}
           className={`w-full border rounded-md p-2 text-sm outline-none transition-colors
             ${Icon ? "pl-9" : "pl-3"}
             ${isPassword ? "pr-10" : "pr-3"}
-            ${erro || !!validationMessage
-              ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200 placeholder:text-red-300"
-              : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-[#888888]"
+            ${
+              erro || !!validationMessage
+                ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200 placeholder:text-red-300"
+                : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-[#888888]"
             }`}
         />
 
@@ -231,7 +254,16 @@ export function InputCad({
   );
 }
 
-export function SelectCad({ label, id, placeholder, options, Icon, erro }: SelectProps) {
+export function SelectCad({
+  label,
+  id,
+  placeholder,
+  options,
+  Icon,
+  erro,
+  value,
+  onChange,
+}: SelectProps) {
   return (
     <div className="flex flex-col gap-1 w-full">
       <label htmlFor={id} className="font-bold text-sm text-slate-800 dark:text-slate-200">
@@ -245,12 +277,14 @@ export function SelectCad({ label, id, placeholder, options, Icon, erro }: Selec
 
         <select
           id={id}
-          defaultValue=""
+          value={value ?? ""}
+          onChange={(e) => onChange?.(e.target.value)}
           className={`w-full border rounded-md p-2 text-sm outline-none transition-colors appearance-none cursor-pointer
             ${Icon ? "pl-9" : "pl-3"} pr-9
-            ${erro
-              ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200"
-              : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200"
+            ${
+              erro
+                ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200"
+                : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200"
             }`}
         >
           <option value="" disabled className="text-slate-400 dark:text-[#888888]">

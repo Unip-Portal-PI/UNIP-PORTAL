@@ -13,6 +13,7 @@ import {
   IconAlertTriangle,
   IconEdit,
   IconTrash,
+  IconExternalLink,
   IconSpeakerphone,
   IconAlertCircle,
 } from "@tabler/icons-react";
@@ -24,7 +25,9 @@ import {
   canEditComunicado,
   canDeleteAllComunicados,
   isAutor,
+  parseAssuntos,
 } from "@/src/utils/comunicado.helpers";
+import { renderConteudoFormatado } from "@/src/utils/comunicado.formatter";
 import { Auth } from "@/src/service/auth.service";
 import { ModalFormComunicado } from "@/app/components/comunicados/modal/ModalFormComunicado";
 import { ModalExcluirComunicado } from "@/app/components/comunicados/modal/ModalExcluirComunicado";
@@ -73,12 +76,12 @@ export default function ComunicadoDetalhePage() {
     router.push("/home/comunicado");
   }
 
-  function handleDownload(url: string, nome: string) {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = nome;
-    link.click();
-  }
+  // function handleDownload(url: string, nome: string) {
+  //   const link = document.createElement("a");
+  //   link.href = url;
+  //   link.download = nome;
+  //   link.click();
+  // }
 
   // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
@@ -209,10 +212,17 @@ export default function ComunicadoDetalhePage() {
         )}
 
         {/* Assunto tag */}
-        {comunicado.assunto && (
-          <span className="inline-block bg-[#FFDE00]/20 text-amber-700 dark:text-[#FFDE00] text-xs font-black px-3 py-1 rounded-full mb-3">
-            {comunicado.assunto}
-          </span>
+        {parseAssuntos(comunicado.assunto).length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {parseAssuntos(comunicado.assunto).map((item) => (
+              <span
+                key={item}
+                className="inline-block rounded-full bg-[#FFDE00]/20 px-3 py-1 text-xs font-black text-amber-700 dark:text-[#FFDE00]"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Título */}
@@ -251,22 +261,10 @@ export default function ComunicadoDetalhePage() {
           </div>
         )}
 
-        {/* Conteúdo HTML */}
-        <div
-          className="
-            prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300
-            leading-relaxed text-[15px]
-            [&_p]:mb-4
-            [&_ul]:pl-5 [&_ul]:mb-4 [&_li]:mb-1.5
-            [&_ol]:pl-5 [&_ol]:mb-4
-            [&_strong]:text-slate-900 [&_strong]:dark:text-white
-            [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:dark:text-white [&_h2]:mt-6 [&_h2]:mb-3
-            [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:dark:text-white [&_h3]:mt-5 [&_h3]:mb-2
-            [&_blockquote]:border-l-4 [&_blockquote]:border-[#FFDE00] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-500
-            [&_a]:text-amber-600 [&_a]:dark:text-[#FFDE00] [&_a]:underline
-          "
-          dangerouslySetInnerHTML={{ __html: comunicado.conteudo }}
-        />
+        {/* Conteúdo formatado */}
+        <div className="max-w-none">
+          {renderConteudoFormatado(comunicado.conteudo)}
+        </div>
 
         {/* Anexos */}
         {comunicado.anexos.length > 0 && (
@@ -294,13 +292,24 @@ export default function ComunicadoDetalhePage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDownload(anexo.url, anexo.nome)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-[#FFDE00] hover:text-[#252525] hover:border-[#FFDE00] dark:hover:bg-[#FFDE00] dark:hover:text-[#252525] dark:hover:border-[#FFDE00] transition-colors shrink-0 ml-4"
-                  >
-                    <IconDownload size={13} />
-                    Baixar
-                  </button>
+                  <div className="ml-4 flex items-center gap-2 shrink-0">
+                    <a
+                      href={anexo.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-[#505050] dark:bg-[#363636] dark:text-slate-300 dark:hover:bg-[#404040]"
+                    >
+                      <IconExternalLink size={13} />
+                      Visualizar
+                    </a>
+                    {/* <button
+                      onClick={() => handleDownload(anexo.url, anexo.nome)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-[#FFDE00] hover:text-[#252525] hover:border-[#FFDE00] dark:hover:bg-[#FFDE00] dark:hover:text-[#252525] dark:hover:border-[#FFDE00] transition-colors"
+                    >
+                      <IconDownload size={13} />
+                      Baixar
+                    </button> */}
+                  </div>
                 </div>
               ))}
             </div>

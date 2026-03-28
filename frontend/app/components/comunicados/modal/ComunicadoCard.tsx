@@ -8,17 +8,16 @@ import {
   IconPaperclip,
   IconCalendar,
   IconUser,
-  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { Comunicado } from "@/src/types/comunicado";
 import { UserRole } from "@/src/types/user";
 import {
-  isComunicadoExpirado,
   canEditComunicado,
   canDeleteAllComunicados,
   isAutor,
+  getResumoComunicado,
+  parseAssuntos,
 } from "@/src/utils/comunicado.helpers";
-import { ComunicadoService } from "@/src/service/comunicado.service";
 
 interface ComunicadoCardProps {
   comunicado: Comunicado;
@@ -78,10 +77,14 @@ export function ComunicadoCard({
         )}
 
         {/* Badge Assunto */}
-        {comunicado.assunto && (
-          <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium">
-            {comunicado.assunto}
-          </span>
+        {parseAssuntos(comunicado.assunto).length > 0 && (
+          <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5">
+            {parseAssuntos(comunicado.assunto).map((item) => (
+              <span key={item} className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium">
+                {item}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
@@ -95,9 +98,9 @@ export function ComunicadoCard({
           {comunicado.titulo}
         </h3>
 
-        {/* Resumo */}
+        {/* Prévia */}
         <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-4 leading-relaxed">
-          {comunicado.resumo}
+          {getResumoComunicado(comunicado)}
         </p>
 
         {/* Meta */}

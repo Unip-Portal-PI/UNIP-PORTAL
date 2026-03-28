@@ -52,7 +52,7 @@ function mapComunicado(data: {
     titulo: data.titulo,
     assunto: data.assunto ?? "",
     conteudo: data.conteudo,
-    resumo: data.resumo,
+    resumo: data.resumo ?? "",
     banner: data.banner ? buildFileUrl(data.banner) : "",
     visibilidade: data.visibilidade ?? [],
     anexos: (data.anexos ?? []).map((anexo) => ({
@@ -150,7 +150,7 @@ export const ComunicadoService = {
         titulo: dados.titulo,
         assunto: dados.assunto,
         conteudo: dados.conteudo,
-        resumo: dados.resumo,
+        resumo: dados.resumo ?? "",
         banner: extractFilePath(dados.banner),
         visibilidade: dados.visibilidade,
         anexos: dados.anexos.map((anexo) => ({
@@ -192,7 +192,7 @@ export const ComunicadoService = {
         titulo: dados.titulo,
         assunto: dados.assunto,
         conteudo: dados.conteudo,
-        resumo: dados.resumo,
+        resumo: dados.resumo ?? "",
         banner: extractFilePath(dados.banner),
         visibilidade: dados.visibilidade,
         anexos: dados.anexos?.map((anexo) => ({

@@ -35,14 +35,16 @@ export function CarrosselComunicados({ comunicados, onAbrir }: CarrosselComunica
   if (destaques.length === 0) return null;
 
   const atual = destaques[idx];
-
+  const assuntosAtuais = atual.assunto
+    ? atual.assunto.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
   return (
     <div className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-[#303030] mb-8 group">
       {/* Slide */}
       <div
         className="relative h-52 sm:h-95 cursor-pointer"
         onClick={() => {
-        
+
           onAbrir(atual);
         }}
       >
@@ -54,8 +56,8 @@ export function CarrosselComunicados({ comunicados, onAbrir }: CarrosselComunica
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
-            <span className="text-[#252525] text-8xl font-black opacity-10 select-none">
-              {atual.titulo[0]}
+            <span className="text-[#252525] text-8xl font-black opacity-10 select-none text-center">
+              Comunicado<br />AVP
             </span>
           </div>
         )}
@@ -65,14 +67,23 @@ export function CarrosselComunicados({ comunicados, onAbrir }: CarrosselComunica
 
         {/* Conteúdo */}
         <div className="absolute bottom-0 left-0 right-0 p-5">
-          {atual.assunto && (
-            <span className="inline-block bg-[#FFDE00] text-[#252525] text-xs font-black px-2.5 py-0.5 rounded-full mb-2">
-              {atual.assunto}
-            </span>
+          {assuntosAtuais.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {assuntosAtuais.map((item) => (
+                <span
+                  key={item}
+                  className="inline-block bg-[#FFDE00] text-[#252525] text-xs font-black px-2.5 py-0.5 rounded-full"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
           )}
+
           <h2 className="text-white font-bold text-lg leading-snug line-clamp-2">
             {atual.titulo}
           </h2>
+
           <p className="text-white/70 text-sm mt-1 line-clamp-1 flex items-center gap-1">
             <IconExternalLink size={12} />
             Clique para ler o comunicado completo
@@ -102,11 +113,10 @@ export function CarrosselComunicados({ comunicados, onAbrir }: CarrosselComunica
               <button
                 key={i}
                 onClick={() => setIdx(i)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  i === idx
-                    ? "bg-[#FFDE00] w-5"
-                    : "bg-white/50 hover:bg-white/80"
-                }`}
+                className={`w-2 h-2 rounded-full transition-all ${i === idx
+                  ? "bg-[#FFDE00] w-5"
+                  : "bg-white/50 hover:bg-white/80"
+                  }`}
               />
             ))}
           </div>

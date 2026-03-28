@@ -149,35 +149,51 @@ export const EventoService = {
   },
 
   async criar(dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">): Promise<Evento> {
-    const response = await fetch(`${API_BASE_URL}/events/`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        nome: dados.nome,
-        descricao: dados.descricaoCompleta,
-        descricaoBreve: dados.descricaoBreve,
-        bannerUrl: extractFilePath(dados.banner),
-        data: dados.data,
-        horario: dados.horario || null,
-        turno: mapTurnoToApi(dados.turno),
-        vagas: dados.vagas,
-        dataLimiteInscricao: dados.dataLimiteInscricao || null,
-        tipoInscricao: dados.tipoInscricao,
-        urlExterna: dados.urlExterna || null,
-        visibilidade: dados.visibilidade,
-        anexos: (dados.anexos ?? []).map((anexo) => ({
-          id: anexo.id,
-          nome: anexo.nome,
-          url: extractFilePath(anexo.url),
-        })),
-        cursosIds: [],
-        palestrantesIds: [],
-        idSala: null,
-      }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          nome: dados.nome,
+          descricao: dados.descricaoCompleta,
+          descricaoBreve: dados.descricaoBreve,
+          bannerUrl: extractFilePath(dados.banner),
+          data: dados.data,
+          horario: dados.horario || null,
+          turno: mapTurnoToApi(dados.turno),
+          vagas: dados.vagas,
+          dataLimiteInscricao: dados.dataLimiteInscricao || null,
+          tipoInscricao: dados.tipoInscricao,
+          urlExterna: dados.urlExterna || null,
+          visibilidade: dados.visibilidade,
+          anexos: (dados.anexos ?? []).map((anexo) => ({
+            id: anexo.id,
+            nome: anexo.nome,
+            url: extractFilePath(anexo.url),
+          })),
+          cursosIds: [],
+          palestrantesIds: [],
+          idSala: null,
+        }),
+      });
 
-    const data = await parseResponse<ApiEvento>(response);
-    return mapEvento(data);
+      const data = await parseResponse<ApiEvento>(response);
+      return mapEvento(data);
+    } catch (error) {
+      console.error("Erro ao criar evento");
+      console.error("API_BASE_URL:", API_BASE_URL);
+      console.error("Erro bruto:", error);
+
+      if (error instanceof Error) {
+        console.error("Nome:", error.name);
+        console.error("Mensagem:", error.message);
+        console.error("Stack:", error.stack);
+      }
+
+      throw new Error(
+        "Nao foi possivel conectar com a API para criar o evento. Verifique a URL da API, CORS, proxy e se o backend esta online."
+      );
+    }
   },
 
   async editar(id: string, dados: Partial<Evento>): Promise<Evento> {

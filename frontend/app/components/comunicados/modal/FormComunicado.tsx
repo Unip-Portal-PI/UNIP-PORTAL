@@ -6,6 +6,7 @@ import {
   useRef,
   useImperativeHandle,
   forwardRef,
+  KeyboardEvent,
 } from "react";
 import {
   IconUpload,
@@ -16,6 +17,7 @@ import {
 import { FileService } from "@/src/service/file.service";
 import { Comunicado, ComunicadoAnexo } from "@/src/types/comunicado";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import { normalizeAssuntos, parseAssuntos } from "@/src/utils/comunicado.helpers";
 
 const MAX_ANEXO_MB = 10;
 const TIPOS_ACEITOS = ["application/pdf", "image/jpeg", "image/png"];
@@ -77,13 +79,47 @@ function inputBorder(erros: Record<string, string>, key: string) {
 
 export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>(
   ({ inicial, onSalvar, onLoadingChange }, ref) => {
-    const [form, setForm] = useState<FormData>({ ...INITIAL, ...inicial });
+    const [form, setForm] = useState<FormData>({ ...INITIAL, ...inicial, assunto: normalizeAssuntos(inicial?.assunto) });
     const [erros, setErros] = useState<Record<string, string>>({});
     const [erroAnexo, setErroAnexo] = useState("");
     const [uploadingBanner, setUploadingBanner] = useState(false);
     const [uploadingAnexo, setUploadingAnexo] = useState(false);
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const anexoInputRef = useRef<HTMLInputElement>(null);
+    const [assuntoInput, setAssuntoInput] = useState("");
+
+    const MAX_TAGS = 5;
+    const MAX_TAG_LENGTH = 20;
+
+    function adicionarAssunto(valor: string) {
+      const normalizado = valor.trim().replace(/,+$/g, "").trim();
+
+      if (!normalizado) return;
+
+      const limitado = normalizado.slice(0, MAX_TAG_LENGTH);
+      const atual = parseAssuntos(form.assunto);
+
+      if (atual.length >= MAX_TAGS) return;
+
+      if (atual.some((item) => item.toLowerCase() === limitado.toLowerCase())) return;
+
+      set("assunto", normalizeAssuntos([...atual, limitado].join(",")));
+      setAssuntoInput("");
+    }
+
+    function removerAssunto(itemRemover: string) {
+      const atual = parseAssuntos(form.assunto).filter((item) => item !== itemRemover);
+      set("assunto", normalizeAssuntos(atual.join(",")));
+    }
+
+    function handleAssuntoKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+      if (e.key === "," || e.key === "Enter") {
+        e.preventDefault();
+        adicionarAssunto(assuntoInput);
+      }
+
+      // removido o comportamento de apagar a última tag no backspace
+    }
 
     function set<K extends keyof FormData>(key: K, value: FormData[K]) {
       setForm((prev) => ({ ...prev, [key]: value }));
@@ -94,7 +130,6 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
       const e: Record<string, string> = {};
       if (!form.titulo.trim()) e.titulo = "Título é obrigatório.";
       if (!form.conteudo.trim()) e.conteudo = "Conteúdo é obrigatório.";
-      if (!form.resumo.trim()) e.resumo = "Resumo é obrigatório.";
       if (!form.dataValidade) e.dataValidade = "Data de validade é obrigatória.";
       else if (form.dataValidade < hoje) e.dataValidade = "Data de validade não pode ser retroativa.";
       setErros(e);
@@ -106,7 +141,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         if (!validar()) return;
         onLoadingChange?.(true);
         try {
-          await onSalvar(form);
+          await onSalvar({ ...form, resumo: "" });
         } finally {
           onLoadingChange?.(false);
         }
@@ -244,24 +279,67 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         <Campo label="Assunto">
           <input
             type="text"
-            value={form.assunto}
-            onChange={(e) => set("assunto", e.target.value)}
-            placeholder="Ex: RH, Tecnologia, Institucional..."
+            value={assuntoInput}
+            onChange={(e) => {
+              const value = e.target.value;
+              const assuntosAtuais = parseAssuntos(form.assunto);
+
+              if (value.includes(",")) {
+                const partes = value.split(",");
+
+                partes.slice(0, -1).forEach((parte) => {
+                  if (parseAssuntos(form.assunto).length < MAX_TAGS) {
+                    adicionarAssunto(parte);
+                  }
+                });
+
+                const ultimaParte = partes[partes.length - 1] ?? "";
+                setAssuntoInput(ultimaParte.slice(0, MAX_TAG_LENGTH));
+                return;
+              }
+
+              if (assuntosAtuais.length >= MAX_TAGS) {
+                setAssuntoInput("");
+                return;
+              }
+
+              setAssuntoInput(value.slice(0, MAX_TAG_LENGTH));
+            }}
+            onKeyDown={handleAssuntoKeyDown}
+            onBlur={() => {
+              if (parseAssuntos(form.assunto).length < MAX_TAGS) {
+                adicionarAssunto(assuntoInput);
+              } else {
+                setAssuntoInput("");
+              }
+            }}
+            placeholder="Digite um termo e use vírgula"
             className={`${inputCls} border-slate-300 dark:border-[#505050] focus:border-[#FFDE00]`}
           />
-        </Campo>
 
-        {/* Resumo */}
-        <Campo label="Resumo" erro={erros.resumo} required>
-          <textarea
-            rows={2}
-            value={form.resumo}
-            onChange={(e) => set("resumo", e.target.value)}
-            placeholder="Breve descrição exibida nos cards do feed..."
-            maxLength={200}
-            className={`${inputCls} resize-none ${inputBorder(erros, "resumo")}`}
-          />
-          <p className="text-xs text-slate-400 text-right">{form.resumo.length}/200</p>
+          <p className="text-xs text-slate-400">
+            Separe cada termo com vírgula. Máximo de 5 tags com até 20 caracteres.
+          </p>
+
+          {parseAssuntos(form.assunto).length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {parseAssuntos(form.assunto).map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-[#2a2a2a] px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300"
+                >
+                  {item}
+                  <button
+                    type="button"
+                    onClick={() => removerAssunto(item)}
+                    className="text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <IconX size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </Campo>
 
         {/* Conteúdo */}
@@ -270,10 +348,10 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
             rows={6}
             value={form.conteudo}
             onChange={(e) => set("conteudo", e.target.value)}
-            placeholder="Escreva o conteúdo completo do comunicado aqui. Você pode usar HTML básico para formatação."
+            placeholder="Escreva o conteúdo do comunicado. Use *texto* para negrito e @link para links."
             className={`${inputCls} resize-none ${inputBorder(erros, "conteudo")}`}
           />
-          <p className="text-xs text-slate-400">Dica: use &lt;strong&gt;, &lt;p&gt;, &lt;ul&gt; para formatar.</p>
+          <p className="text-xs text-slate-400">Use *texto* para negrito e @link para links.</p>
         </Campo>
 
         {/* Visibilidade */}
@@ -289,11 +367,10 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
                   key={curso}
                   type="button"
                   onClick={() => toggleCurso(curso)}
-                  className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
-                    ativo
-                      ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
-                      : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                  }`}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${ativo
+                    ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
+                    : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
+                    }`}
                 >
                   {curso}
                 </button>

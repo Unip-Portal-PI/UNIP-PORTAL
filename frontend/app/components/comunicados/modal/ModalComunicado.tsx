@@ -9,9 +9,11 @@ import {
   IconCalendar,
   IconUser,
   IconEye,
+  IconExternalLink,
 } from "@tabler/icons-react";
 import { Comunicado } from "@/src/types/comunicado";
-import { isComunicadoExpirado } from "@/src/utils/comunicado.helpers";
+import { isComunicadoExpirado, parseAssuntos } from "@/src/utils/comunicado.helpers";
+import { renderConteudoFormatado } from "@/src/utils/comunicado.formatter";
 
 interface ModalComunicadoProps {
   comunicado: Comunicado | null;
@@ -33,10 +35,10 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
 
   const dataValidadeFormatada = comunicado.dataValidade
     ? new Date(comunicado.dataValidade + "T00:00:00").toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
     : null;
 
   function handleDownload(url: string, nome: string) {
@@ -57,9 +59,7 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030] shrink-0 gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-amber-500 dark:text-[#FFDE00] uppercase tracking-wider mb-1">
-              {comunicado.assunto || "Comunicado"}
-            </p>
+
             <h2 className="font-bold text-slate-900 dark:text-white text-lg leading-snug line-clamp-2">
               {comunicado.titulo}
             </h2>
@@ -111,13 +111,26 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
               </span>
             )}
           </div>
-
-          {/* Conteúdo HTML */}
-          <div
-            className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed
-              [&_p]:mb-3 [&_ul]:pl-5 [&_ul]:mb-3 [&_li]:mb-1 [&_strong]:text-slate-900 [&_strong]:dark:text-white [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:dark:text-white"
-            dangerouslySetInnerHTML={{ __html: comunicado.conteudo }}
-          />
+          <div className="mb-1 flex flex-wrap gap-1">
+            {parseAssuntos(comunicado.assunto).length > 0
+              ? parseAssuntos(comunicado.assunto).map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full bg-amber-100 px-2 py-1.5 text-[9px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]"
+                >
+                  {item}
+                </span>
+              ))
+              : (
+                <span className="rounded-full bg-amber-100 px-2 py-1.5 text-[9px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]">
+                  Comunicado
+                </span>
+              )}
+          </div>
+          {/* Conteúdo formatado */}
+          <div className="max-w-none">
+            {renderConteudoFormatado(comunicado.conteudo)}
+          </div>
 
           {/* Anexos */}
           {comunicado.anexos.length > 0 && (
@@ -145,13 +158,24 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDownload(anexo.url, anexo.nome)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#404040] transition-colors shrink-0 ml-3"
-                    >
-                      <IconDownload size={13} />
-                      Baixar
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <a
+                        href={anexo.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#404040] transition-colors"
+                      >
+                        <IconExternalLink size={13} />
+                        Visualizar
+                      </a>
+                      <button
+                        onClick={() => handleDownload(anexo.url, anexo.nome)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#404040] transition-colors"
+                      >
+                        <IconDownload size={13} />
+                        Baixar
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

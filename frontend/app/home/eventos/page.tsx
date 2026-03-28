@@ -1,8 +1,13 @@
 // app/home/eventos/page.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { IconPlus, IconQrcode, IconAlertCircle, IconCalendarOff } from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  IconPlus,
+  IconQrcode,
+  IconAlertCircle,
+  IconCalendarOff,
+} from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
 import { EventoService } from "@/src/service/evento.service";
@@ -17,18 +22,29 @@ import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 // import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
+
+type UsuarioEventos = {
+  id: string;
+  apelido: string;
+  nome: string;
+  matricula: string;
+  area: string;
+  email: string;
+  role: UserRole;
+};
+
 export default function EventosPage() {
-  const sessao = Auth.getUser();
-  const role = (sessao?.permission ?? "aluno") as UserRole;
-  const user = {
-    id: sessao?.id ?? "",
-    apelido: sessao?.apelido ?? "",
-    nome: sessao?.nome ?? "",
-    matricula: sessao?.matricula ?? "",
-    area: sessao?.area ?? "",
-    email: sessao?.email ?? "",
-    role,
-  };
+  const [mounted, setMounted] = useState(false);
+  const [role, setRole] = useState<UserRole>("aluno");
+  const [user, setUser] = useState<UsuarioEventos>({
+    id: "",
+    apelido: "",
+    nome: "",
+    matricula: "",
+    area: "",
+    email: "",
+    role: "aluno",
+  });
 
   // ── Estado ──────────────────────────────────────────────────────────────────
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -49,14 +65,15 @@ export default function EventosPage() {
   const [minhasInscricoes, setMinhasInscricoes] = useState<Record<string, Inscricao>>({});
 
   // ── Carga ────────────────────────────────────────────────────────────────────
-  async function carregarEventos() {
+  async function carregarEventos(currentRole: UserRole) {
     setLoading(true);
     setErroCarga(false);
+
     try {
       const data = await EventoService.getAll();
       setEventos(data);
 
-      if (role === "aluno") {
+      if (currentRole === "aluno") {
         const inscricoes = await Promise.all(
           data.map(async (evento) => {
             const inscricao = await EventoService.getMinhaInscricao(evento.id);
@@ -69,6 +86,8 @@ export default function EventosPage() {
             inscricoes.filter((item): item is [string, Inscricao] => item !== null)
           )
         );
+      } else {
+        setMinhasInscricoes({});
       }
     } catch {
       setErroCarga(true);
@@ -78,19 +97,41 @@ export default function EventosPage() {
   }
 
   useEffect(() => {
-    carregarEventos();
+    const sessao = Auth.getUser();
+    const currentRole = (sessao?.permission ?? "aluno") as UserRole;
+
+    setRole(currentRole);
+    setUser({
+      id: sessao?.id ?? "",
+      apelido: sessao?.apelido ?? "",
+      nome: sessao?.nome ?? "",
+      matricula: sessao?.matricula ?? "",
+      area: sessao?.area ?? "",
+      email: sessao?.email ?? "",
+      role: currentRole,
+    });
+
+    setMounted(true);
+    carregarEventos(currentRole);
   }, []);
 
   // ── Filtros ───────────────────────────────────────────────────────────────────
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((e) => {
+      const nome = e.nome?.toLowerCase?.() ?? "";
+      const descricaoBreve = e.descricaoBreve?.toLowerCase?.() ?? "";
+      const termoBusca = search.toLowerCase();
+
       const matchSearch =
         search === "" ||
-        e.nome.toLowerCase().includes(search.toLowerCase()) ||
-        e.descricaoBreve.toLowerCase().includes(search.toLowerCase());
+        nome.includes(termoBusca) ||
+        descricaoBreve.includes(termoBusca);
+
       const matchCurso =
         curso === "Todos" || e.area === curso || e.area === "Todos";
+
       const matchTurno = turno === "Todos" || e.turno === turno;
+
       return matchSearch && matchCurso && matchTurno;
     });
   }, [eventos, search, curso, turno]);
@@ -101,25 +142,25 @@ export default function EventosPage() {
   }
 
   // ── Ações ─────────────────────────────────────────────────────────────────────
-
   async function handleInscrever(evento: Evento) {
     if (evento.tipoInscricao === "externa" && evento.urlExterna) {
       window.open(evento.urlExterna, "_blank");
       return;
     }
+
     setModalInscricao(evento);
   }
 
   async function handleConfirmarInscricao(evento: Evento): Promise<Inscricao> {
-    console.log('Inscrição User: ', user.area);
+    console.log("Inscrição User: ", user.area);
     const result = await EventoService.inscrever(evento.id);
-    await carregarEventos();
+    await carregarEventos(role);
     return result;
   }
 
   async function handleCancelarInscricao(evento: Evento) {
     await EventoService.cancelarInscricao(evento.id);
-    await carregarEventos();
+    await carregarEventos(role);
   }
 
   async function handleSalvarEvento(
@@ -130,13 +171,15 @@ export default function EventosPage() {
     } else if (modalForm && typeof modalForm !== "string") {
       await EventoService.editar(modalForm.id, dados);
     }
-    await carregarEventos();
+
+    await carregarEventos(role);
     setModalForm(null);
   }
 
   async function handleExcluir(evento: Evento) {
     await EventoService.excluir(evento.id);
-    await carregarEventos();
+    await carregarEventos(role);
+    setModalExcluir(null);
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
@@ -145,20 +188,20 @@ export default function EventosPage() {
     }
 
     const result = await EventoService.confirmarPresenca(modalQR.id, qrCode);
+
     setPresencasConfirmadas((prev) => {
       const exists = prev.find((p) => p.id === result.id);
       return exists ? prev : [...prev, result];
     });
+
     return result;
   }
 
-  // ✅ A função já está certa, só certifique que o modal
-  // chama getUserMedia internamente ao montar
   async function abrirModalQR(evento: Evento) {
     const inscricoes = await EventoService.getInscricoesEvento(evento.id);
     const confirmadas = inscricoes.filter((i) => i.presencaConfirmada);
     setPresencasConfirmadas(confirmadas);
-    setModalQR(evento); // O modal abre → câmera é pedida lá dentro
+    setModalQR(evento);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -167,14 +210,16 @@ export default function EventosPage() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Eventos</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Eventos
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {eventosFiltrados.length} evento(s) encontrado(s)
           </p>
         </div>
 
         {/* Ações do colaborador/adm */}
-        {canEdit(role) && (
+        {mounted && canEdit(role) && (
           <div className="flex gap-2">
             <button
               onClick={() => setModalForm("novo")}
@@ -240,7 +285,7 @@ export default function EventosPage() {
             Falha ao carregar eventos.
           </p>
           <button
-            onClick={carregarEventos}
+            onClick={() => carregarEventos(role)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
           >
             Tentar novamente
@@ -269,14 +314,17 @@ export default function EventosPage() {
                 evento={evento}
                 role={role}
                 isInscrito={isInscrito(evento.id)}
-                canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
+                canCancelarInscricao={
+                  !minhasInscricoes[evento.id]?.presencaConfirmada
+                }
                 onInscrever={handleInscrever}
                 onCancelarInscricao={handleCancelarInscricao}
                 onEditar={(e) => setModalForm(e)}
                 onExcluir={(e) => setModalExcluir(e)}
               />
+
               {/* Botão QR Check-in para colaborador/adm */}
-              {canEdit(role) && (
+              {mounted && canEdit(role) && (
                 <button
                   onClick={() => abrirModalQR(evento)}
                   className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-[#F3F3F3] dark:hover:bg-[#515151] transition-colors"
