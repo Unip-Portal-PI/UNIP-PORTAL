@@ -62,7 +62,7 @@ function getTurnoFromHorario(horario?: string): "Manhã" | "Tarde" | "Noite" {
 const INITIAL: FormState = {
   nome: "",
   descricaoCompleta: "",
-  area: CURSOS[1],
+  area: "Todos",
   data: "",
   horario: "08:00",
   turno: "Manhã",
@@ -93,6 +93,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
     const [form, setForm] = useState<FormState>({
       ...INITIAL,
       ...inicial,
+      area: inicial?.area?.trim() ? inicial.area : "Todos",
       horario: initialHorario,
       turno: turnoInicial,
       tipoInscricao: "INTERNA",
