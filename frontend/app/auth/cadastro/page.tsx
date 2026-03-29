@@ -35,6 +35,17 @@ export default function Cadastro() {
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Estados dos campos
+  const [matricula, setMatricula] = useState("");
+  const [nome, setNome] = useState("");
+  const [nomeSocial, setNomeSocial] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [area, setArea] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+
   const isDark = mounted && resolvedTheme === "dark";
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({
@@ -92,28 +103,17 @@ export default function Cadastro() {
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault();
 
-    const matricula = (document.getElementById("matricula") as HTMLInputElement).value.trim();
-    const nome = (document.getElementById("nome") as HTMLInputElement).value.trim();
-    const nomeSocial = (document.getElementById("nome_social") as HTMLInputElement).value.trim();
-    const telefone = (document.getElementById("telefone") as HTMLInputElement).value.trim();
-    const dataNascimento = (document.getElementById("data_nasc") as HTMLInputElement).value;
-    const area = (document.getElementById("area") as HTMLSelectElement).value;
-    const email = (document.getElementById("email") as HTMLInputElement).value.trim();
-    const senha = (document.getElementById("senha") as HTMLInputElement).value;
-    const confirmar = (document.getElementById("confirmar") as HTMLInputElement).value;
-
     const missingRequiredFields = !matricula || !nome || !nomeSocial || !area || !email || !senha;
 
     const nextErrors = {
-      matricula: matricula ? validateMatricula(matricula) : "",
-      nome: nome ? validateBlockedTermsField("O nome completo", nome) : "",
-      nome_social: nomeSocial ? validateBlockedTermsField("O nome social", nomeSocial) : "",
-      telefone: telefone ? validateTelefone(telefone) : "",
-      area: "",
-      email: email ? validateEmail(email) : "",
-      senha: senha ? validateSenha(senha) : "",
-      confirmar:
-        confirmar && senha !== confirmar ? "As senhas não coincidem." : "",
+      matricula: validateMatricula(matricula),
+      nome: validateBlockedTermsField("O nome completo", nome),
+      nome_social: validateBlockedTermsField("O nome social", nomeSocial),
+      telefone: validateTelefone(telefone),
+      area: area ? "" : "Selecione uma área.",
+      email: validateEmail(email),
+      senha: validateSenha(senha),
+      confirmar: senha !== confirmar ? "As senhas não coincidem." : "",
     };
 
     setFieldErrors(nextErrors);
@@ -190,13 +190,15 @@ export default function Cadastro() {
                 placeholder="Digite sua matrícula"
                 Icon={Hash}
                 autoComplete="username"
+                defaultValue={matricula}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateMatricula(value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("matricula", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("matricula", !_isValid, message);
+                  setMatricula(value);
+                }}
               />
 
               <InputCad
@@ -206,13 +208,15 @@ export default function Cadastro() {
                 placeholder="Digite seu nome completo"
                 Icon={User}
                 autoComplete="name"
+                defaultValue={nome}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateBlockedTermsField("O nome completo", value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("nome", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("nome", !_isValid, message);
+                  setNome(value);
+                }}
               />
 
               <InputCad
@@ -222,13 +226,15 @@ export default function Cadastro() {
                 placeholder="Como prefere ser chamado(a)"
                 Icon={User}
                 autoComplete="nickname"
+                defaultValue={nomeSocial}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateBlockedTermsField("O nome social", value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("nome_social", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("nome_social", !_isValid, message);
+                  setNomeSocial(value);
+                }}
               />
 
               <InputCad
@@ -238,23 +244,32 @@ export default function Cadastro() {
                 placeholder="(00) 00000-0000"
                 Icon={Phone}
                 autoComplete="tel"
+                defaultValue={telefone}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateTelefone(value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("telefone", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("telefone", !_isValid, message);
+                  setTelefone(value);
+                }}
               />
 
-              <InputCad
-                id="data_nasc"
-                label="Data de Nascimento"
-                type="date"
-                placeholder=""
-                Icon={Calendar}
-                autoComplete="bday"
-              />
+              <div className="flex flex-col gap-1 w-full">
+                <label htmlFor="data_nasc" className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                  Data de Nascimento
+                </label>
+                <div className="relative flex items-center">
+                  <Calendar className="absolute left-3 text-[#4D4D4D] dark:text-slate-400 w-4 h-4" />
+                  <input
+                    id="data_nasc"
+                    type="date"
+                    className="w-full border border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] rounded-md p-2 pl-9 text-sm outline-none focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200"
+                    value={dataNascimento}
+                    onChange={(e) => setDataNascimento(e.target.value)}
+                  />
+                </div>
+              </div>
 
               <SelectCad
                 id="area"
@@ -262,8 +277,11 @@ export default function Cadastro() {
                 placeholder="Selecione sua Área"
                 options={CURSOS.filter((curso) => curso !== "Todos")}
                 Icon={BookOpen}
-                erro={false}
+                value={area}
+                onChange={setArea}
+                erro={!!fieldErrors.area}
               />
+              {fieldErrors.area && <span className="text-xs text-red-500">{fieldErrors.area}</span>}
 
               <InputCad
                 id="email"
@@ -272,13 +290,15 @@ export default function Cadastro() {
                 placeholder="Digite seu e-mail"
                 Icon={AtSign}
                 autoComplete="email"
+                defaultValue={email}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateEmail(value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("email", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("email", !_isValid, message);
+                  setEmail(value);
+                }}
               />
 
               <InputCad
@@ -288,13 +308,15 @@ export default function Cadastro() {
                 placeholder="Digite sua senha"
                 Icon={Lock}
                 autoComplete="new-password"
+                defaultValue={senha}
                 validator={(value) => {
                   if (!value.trim()) return "";
                   return validateSenha(value);
                 }}
-                onValidatedChange={(isValid, message) =>
-                  setFieldValidation("senha", isValid, message)
-                }
+                onValidatedChange={(_isValid, message, value) => {
+                  setFieldValidation("senha", !_isValid, message);
+                  setSenha(value);
+                }}
               />
 
               <InputCad
@@ -303,6 +325,8 @@ export default function Cadastro() {
                 type="password"
                 placeholder="Repita sua senha"
                 Icon={Lock}
+                defaultValue={confirmar}
+                onValidatedChange={(_isValid, _message, value) => setConfirmar(value)}
               />
 
               {erro && <p className="text-sm text-red-500">{erro}</p>}

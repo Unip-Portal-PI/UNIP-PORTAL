@@ -3,7 +3,7 @@
 
 import { Usuario } from "@/src/types/user";
 import { Auth } from "@/src/service/auth.service";
-import { API_BASE_URL } from "@/src/service/api-base-url";
+import { api } from "./api";
 
 // Fotos de perfil em memória (matricula → dataURL)
 const _fotos: Record<string, string> = {};
@@ -11,27 +11,8 @@ const _fotos: Record<string, string> = {};
 // Listeners para mudança de foto
 type FotoListener = (matricula: string, dataURL: string | null) => void;
 const _listeners: Set<FotoListener> = new Set();
-function getAuthHeaders() {
-  const token = Auth.getToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message =
-      data?.detail || data?.mensagem || "Nao foi possivel concluir a operacao.";
-    throw new Error(message);
-  }
-
-  return data as T;
-}
-
-function mapUsuario(data: {
+type ApiUsuario = {
   id: string;
   matricula: string;
   nome: string;
@@ -45,7 +26,9 @@ function mapUsuario(data: {
   ativo?: boolean;
   criadoEm?: string | null;
   atualizadoEm?: string | null;
-}): Usuario {
+};
+
+function mapUsuario(data: ApiUsuario): Usuario {
   if (data.fotoUrl) {
     _fotos[data.matricula] = data.fotoUrl;
   }
@@ -81,24 +64,8 @@ function mapUsuario(data: {
 
 export const PerfilService = {
   async getDadosCompletos(_matricula: string): Promise<Usuario | null> {
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-      headers: getAuthHeaders(),
-    });
-    const data = await parseResponse<{
-      id: string;
-      matricula: string;
-      nome: string;
-      apelido?: string | null;
-      email: string;
-      telefone?: string | null;
-      dataNascimento?: string | null;
-      area?: string | null;
-      permission: string;
-      fotoUrl?: string | null;
-      ativo?: boolean;
-      criadoEm?: string | null;
-      atualizadoEm?: string | null;
-    }>(response);
+    const { data, ok, error } = await api.get<ApiUsuario>("/users/me");
+    if (!ok || !data) throw new Error(error || "Falha ao buscar dados do perfil");
     return mapUsuario(data);
   },
 
@@ -106,46 +73,26 @@ export const PerfilService = {
     _matricula: string,
     dados: Partial<Pick<Usuario, "nome" | "apelido" | "email" | "telefone" | "dataNascimento" | "area">>
   ): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-      method: "PUT",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        nome: dados.nome,
-        apelido: dados.apelido,
-        email: dados.email,
-        telefone: dados.telefone,
-        dataNascimento: dados.dataNascimento || null,
-        area: dados.area,
-      }),
-    });
-    const data = await parseResponse<{
-      id: string;
-      matricula: string;
-      nome: string;
-      apelido?: string | null;
-      email: string;
-      telefone?: string | null;
-      dataNascimento?: string | null;
-      area?: string | null;
-      permission: string;
-      fotoUrl?: string | null;
-      ativo?: boolean;
-      criadoEm?: string | null;
-      atualizadoEm?: string | null;
-    }>(response);
+    const payload = {
+      nome: dados.nome,
+      apelido: dados.apelido,
+      email: dados.email,
+      telefone: dados.telefone,
+      dataNascimento: dados.dataNascimento || null,
+      area: dados.area,
+    };
+
+    const { data, ok, error } = await api.put<ApiUsuario>("/users/me", payload);
+    if (!ok || !data) throw new Error(error || "Falha ao atualizar dados");
     mapUsuario(data);
   },
 
-  async alterarSenha(_matricula: string, senhaAtual: string, novaSenha: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/users/me/password`, {
-      method: "PUT",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        senhaAtual,
-        novaSenha,
-      }),
+  async alterarSenha(_matricula: string, senha_atual: string, nova_senha: string): Promise<void> {
+    const { ok, error } = await api.put("/users/me/password", {
+      senha_atual,
+      nova_senha,
     });
-    await parseResponse(response);
+    if (!ok) throw new Error(error || "Falha ao alterar senha");
   },
 
   getFoto(matricula: string): string | null {
@@ -159,12 +106,8 @@ export const PerfilService = {
   },
 
   async salvarFoto(matricula: string, dataURL: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/users/me/photo`, {
-      method: "PUT",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ fotoUrl: dataURL }),
-    });
-    await parseResponse(response);
+    const { ok, error } = await api.put("/users/me/photo", { foto_url: dataURL });
+    if (!ok) throw new Error(error || "Falha ao salvar foto");
 
     _fotos[matricula] = dataURL;
     Auth.updateStoredUser({ fotoUrl: dataURL });
@@ -176,8 +119,6 @@ export const PerfilService = {
     return dados?.fotoUrl ?? null;
   },
 
-  // Inscreve um componente para receber atualizações de foto
-  // Retorna função de cancelamento para usar no cleanup do useEffect
   onFotoAtualizada(listener: FotoListener): () => void {
     _listeners.add(listener);
     return () => _listeners.delete(listener);

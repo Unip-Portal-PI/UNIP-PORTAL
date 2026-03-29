@@ -9,12 +9,10 @@ import {
   IconUser,
   IconEye,
   IconPaperclip,
-  IconDownload,
   IconAlertTriangle,
   IconEdit,
   IconTrash,
   IconExternalLink,
-  IconSpeakerphone,
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { Comunicado } from "@/src/types/comunicado";
@@ -31,6 +29,7 @@ import { renderConteudoFormatado } from "@/src/utils/comunicado.formatter";
 import { Auth } from "@/src/service/auth.service";
 import { ModalFormComunicado } from "@/app/components/comunicados/modal/ModalFormComunicado";
 import { ModalExcluirComunicado } from "@/app/components/comunicados/modal/ModalExcluirComunicado";
+import AuthGuard from "@/src/guard/AuthGuard";
 
 export default function ComunicadoDetalhePage() {
   const { id } = useParams<{ id: string }>();
@@ -76,14 +75,6 @@ export default function ComunicadoDetalhePage() {
     router.push("/home/comunicado");
   }
 
-  // function handleDownload(url: string, nome: string) {
-  //   const link = document.createElement("a");
-  //   link.href = url;
-  //   link.download = nome;
-  //   link.click();
-  // }
-
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 animate-pulse">
@@ -100,7 +91,6 @@ export default function ComunicadoDetalhePage() {
     );
   }
 
-  // ── Não encontrado / expirado / removido ────────────────────────────────────
   if (naoEncontrado || !comunicado) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -156,10 +146,8 @@ export default function ComunicadoDetalhePage() {
     : null;
 
   return (
-    <>
+    <AuthGuard>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-
-        {/* Breadcrumb / Voltar */}
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <button
             onClick={() => router.push("/home/comunicado")}
@@ -169,7 +157,6 @@ export default function ComunicadoDetalhePage() {
             Comunicados
           </button>
 
-          {/* Ações adm/colab */}
           {(podeEditar || podeExcluir) && (
             <div className="flex gap-2">
               {podeEditar && (
@@ -194,14 +181,9 @@ export default function ComunicadoDetalhePage() {
           )}
         </div>
 
-        {/* Banner */}
         {comunicado.banner ? (
           <div className="w-full h-56 sm:h-72 rounded-2xl overflow-hidden mb-6 shadow-sm">
-            <img
-              src={comunicado.banner}
-              alt={comunicado.titulo}
-              className="w-full h-full object-cover"
-            />
+            <img src={comunicado.banner} alt={comunicado.titulo} className="w-full h-full object-cover" />
           </div>
         ) : (
           <div className="w-full h-60 rounded-2xl bg-gradient-to-br from-[#FFDE00]/70 to-amber-400 flex items-center justify-center mb-6 shadow-sm">
@@ -211,26 +193,20 @@ export default function ComunicadoDetalhePage() {
           </div>
         )}
 
-        {/* Assunto tag */}
         {parseAssuntos(comunicado.assunto).length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {parseAssuntos(comunicado.assunto).map((item) => (
-              <span
-                key={item}
-                className="inline-block rounded-full bg-[#FFDE00]/20 px-3 py-1 text-xs font-black text-amber-700 dark:text-[#FFDE00]"
-              >
+              <span key={item} className="inline-block rounded-full bg-[#FFDE00]/20 px-3 py-1 text-xs font-black text-amber-700 dark:text-[#FFDE00]">
                 {item}
               </span>
             ))}
           </div>
         )}
 
-        {/* Título */}
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-snug mb-4">
           {comunicado.titulo}
         </h1>
 
-        {/* Meta */}
         <div className="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400 mb-5 pb-5 border-b border-slate-100 dark:border-[#2a2a2a]">
           <span className="flex items-center gap-1.5">
             <IconUser size={13} />
@@ -250,23 +226,19 @@ export default function ComunicadoDetalhePage() {
           )}
         </div>
 
-        {/* Aviso: expirado */}
         {expirado && (
           <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-4 mb-6">
             <IconAlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Este comunicado <strong>expirou em {dataValidadeFormatada}</strong> e pode estar
-              desatualizado. Consulte seu gestor para informações mais recentes.
+              Este comunicado <strong>expirou em {dataValidadeFormatada}</strong> e pode estar desatualizado.
             </p>
           </div>
         )}
 
-        {/* Conteúdo formatado */}
         <div className="max-w-none">
           {renderConteudoFormatado(comunicado.conteudo)}
         </div>
 
-        {/* Anexos */}
         {comunicado.anexos.length > 0 && (
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#2a2a2a]">
             <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-3">
@@ -275,40 +247,21 @@ export default function ComunicadoDetalhePage() {
             </h2>
             <div className="space-y-2.5">
               {comunicado.anexos.map((anexo) => (
-                <div
-                  key={anexo.id}
-                  className="flex items-center justify-between bg-slate-50 dark:bg-[#2a2a2a] rounded-xl px-4 py-3 border border-slate-100 dark:border-[#363636] group"
-                >
+                <div key={anexo.id} className="flex items-center justify-between bg-slate-50 dark:bg-[#2a2a2a] rounded-xl px-4 py-3 border border-slate-100 dark:border-[#363636] group">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 flex items-center justify-center shrink-0">
                       <IconPaperclip size={15} className="text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
-                        {anexo.nome}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {anexo.tipo.toUpperCase()} · {anexo.tamanhoMB.toFixed(1)} MB
-                      </p>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{anexo.nome}</p>
+                      <p className="text-xs text-slate-400">{anexo.tipo.toUpperCase()} · {anexo.tamanhoMB.toFixed(1)} MB</p>
                     </div>
                   </div>
                   <div className="ml-4 flex items-center gap-2 shrink-0">
-                    <a
-                      href={anexo.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-[#505050] dark:bg-[#363636] dark:text-slate-300 dark:hover:bg-[#404040]"
-                    >
+                    <a href={anexo.url} target="_blank" rel="noreferrer noopener" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-[#505050] dark:bg-[#363636] dark:text-slate-300 dark:hover:bg-[#404040]">
                       <IconExternalLink size={13} />
                       Visualizar
                     </a>
-                    {/* <button
-                      onClick={() => handleDownload(anexo.url, anexo.nome)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-[#FFDE00] hover:text-[#252525] hover:border-[#FFDE00] dark:hover:bg-[#FFDE00] dark:hover:text-[#252525] dark:hover:border-[#FFDE00] transition-colors"
-                    >
-                      <IconDownload size={13} />
-                      Baixar
-                    </button> */}
                   </div>
                 </div>
               ))}
@@ -316,32 +269,23 @@ export default function ComunicadoDetalhePage() {
           </div>
         )}
 
-        {/* Rodapé: visibilidade */}
         <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#2a2a2a] flex items-center gap-2 flex-wrap">
           <span className="text-xs text-slate-400">Visível para:</span>
           {comunicado.visibilidade.map((v) => (
-            <span
-              key={v}
-              className="text-xs bg-slate-100 dark:bg-[#2a2a2a] text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full"
-            >
+            <span key={v} className="text-xs bg-slate-100 dark:bg-[#2a2a2a] text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full">
               {v}
             </span>
           ))}
         </div>
 
-        {/* Botão voltar */}
         <div className="mt-8">
-          <button
-            onClick={() => router.push("/home/comunicado")}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-          >
+          <button onClick={() => router.push("/home/comunicado")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
             <IconArrowLeft size={16} />
             Voltar para comunicados
           </button>
         </div>
       </div>
 
-      {/* Modais */}
       {modalForm && comunicado && (
         <ModalFormComunicado
           comunicado={comunicado}
@@ -359,6 +303,6 @@ export default function ComunicadoDetalhePage() {
           onFechar={() => setModalExcluir(false)}
         />
       )}
-    </>
+    </AuthGuard>
   );
 }

@@ -22,6 +22,7 @@ import { CarrosselEventos } from "@/app/components/eventos/CarrosselEventos";
 // import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
+import AuthGuard from "@/src/guard/AuthGuard";
 
 type UsuarioEventos = {
   id: string;
@@ -224,186 +225,188 @@ export default function EventosPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Eventos
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {eventosFiltrados.length} evento(s) encontrado(s)
-          </p>
+    <AuthGuard>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Eventos
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              {eventosFiltrados.length} evento(s) encontrado(s)
+            </p>
+          </div>
+
+          {mounted && canEdit(role) && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setModalForm("novo")}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-[#e6c800] dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
+              >
+                <IconPlus size={18} />
+                Novo evento
+              </button>
+            </div>
+          )}
         </div>
 
-        {mounted && canEdit(role) && (
-          <div className="flex gap-2">
+        {/* Skeleton: Carrossel */}
+        {loading && (
+          <div className="w-full rounded-2xl overflow-hidden border border-slate-100 dark:border-[#303030] mb-8 animate-pulse">
+            <div className="relative h-52 sm:h-[380px] bg-slate-200 dark:bg-[#2a2a2a]">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
+                <div className="h-4 bg-white/20 rounded-full w-24" />
+                <div className="h-6 bg-white/20 rounded w-2/3" />
+                <div className="h-4 bg-white/20 rounded w-1/2" />
+              </div>
+              <div className="absolute bottom-4 right-5 flex gap-1.5">
+                <div className="w-5 h-2 bg-white/30 rounded-full" />
+                <div className="w-2 h-2 bg-white/20 rounded-full" />
+                <div className="w-2 h-2 bg-white/20 rounded-full" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Carrossel de destaques */}
+        {!loading && !erroCarga && eventosDestaque.length > 0 && (
+          <CarrosselEventos eventos={eventosDestaque} />
+        )}
+
+        {/* Filtros */}
+        <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <FilterInput
+              label="Procurar"
+              placeholder="Nome do evento..."
+              value={search}
+              onChange={setSearch}
+            />
+            <FilterSelect
+              label="Curso"
+              value={curso}
+              onChange={setCurso}
+              options={CURSOS}
+            />
+            <FilterSelect
+              label="Turno"
+              value={turno}
+              onChange={setTurno}
+              options={TURNOS}
+            />
+          </div>
+        </div>
+
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] overflow-hidden animate-pulse"
+              >
+                <div className="h-40 bg-slate-200 dark:bg-[#2a2a2a]" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-slate-200 dark:bg-[#2a2a2a] rounded w-3/4" />
+                  <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
+                  <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && erroCarga && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+              <IconAlertCircle size={28} className="text-red-500" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 font-medium">
+              Falha ao carregar eventos.
+            </p>
             <button
-              onClick={() => setModalForm("novo")}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-[#e6c800] dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"
+              onClick={() => carregarEventos(role)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
             >
-              <IconPlus size={18} />
-              Novo evento
+              Tentar novamente
             </button>
           </div>
         )}
-      </div>
 
-      {/* Skeleton: Carrossel */}
-      {loading && (
-        <div className="w-full rounded-2xl overflow-hidden border border-slate-100 dark:border-[#303030] mb-8 animate-pulse">
-          <div className="relative h-52 sm:h-[380px] bg-slate-200 dark:bg-[#2a2a2a]">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
-              <div className="h-4 bg-white/20 rounded-full w-24" />
-              <div className="h-6 bg-white/20 rounded w-2/3" />
-              <div className="h-4 bg-white/20 rounded w-1/2" />
+        {!loading && !erroCarga && eventosFiltrados.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-14 h-14 bg-slate-100 dark:bg-[#2a2a2a] rounded-full flex items-center justify-center">
+              <IconCalendarOff size={28} className="text-slate-400" />
             </div>
-            <div className="absolute bottom-4 right-5 flex gap-1.5">
-              <div className="w-5 h-2 bg-white/30 rounded-full" />
-              <div className="w-2 h-2 bg-white/20 rounded-full" />
-              <div className="w-2 h-2 bg-white/20 rounded-full" />
-            </div>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">
+              Nenhum evento encontrado com esses filtros.
+            </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Carrossel de destaques */}
-      {!loading && !erroCarga && eventosDestaque.length > 0 && (
-        <CarrosselEventos eventos={eventosDestaque} />
-      )}
+        {!loading && !erroCarga && eventosFiltrados.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {eventosFiltrados.map((evento) => (
+              <div key={evento.id} className="relative">
+                <EventoCard
+                  evento={evento}
+                  role={role}
+                  isInscrito={isInscrito(evento.id)}
+                  canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
+                  onInscrever={handleInscrever}
+                  onCancelarInscricao={handleCancelarInscricao}
+                  onEditar={(e) => setModalForm(e)}
+                  onExcluir={(e) => setModalExcluir(e)}
+                />
 
-      {/* Filtros */}
-      <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <FilterInput
-            label="Procurar"
-            placeholder="Nome do evento..."
-            value={search}
-            onChange={setSearch}
-          />
-          <FilterSelect
-            label="Curso"
-            value={curso}
-            onChange={setCurso}
-            options={CURSOS}
-          />
-          <FilterSelect
-            label="Turno"
-            value={turno}
-            onChange={setTurno}
-            options={TURNOS}
-          />
-        </div>
-      </div>
-
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] overflow-hidden animate-pulse"
-            >
-              <div className="h-40 bg-slate-200 dark:bg-[#2a2a2a]" />
-              <div className="p-4 space-y-3">
-                <div className="h-4 bg-slate-200 dark:bg-[#2a2a2a] rounded w-3/4" />
-                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-full" />
-                <div className="h-3 bg-slate-200 dark:bg-[#2a2a2a] rounded w-1/2" />
+                {mounted && canEdit(role) && (
+                  <button
+                    onClick={() => abrirModalQR(evento)}
+                    className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-[#F3F3F3] dark:hover:bg-[#515151] transition-colors"
+                    title="Leitor QR Code"
+                  >
+                    <IconQrcode size={26} />
+                  </button>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && erroCarga && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-            <IconAlertCircle size={28} className="text-red-500" />
+            ))}
           </div>
-          <p className="text-slate-600 dark:text-slate-300 font-medium">
-            Falha ao carregar eventos.
-          </p>
-          <button
-            onClick={() => carregarEventos(role)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
+        )}
 
-      {!loading && !erroCarga && eventosFiltrados.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-14 h-14 bg-slate-100 dark:bg-[#2a2a2a] rounded-full flex items-center justify-center">
-            <IconCalendarOff size={28} className="text-slate-400" />
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            Nenhum evento encontrado com esses filtros.
-          </p>
-        </div>
-      )}
+        {modalInscricao && (
+          <ModalInscricao
+            evento={modalInscricao}
+            user={user}
+            onConfirmar={() => handleConfirmarInscricao(modalInscricao)}
+            onFechar={() => setModalInscricao(null)}
+          />
+        )}
 
-      {!loading && !erroCarga && eventosFiltrados.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {eventosFiltrados.map((evento) => (
-            <div key={evento.id} className="relative">
-              <EventoCard
-                evento={evento}
-                role={role}
-                isInscrito={isInscrito(evento.id)}
-                canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
-                onInscrever={handleInscrever}
-                onCancelarInscricao={handleCancelarInscricao}
-                onEditar={(e) => setModalForm(e)}
-                onExcluir={(e) => setModalExcluir(e)}
-              />
+        {modalExcluir && (
+          <ModalExcluir
+            evento={modalExcluir}
+            onConfirmar={() => handleExcluir(modalExcluir)}
+            onFechar={() => setModalExcluir(null)}
+          />
+        )}
 
-              {mounted && canEdit(role) && (
-                <button
-                  onClick={() => abrirModalQR(evento)}
-                  className="absolute top-3 right-3 bg-white dark:bg-[#202020] border border-slate-200 dark:border-[#404040] shadow rounded-full p-1.5 text-slate-600 dark:text-slate-300 hover:bg-[#F3F3F3] dark:hover:bg-[#515151] transition-colors"
-                  title="Leitor QR Code"
-                >
-                  <IconQrcode size={26} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+        {modalForm !== null && (
+          <ModalFormEvento
+            evento={modalForm === "novo" ? null : modalForm}
+            onSalvar={handleSalvarEvento}
+            onFechar={() => setModalForm(null)}
+          />
+        )}
 
-      {modalInscricao && (
-        <ModalInscricao
-          evento={modalInscricao}
-          user={user}
-          onConfirmar={() => handleConfirmarInscricao(modalInscricao)}
-          onFechar={() => setModalInscricao(null)}
-        />
-      )}
-
-      {modalExcluir && (
-        <ModalExcluir
-          evento={modalExcluir}
-          onConfirmar={() => handleExcluir(modalExcluir)}
-          onFechar={() => setModalExcluir(null)}
-        />
-      )}
-
-      {modalForm !== null && (
-        <ModalFormEvento
-          evento={modalForm === "novo" ? null : modalForm}
-          onSalvar={handleSalvarEvento}
-          onFechar={() => setModalForm(null)}
-        />
-      )}
-
-      {modalQR && (
-        <ModalQRReader
-          eventoNome={modalQR.nome}
-          onLer={handleQRConfirmar}
-          onFechar={() => setModalQR(null)}
-          presencasConfirmadas={presencasConfirmadas}
-        />
-      )}
-    </div>
+        {modalQR && (
+          <ModalQRReader
+            eventoNome={modalQR.nome}
+            onLer={handleQRConfirmar}
+            onFechar={() => setModalQR(null)}
+            presencasConfirmadas={presencasConfirmadas}
+          />
+        )}
+      </div>
+    </AuthGuard>
   );
 }
