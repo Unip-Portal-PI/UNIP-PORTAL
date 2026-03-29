@@ -69,9 +69,9 @@ const INITIAL: FormState = {
   local: "",
   dataLimiteInscricao: "",
   vagas: 50,
-  tipoInscricao: "interna",
+  tipoInscricao: "INTERNA",
   urlExterna: "",
-  visibilidade: "publica",
+  visibilidade: "PUBLICA",
   banner: "",
   anexos: [],
 };
@@ -95,8 +95,8 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       ...inicial,
       horario: initialHorario,
       turno: turnoInicial,
-      tipoInscricao: "interna",
-      visibilidade: "publica",
+      tipoInscricao: "INTERNA",
+      visibilidade: "PUBLICA",
       descricaoCompleta: inicial?.descricaoCompleta ?? "",
     });
 
@@ -116,8 +116,8 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           next.turno = getTurnoFromHorario(String(value));
         }
 
-        next.tipoInscricao = "interna";
-        next.visibilidade = "publica";
+        next.tipoInscricao = "INTERNA";
+        next.visibilidade = "PUBLICA";
 
         return next;
       });
@@ -158,8 +158,8 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           ...form,
           descricaoBreve: "",
           turno: turnoCalculado,
-          tipoInscricao: "interna",
-          visibilidade: "publica",
+          tipoInscricao: "INTERNA",
+          visibilidade: "PUBLICA",
         };
 
         onLoadingChange?.(true);

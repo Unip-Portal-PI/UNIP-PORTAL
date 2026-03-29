@@ -60,15 +60,22 @@ function mapTurnoFromApi(turno?: string | null): string {
 
 function mapTurnoToApi(turno?: string | null): string | null {
   if (!turno) return null;
+
+  const normalized = turno.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
   const map: Record<string, string> = {
-    "Manhã": "manha",
-    "Tarde": "tarde",
-    "Noite": "noite",
-    manha: "manha",
-    tarde: "tarde",
-    noite: "noite",
+    Manha: "MANHA",
+    Tarde: "TARDE",
+    Noite: "NOITE",
+    MANHA: "MANHA",
+    TARDE: "TARDE",
+    NOITE: "NOITE",
+    manha: "MANHA",
+    tarde: "TARDE",
+    noite: "NOITE",
   };
-  return map[turno] ?? turno.toLowerCase();
+
+  return map[normalized] ?? normalized.toUpperCase();
 }
 
 function mapEvento(evento: ApiEvento): Evento {

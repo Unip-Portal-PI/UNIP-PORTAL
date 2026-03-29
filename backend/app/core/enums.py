@@ -2,16 +2,16 @@ from enum import StrEnum
 
 
 class Turno(StrEnum):
-    MANHA = "manha"
-    TARDE = "tarde"
-    NOITE = "noite"
+    MANHA = "MANHA"
+    TARDE = "TARDE"
+    NOITE = "NOITE"
 
 
 class TipoInscricao(StrEnum):
-    INTERNA = "interna"
-    EXTERNA = "externa"
+    INTERNA = "INTERNA"
+    EXTERNA = "EXTERNA"
 
 
 class Visibilidade(StrEnum):
-    PUBLICA = "publica"
-    PRIVADA = "privada"
+    PUBLICA = "PUBLICA"
+    PRIVADA = "PRIVADA"
