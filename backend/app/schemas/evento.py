@@ -54,7 +54,7 @@ class EventoCreate(BaseModel):
     data: date
     horario: time | None = None
     turno: Turno | None = None
-    id_sala: str | None = None
+    local: str | None = None
     vagas: int | None = None
     data_limite_inscricao: date | None = None
     tipo_inscricao: TipoInscricao = TipoInscricao.INTERNA
@@ -75,7 +75,7 @@ class EventoUpdate(BaseModel):
     data: date | None = None
     horario: time | None = None
     turno: Turno | None = None
-    id_sala: str | None = None
+    local: str | None = None
     vagas: int | None = None
     data_limite_inscricao: date | None = None
     tipo_inscricao: TipoInscricao | None = None

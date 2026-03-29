@@ -5,6 +5,8 @@ from app.core.database import Base
 from app.core.enums import Turno, TipoInscricao, Visibilidade
 
 
+
+
 class EventoCurso(Base):
     __tablename__ = "evento_curso"
 
@@ -30,7 +32,7 @@ class EventoModel(Base):
     data = Column(Date, nullable=False)
     horario = Column(Time, nullable=True)
     turno = Column(Enum(Turno), nullable=True)
-    id_sala = Column(String(36), ForeignKey("sala.id_sala"), nullable=True)
+    local = Column(String(255), nullable=True)
     vagas = Column(Integer, nullable=True)
     data_limite_inscricao = Column(Date, nullable=True)
     tipo_inscricao = Column(Enum(TipoInscricao), default=TipoInscricao.INTERNA, nullable=False)
@@ -40,7 +42,6 @@ class EventoModel(Base):
     data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
-    sala = relationship("SalaModel", lazy="joined")
     cursos = relationship("CursoModel", secondary="evento_curso", lazy="joined")
     palestrantes = relationship("PalestranteModel", secondary="evento_palestrante", lazy="joined")
     anexos = relationship("AnexoModel", back_populates="evento", lazy="joined", cascade="all, delete-orphan")

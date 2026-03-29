@@ -146,7 +146,7 @@ def upgrade() -> None:
             sa.Column("data", sa.Date(), nullable=False),
             sa.Column("horario", sa.Time(), nullable=True),
             sa.Column("turno", TURNOS, nullable=True),
-            sa.Column("id_sala", sa.String(length=36), nullable=True),
+            sa.Column("local", sa.String(length=255), nullable=True),
             sa.Column("vagas", sa.Integer(), nullable=True),
             sa.Column("data_limite_inscricao", sa.Date(), nullable=True),
             sa.Column("tipo_inscricao", TIPOS_INSCRICAO, nullable=False),
@@ -156,7 +156,7 @@ def upgrade() -> None:
             sa.Column("data_criacao", sa.DateTime(), nullable=False),
             sa.Column("data_atualizacao", sa.DateTime(), nullable=False),
             sa.ForeignKeyConstraint(["id_criador"], ["usuario.id_usuario"]),
-            sa.ForeignKeyConstraint(["id_sala"], ["sala.id_sala"]),
+            
             sa.PrimaryKeyConstraint("id_evento"),
         )
 
@@ -272,8 +272,6 @@ def upgrade() -> None:
         op.add_column("evento", sa.Column("visibilidade", VISIBILIDADES, nullable=False))
     if "id_criador" not in evento_columns:
         op.add_column("evento", sa.Column("id_criador", sa.String(length=36), nullable=True))
-    if not _has_fk(bind, "evento", ["id_sala"], "sala", ["id_sala"]):
-        op.create_foreign_key("fk_evento_sala", "evento", "sala", ["id_sala"], ["id_sala"])
     if not _has_fk(bind, "evento", ["id_criador"], "usuario", ["id_usuario"]):
         op.create_foreign_key("fk_evento_criador", "evento", "usuario", ["id_criador"], ["id_usuario"])
 

@@ -11,7 +11,6 @@ class EventoRepository:
 
     def _base_query(self):
         return self.db.query(EventoModel).options(
-            joinedload(EventoModel.sala),
             joinedload(EventoModel.cursos),
             joinedload(EventoModel.palestrantes),
             joinedload(EventoModel.anexos),
