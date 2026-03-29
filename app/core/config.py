@@ -9,9 +9,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     CORS_ALLOW_ORIGINS: str = "*"
 
-    MINIO_ENDPOINT: str
-    MINIO_ACCESS_KEY: str
-    MINIO_SECRET_KEY: str
+    MINIO_ENDPOINT: str = ""
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET: str = "portal-avp"
     MINIO_SECURE: bool = False
 

@@ -43,24 +43,44 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
 @router.post("/cadastro", response_model=CadastroResponse)
 def cadastro(data: CadastroRequest, db: Session = Depends(get_db)):
-    return auth_service.register(data, db)
+    try:
+        return auth_service.register(data, db)
+    except HTTPException as exc:
+        logger.warning("cadastro_failure matricula=%s status=%s detail=%s", data.matricula, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/reset-senha/solicitar", response_model=MensagemResponse)
 def reset_solicitar(data: ResetSolicitarRequest, db: Session = Depends(get_db)):
-    return auth_service.request_reset(data.matricula, data.email, db)
+    try:
+        return auth_service.request_reset(data.matricula, data.email, db)
+    except HTTPException as exc:
+        logger.warning("reset_solicitar_failure matricula=%s status=%s detail=%s", data.matricula, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/reset-senha/preview", response_model=ResetPreviewResponse)
 def reset_preview(data: ResetPreviewRequest, db: Session = Depends(get_db)):
-    return auth_service.preview_reset_target_by_matricula(data.matricula, db)
+    try:
+        return auth_service.preview_reset_target_by_matricula(data.matricula, db)
+    except HTTPException as exc:
+        logger.warning("reset_preview_failure matricula=%s status=%s detail=%s", data.matricula, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/reset-senha/validar", response_model=ResetValidarResponse)
 def reset_validar(data: ResetValidarRequest, db: Session = Depends(get_db)):
-    return auth_service.validate_otp(data.email, data.codigo, db)
+    try:
+        return auth_service.validate_otp(data.email, data.codigo, db)
+    except HTTPException as exc:
+        logger.warning("reset_validar_failure email=%s status=%s detail=%s", data.email, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/reset-senha/redefinir", response_model=MensagemResponse)
 def reset_redefinir(data: ResetRedefinirRequest, db: Session = Depends(get_db)):
-    return auth_service.reset_password(data.token_redefinicao, data.nova_senha, db)
+    try:
+        return auth_service.reset_password(data.token_redefinicao, data.nova_senha, db)
+    except HTTPException as exc:
+        logger.warning("reset_redefinir_failure status=%s detail=%s", exc.status_code, exc.detail)
+        raise

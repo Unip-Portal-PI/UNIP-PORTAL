@@ -13,7 +13,7 @@ from app.schemas.inscricao import (
 from app.services import evento_service, inscricao_service, presenca_service
 
 router = APIRouter(prefix="/events", tags=["Eventos"])
-logger = logging.getLogger("app.qr")
+logger = logging.getLogger("app.eventos")
 
 allow_colaborador_adm = RoleChecker(["colaborador", "adm"])
 allow_adm = RoleChecker(["adm"])
@@ -50,7 +50,11 @@ def get_event(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return evento_service.get_event(evento_id, db)
+    try:
+        return evento_service.get_event(evento_id, db)
+    except HTTPException as exc:
+        logger.warning("get_event_failure evento_id=%s status=%s detail=%s", evento_id, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/", response_model=EventoResponse, status_code=201)
@@ -59,7 +63,13 @@ def create_event(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return evento_service.create_event(data, current_user.id_usuario, db)
+    try:
+        result = evento_service.create_event(data, current_user.id_usuario, db)
+        logger.info("create_event_success evento_id=%s user_id=%s nome=%s", result.id, current_user.id_usuario, data.nome)
+        return result
+    except HTTPException as exc:
+        logger.warning("create_event_failure user_id=%s status=%s detail=%s", current_user.id_usuario, exc.status_code, exc.detail)
+        raise
 
 
 @router.put("/{evento_id}", response_model=EventoResponse)
@@ -69,7 +79,13 @@ def update_event(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return evento_service.update_event(evento_id, data, db)
+    try:
+        result = evento_service.update_event(evento_id, data, db)
+        logger.info("update_event_success evento_id=%s user_id=%s", evento_id, current_user.id_usuario)
+        return result
+    except HTTPException as exc:
+        logger.warning("update_event_failure evento_id=%s status=%s detail=%s", evento_id, exc.status_code, exc.detail)
+        raise
 
 
 @router.delete("/{evento_id}", status_code=204)
@@ -78,7 +94,12 @@ def delete_event(
     db: Session = Depends(get_db),
     current_user=Depends(allow_adm),
 ):
-    evento_service.delete_event(evento_id, db)
+    try:
+        evento_service.delete_event(evento_id, db)
+        logger.info("delete_event_success evento_id=%s user_id=%s", evento_id, current_user.id_usuario)
+    except HTTPException as exc:
+        logger.warning("delete_event_failure evento_id=%s status=%s detail=%s", evento_id, exc.status_code, exc.detail)
+        raise
 
 
 @router.post("/{evento_id}/enroll", response_model=InscricaoResponse, status_code=201)
@@ -87,7 +108,13 @@ def enroll(
     db: Session = Depends(get_db),
     current_user=Depends(allow_aluno),
 ):
-    return inscricao_service.enroll(evento_id, current_user.id_usuario, db)
+    try:
+        result = inscricao_service.enroll(evento_id, current_user.id_usuario, db)
+        logger.info("enroll_success evento_id=%s user_id=%s", evento_id, current_user.id_usuario)
+        return result
+    except HTTPException as exc:
+        logger.warning("enroll_failure evento_id=%s user_id=%s status=%s detail=%s", evento_id, current_user.id_usuario, exc.status_code, exc.detail)
+        raise
 
 
 @router.delete("/{evento_id}/enroll", status_code=204)
@@ -96,7 +123,12 @@ def cancel_enrollment(
     db: Session = Depends(get_db),
     current_user=Depends(allow_aluno),
 ):
-    inscricao_service.cancel_enrollment(evento_id, current_user.id_usuario, db)
+    try:
+        inscricao_service.cancel_enrollment(evento_id, current_user.id_usuario, db)
+        logger.info("cancel_enrollment_success evento_id=%s user_id=%s", evento_id, current_user.id_usuario)
+    except HTTPException as exc:
+        logger.warning("cancel_enrollment_failure evento_id=%s user_id=%s status=%s detail=%s", evento_id, current_user.id_usuario, exc.status_code, exc.detail)
+        raise
 
 
 @router.get("/{evento_id}/enrollments", response_model=list[InscricaoResponse])

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -7,6 +9,7 @@ from app.schemas.inscricao import PresencaConfirmRequest, PresencaConfirmRespons
 from app.services import presenca_service
 
 router = APIRouter(prefix="/enrollments", tags=["Inscricoes"])
+logger = logging.getLogger("app.inscricoes")
 
 allow_colaborador_adm = RoleChecker(["colaborador", "adm"])
 
@@ -17,4 +20,10 @@ def confirm_presence(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return presenca_service.confirm_presence(data.qr_code, current_user.id_usuario, db)
+    try:
+        result = presenca_service.confirm_presence(data.qr_code, current_user.id_usuario, db)
+        logger.info("confirm_presence_success user_id=%s", current_user.id_usuario)
+        return result
+    except HTTPException as exc:
+        logger.warning("confirm_presence_failure user_id=%s status=%s detail=%s", current_user.id_usuario, exc.status_code, exc.detail)
+        raise

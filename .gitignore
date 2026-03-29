@@ -50,3 +50,6 @@ __pycache__/
 
 # requests
 http/
+
+# logs
+logs/

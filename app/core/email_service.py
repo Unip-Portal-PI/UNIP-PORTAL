@@ -1,5 +1,9 @@
+import logging
+
 import requests
 from app.core.config import settings
+
+logger = logging.getLogger("app.email")
 
 
 class EmailService:
@@ -39,10 +43,11 @@ class EmailService:
                     timeout=10,
                 )
                 if response.status_code in [200, 201, 202]:
+                    logger.info("email_sent provider=resend to=%s", user_email)
                     return True
-                print(f"Erro Resend [{response.status_code}]: {response.text}")
+                logger.error("email_failed provider=resend status=%s response=%s", response.status_code, response.text)
             except Exception as e:
-                print(f"Erro ao conectar com Resend: {e}")
+                logger.error("email_connection_error provider=resend error=%s", e, exc_info=True)
 
         # Priority 2: Generic e-mail API (legacy compatibility)
         if self.api_url and self.api_key and "EXAMPLE" not in self.api_key:
@@ -58,15 +63,14 @@ class EmailService:
                     "html": html,
                 }
                 response = requests.post(self.api_url, headers=headers, json=payload, timeout=10)
-                return response.status_code in [200, 201, 202]
+                if response.status_code in [200, 201, 202]:
+                    logger.info("email_sent provider=legacy to=%s", user_email)
+                    return True
+                logger.error("email_failed provider=legacy status=%s", response.status_code)
+                return False
             except Exception as e:
-                print(f"Erro ao conectar com provedor de e-mail legado: {e}")
+                logger.error("email_connection_error provider=legacy error=%s", e, exc_info=True)
 
-        print(f"\n{'='*50}")
-        print("DEBUG: Modo Simulacao Ativo")
-        print(f"PARA: {user_email}")
-        print(f"ASSUNTO: {subject}")
-        print(f"CONTEUDO: {body}")
-        print(f"{'='*50}\n")
+        logger.warning("email_simulation to=%s subject=%s", user_email, subject)
 
         return False
