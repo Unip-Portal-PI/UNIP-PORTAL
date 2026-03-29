@@ -44,7 +44,7 @@ export default function Login() {
     if (resultado.sucesso) {
       setErro(false);
       showLoading();
-      router.push("/home");
+      router.push("/home/eventos");
     } else {
       setErro(true);
     }

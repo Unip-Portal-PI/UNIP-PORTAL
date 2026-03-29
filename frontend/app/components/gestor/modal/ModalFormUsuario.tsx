@@ -1,4 +1,4 @@
-// app/components/gestor/usuarios/modal/ModalFormUsuario.tsx
+// app/components/gestor/modal/ModalFormUsuario.tsx
 "use client";
 
 import { useRef, useState } from "react";
@@ -60,7 +60,7 @@ export function ModalFormUsuario({
           <button
             type="button"
             onClick={onFechar}
-            className="flex-1 py-3 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+            className="flex-1 py-3 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
           >
             Cancelar
           </button>
@@ -68,7 +68,7 @@ export function ModalFormUsuario({
             type="button"
             disabled={loading}
             onClick={() => formRef.current?.submit()}
-            className="flex-1 py-3 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-[#252525] text-sm font-bold transition-colors"
+            className="flex-1 py-3 rounded-md bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-[#252525] text-sm font-bold transition-colors"
           >
             {loading ? "Salvando..." : isEdicao ? "Salvar alterações" : "Criar usuário"}
           </button>

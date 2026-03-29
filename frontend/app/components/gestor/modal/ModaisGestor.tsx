@@ -56,14 +56,14 @@ export function ModalConfirmarExcluir({
         <div className="flex gap-3 w-full">
           <button
             onClick={onCancelar}
-            className="flex-1 py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+            className="flex-1 py-2.5 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirmar}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-bold transition-colors"
+            className="flex-1 py-2.5 rounded-md bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-bold transition-colors"
           >
             {loading ? "Excluindo..." : "Sim, excluir"}
           </button>
@@ -90,7 +90,7 @@ export function ModalSucessoGestor({ aberto, mensagem, onOk }: ModalSucessoProps
         <p className="text-base font-bold text-slate-900 dark:text-white">{mensagem}</p>
         <button
           onClick={onOk}
-          className="w-full py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
+          className="w-full py-2.5 rounded-md bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
         >
           OK
         </button>
@@ -110,13 +110,13 @@ export function ModalErroGestor({ aberto, mensagem, onOk }: ModalErroProps) {
   return (
     <ModalBase aberto={aberto} onFechar={onOk}>
       <div className="p-6 flex flex-col items-center gap-4 text-center">
-        <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-md bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
           <IconAlertTriangle size={28} className="text-red-500" />
         </div>
         <p className="text-base font-bold text-slate-900 dark:text-white">{mensagem}</p>
         <button
           onClick={onOk}
-          className="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors"
+          className="w-full py-2.5 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors"
         >
           OK
         </button>

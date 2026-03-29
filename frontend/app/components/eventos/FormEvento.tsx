@@ -1,14 +1,13 @@
 // app/components/eventos/modal/FormEvento.tsx
 "use client";
 
-import { useState, useRef, useImperativeHandle, forwardRef } from "react";
+import { useState, useRef, useImperativeHandle, forwardRef, useMemo } from "react";
 import { IconUpload, IconX, IconPaperclip, IconCalendar } from "@tabler/icons-react";
 import { FileService } from "@/src/service/file.service";
 import { Evento } from "@/src/types/evento";
-import { TURNOS } from "@/src/utils/evento.helpers";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 
-type FormData = Omit<Evento, "id" | "criadoEm" | "vagasOcupadas" | "banner" | "anexos"> & {
+type FormState = Omit<Evento, "id" | "criadoEm" | "vagasOcupadas" | "banner" | "anexos" | "descricaoBreve"> & {
   banner: string;
   anexos: { id: string; nome: string; url: string }[];
 };
@@ -19,7 +18,7 @@ export interface FormEventoRef {
 
 interface FormEventoProps {
   inicial?: Partial<Evento>;
-  onSalvar: (dados: FormData) => Promise<void>;
+  onSalvar: (dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">) => Promise<void>;
   onLoadingChange?: (loading: boolean) => void;
 }
 
@@ -44,14 +43,29 @@ function Campo({ label, erro, children, required }: CampoProps) {
 
 const hoje = new Date().toISOString().split("T")[0];
 
-const INITIAL: FormData = {
+function getTurnoFromHorario(horario?: string): "Manhã" | "Tarde" | "Noite" {
+  if (!horario || !horario.includes(":")) return "Manhã";
+
+  const [horaStr, minutoStr] = horario.split(":");
+  const hora = Number(horaStr);
+  const minuto = Number(minutoStr);
+
+  if (Number.isNaN(hora) || Number.isNaN(minuto)) return "Manhã";
+
+  const totalMinutos = hora * 60 + minuto;
+
+  if (totalMinutos >= 300 && totalMinutos <= 720) return "Manhã";
+  if (totalMinutos >= 721 && totalMinutos <= 1080) return "Tarde";
+  return "Noite";
+}
+
+const INITIAL: FormState = {
   nome: "",
-  descricaoBreve: "",
   descricaoCompleta: "",
   area: CURSOS[1],
   data: "",
   horario: "08:00",
-  turno: TURNOS[1],
+  turno: "Manhã",
   local: "",
   dataLimiteInscricao: "",
   vagas: 50,
@@ -73,43 +87,84 @@ function inputBorder(erros: Record<string, string>, key: string) {
 
 export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
   ({ inicial, onSalvar, onLoadingChange }, ref) => {
-    const [form, setForm] = useState<FormData>({ ...INITIAL, ...inicial });
+    const initialHorario = inicial?.horario ? String(inicial.horario).slice(0, 5) : INITIAL.horario;
+    const turnoInicial = getTurnoFromHorario(initialHorario);
+
+    const [form, setForm] = useState<FormState>({
+      ...INITIAL,
+      ...inicial,
+      horario: initialHorario,
+      turno: turnoInicial,
+      tipoInscricao: "interna",
+      visibilidade: "publica",
+      descricaoCompleta: inicial?.descricaoCompleta ?? "",
+    });
+
     const [erros, setErros] = useState<Record<string, string>>({});
     const [uploadingBanner, setUploadingBanner] = useState(false);
     const [erroAnexo, setErroAnexo] = useState("");
     const [uploadingAnexo, setUploadingAnexo] = useState(false);
+
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const anexoInputRef = useRef<HTMLInputElement>(null);
 
-    function set<K extends keyof FormData>(key: K, value: FormData[K]) {
-      setForm((prev) => ({ ...prev, [key]: value }));
+    function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+      setForm((prev) => {
+        const next = { ...prev, [key]: value };
+
+        if (key === "horario") {
+          next.turno = getTurnoFromHorario(String(value));
+        }
+
+        next.tipoInscricao = "interna";
+        next.visibilidade = "publica";
+
+        return next;
+      });
+
       setErros((prev) => ({ ...prev, [key]: "" }));
     }
 
+    const turnoCalculado = useMemo(() => getTurnoFromHorario(form.horario), [form.horario]);
+
     function validar(): boolean {
       const e: Record<string, string> = {};
+
       if (!form.nome.trim()) e.nome = "Nome é obrigatório.";
-      if (!form.descricaoBreve.trim()) e.descricaoBreve = "Descrição breve é obrigatória.";
-      if (!form.descricaoCompleta.trim()) e.descricaoCompleta = "Descrição completa é obrigatória.";
+      if (!form.descricaoCompleta.trim()) e.descricaoCompleta = "Descrição é obrigatória.";
       if (!form.data) e.data = "Data é obrigatória.";
       else if (form.data < hoje) e.data = "Data não pode ser retroativa.";
+
+      if (!form.horario) e.horario = "Horário é obrigatório.";
       if (!form.local.trim()) e.local = "Local é obrigatório.";
-      if (!form.dataLimiteInscricao) e.dataLimiteInscricao = "Data limite é obrigatória.";
-      else if (form.dataLimiteInscricao < hoje) e.dataLimiteInscricao = "Data limite não pode ser retroativa.";
+
+      if (!form.dataLimiteInscricao) {
+        e.dataLimiteInscricao = "Data limite é obrigatória.";
+      } else if (form.dataLimiteInscricao < hoje) {
+        e.dataLimiteInscricao = "Data limite não pode ser retroativa.";
+      }
+
       if (form.vagas < 1) e.vagas = "Deve ter ao menos 1 vaga.";
-      if (form.tipoInscricao === "externa" && !form.urlExterna?.trim())
-        e.urlExterna = "URL externa é obrigatória para inscrição externa.";
+
       setErros(e);
       return Object.keys(e).length === 0;
     }
 
-    // Expõe o método submit para a modal chamar pelo ref
     useImperativeHandle(ref, () => ({
       submit: async () => {
         if (!validar()) return;
+
+        const payload: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas"> = {
+          ...form,
+          descricaoBreve: "",
+          turno: turnoCalculado,
+          tipoInscricao: "interna",
+          visibilidade: "publica",
+        };
+
         onLoadingChange?.(true);
         try {
-          await onSalvar(form);
+          await onSalvar(payload);
         } finally {
           onLoadingChange?.(false);
         }
@@ -124,6 +179,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       onLoadingChange?.(true);
       setUploadingBanner(true);
       setErros((prev) => ({ ...prev, banner: "" }));
+
       try {
         const uploaded = await FileService.upload(file, "events/banners");
         set("banner", uploaded.url);
@@ -142,6 +198,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       setErroAnexo("");
       onLoadingChange?.(true);
       setUploadingAnexo(true);
+
       try {
         const uploaded = await FileService.upload(file, "events/attachments");
         set("anexos", [
@@ -164,8 +221,6 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
 
     return (
       <div className="flex flex-col gap-5 pb-2">
-
-        {/* Banner */}
         <Campo label="Banner do evento" erro={erros.banner}>
           <div
             className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl h-36 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors relative overflow-hidden"
@@ -177,7 +232,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 <button
                   type="button"
                   className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                  onClick={(e) => { e.stopPropagation(); set("banner", ""); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    set("banner", "");
+                  }}
                 >
                   <IconX size={14} />
                 </button>
@@ -188,10 +246,13 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 <p className="text-sm text-slate-400">
                   {uploadingBanner ? "Enviando banner..." : "Clique para fazer upload do banner"}
                 </p>
-                <p className="text-xs text-slate-300 dark:text-slate-500">PNG, JPG — recomendado 800×400px</p>
+                <p className="text-xs text-slate-300 dark:text-slate-500">
+                  PNG, JPG — recomendado 800×400px
+                </p>
               </>
             )}
           </div>
+
           <input
             ref={bannerInputRef}
             type="file"
@@ -199,15 +260,12 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                await handleBannerUpload(file);
-              }
+              if (file) await handleBannerUpload(file);
               e.target.value = "";
             }}
           />
         </Campo>
 
-        {/* Nome */}
         <Campo label="Nome do evento" erro={erros.nome} required>
           <input
             type="text"
@@ -218,21 +276,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           />
         </Campo>
 
-        {/* Descrição breve */}
-        <Campo label="Descrição breve" erro={erros.descricaoBreve} required>
-          <input
-            type="text"
-            value={form.descricaoBreve}
-            onChange={(e) => set("descricaoBreve", e.target.value)}
-            placeholder="Resumo em uma linha"
-            maxLength={120}
-            className={`${inputCls} ${inputBorder(erros, "descricaoBreve")}`}
-          />
-          <p className="text-xs text-slate-400 text-right">{form.descricaoBreve.length}/120</p>
-        </Campo>
-
-        {/* Descrição completa */}
-        <Campo label="Descrição completa" erro={erros.descricaoCompleta} required>
+        <Campo label="Descrição" erro={erros.descricaoCompleta} required>
           <textarea
             rows={4}
             value={form.descricaoCompleta}
@@ -240,14 +284,16 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             placeholder="Descreva o evento com detalhes..."
             className={`${inputCls} resize-none ${inputBorder(erros, "descricaoCompleta")}`}
           />
+          <p className="text-xs text-slate-400">
+            Use *texto* para negrito e @link para links.
+          </p>
         </Campo>
 
-        {/* Curso */}
         <Campo label="Área vinculada" required>
           <select
             value={form.area}
             onChange={(e) => set("area", e.target.value)}
-            className={`${inputCls} ${inputBorder(erros, "curso")}`}
+            className={`${inputCls} ${inputBorder(erros, "area")}`}
           >
             {[...CURSOS.slice(1), "Todos"].map((c) => (
               <option key={c}>{c}</option>
@@ -255,7 +301,6 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           </select>
         </Campo>
 
-        {/* Data, horário, turno */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Campo label="Data" erro={erros.data} required>
             <input
@@ -266,7 +311,8 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               className={`${inputCls} ${inputBorder(erros, "data")}`}
             />
           </Campo>
-          <Campo label="Horário" required>
+
+          <Campo label="Horário" erro={erros.horario} required>
             <input
               type="time"
               value={form.horario}
@@ -274,20 +320,18 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               className={`${inputCls} ${inputBorder(erros, "horario")}`}
             />
           </Campo>
+
           <Campo label="Turno" required>
-            <select
-              value={form.turno}
-              onChange={(e) => set("turno", e.target.value)}
-              className={`${inputCls} ${inputBorder(erros, "turno")}`}
-            >
-              {TURNOS.slice(1).map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
+            <input
+              type="text"
+              value={turnoCalculado}
+              disabled
+              readOnly
+              className={`${inputCls} ${inputBorder(erros, "turno")} opacity-80 cursor-not-allowed`}
+            />
           </Campo>
         </div>
 
-        {/* Local */}
         <Campo label="Local" erro={erros.local} required>
           <input
             type="text"
@@ -298,11 +342,13 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           />
         </Campo>
 
-        {/* Data limite e vagas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Campo label="Data limite para inscrições" erro={erros.dataLimiteInscricao} required>
             <div className="relative">
-              <IconCalendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <IconCalendar
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
               <input
                 type="date"
                 value={form.dataLimiteInscricao}
@@ -312,6 +358,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               />
             </div>
           </Campo>
+
           <Campo label="Número de vagas" erro={erros.vagas} required>
             <input
               type="number"
@@ -323,61 +370,14 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           </Campo>
         </div>
 
-        {/* Tipo de inscrição */}
-        <Campo label="Tipo de inscrição" required>
-          <div className="flex gap-3">
-            {(["interna", "externa"] as const).map((tipo) => (
-              <button
-                key={tipo}
-                type="button"
-                onClick={() => set("tipoInscricao", tipo)}
-                className={`flex-1 py-2.5 rounded-md border-2 text-sm font-bold transition-colors capitalize ${
-                  form.tipoInscricao === tipo
-                    ? "border-[#FFDE00] bg-[#FFDE00]/10 text-[#b89e00] dark:text-[#FFDE00]"
-                    : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                }`}
-              >
-                {tipo === "interna" ? "Interna (sistema)" : "Externa (link)"}
-              </button>
-            ))}
-          </div>
-          {form.tipoInscricao === "externa" && (
-            <div className="mt-2">
-              <input
-                type="url"
-                value={form.urlExterna}
-                onChange={(e) => set("urlExterna", e.target.value)}
-                placeholder="https://..."
-                className={`${inputCls} ${inputBorder(erros, "urlExterna")}`}
-              />
-              {erros.urlExterna && (
-                <p className="text-xs text-red-500 mt-1">{erros.urlExterna}</p>
-              )}
-            </div>
-          )}
-        </Campo>
+        {/*
+          Visibilidade fixa como Pública ao cadastrar/editar
+        */}
 
-        {/* Visibilidade */}
-        <Campo label="Visibilidade" required>
-          <div className="flex gap-3">
-            {(["publica", "privada"] as const).map((vis) => (
-              <button
-                key={vis}
-                type="button"
-                onClick={() => set("visibilidade", vis)}
-                className={`flex-1 py-2.5 rounded-md border-2 text-sm font-bold transition-colors capitalize ${
-                  form.visibilidade === vis
-                    ? "border-[#FFDE00] bg-[#FFDE00]/10 text-[#b89e00] dark:text-[#FFDE00]"
-                    : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                }`}
-              >
-                {vis === "publica" ? "Pública" : "Privada"}
-              </button>
-            ))}
-          </div>
-        </Campo>
+        {/*
+          Tipo de inscrição fixo como Interna (Sistema) ao cadastrar/editar
+        */}
 
-        {/* Anexos */}
         <Campo label="Anexos">
           <div
             className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors"
@@ -388,18 +388,18 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               {uploadingAnexo ? "Enviando anexo..." : "Clique para adicionar um anexo"}
             </p>
           </div>
+
           <input
             ref={anexoInputRef}
             type="file"
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                await handleAnexoUpload(file);
-              }
+              if (file) await handleAnexoUpload(file);
               e.target.value = "";
             }}
           />
+
           {erroAnexo && <p className="text-xs text-red-500">{erroAnexo}</p>}
 
           {form.anexos.length > 0 && (
@@ -425,7 +425,6 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             </div>
           )}
         </Campo>
-
       </div>
     );
   }

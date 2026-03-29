@@ -1,4 +1,3 @@
-// app/components/eventos/modal/ModalListaInscritos.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -9,11 +8,14 @@ import {
   IconChevronUp,
   IconCircleCheck,
   IconClock,
+  IconFileSpreadsheet,
+  IconFileTypePdf,
 } from "@tabler/icons-react";
-import { Inscricao } from "@/src/types/evento";
+import { Evento, Inscricao } from "@/src/types/evento";
+import { EventoInscricoesExportService } from "@/src/service/eventoInscricoesExport.service";
 
 interface Props {
-  eventoNome: string;
+  evento: Evento;
   inscricoes: Inscricao[];
   onFechar: () => void;
 }
@@ -26,68 +28,98 @@ function formatarData(iso: string) {
   });
 }
 
-export function ModalListaInscritos({ eventoNome, inscricoes, onFechar }: Props) {
+export function ModalListaInscritos({ evento, inscricoes, onFechar }: Props) {
   const total = inscricoes.length;
   const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
+  const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
+
+  async function handleExportar(tipoArquivo: "excel" | "pdf") {
+    if (inscricoes.length === 0) return;
+
+    try {
+      setLoadingExport(tipoArquivo);
+      await EventoInscricoesExportService.exportar({
+        evento,
+        inscricoes,
+        tipoArquivo,
+      });
+    } catch (error) {
+      console.error("[ModalListaInscritos] erro ao exportar:", error);
+      alert("Não foi possível exportar a lista de inscritos.");
+    } finally {
+      setLoadingExport(null);
+    }
+  }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onFechar}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-      {/* Modal */}
       <div
         className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-slate-100 dark:border-[#303030] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabeçalho */}
-        <div className="flex items-start justify-between p-5 border-b border-slate-100 dark:border-[#2a2a2a] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <IconUsers size={18} className="text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
-                Lista de Inscritos
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                {eventoNome}
-              </p>
-            </div>
-          </div>
+        <div className="flex flex-col gap-4 p-5 border-b border-slate-100 dark:border-[#2a2a2a] shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shrink-0">
+                <IconUsers size={18} className="text-blue-600 dark:text-blue-400" />
+              </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mr-2">
-              <span>
-                <strong className="text-slate-800 dark:text-slate-200">{total}</strong> inscritos
-              </span>
-              <span>
-                <strong className="text-emerald-600 dark:text-emerald-400">{confirmados}</strong> presenças
-              </span>
+              <div className="min-w-0">
+                <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
+                  Lista de Inscritos
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  {evento.nome}
+                </p>
+              </div>
             </div>
+
             <button
               onClick={onFechar}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#2a2a2a] text-slate-500 dark:text-slate-400 transition-colors"
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#2a2a2a] text-slate-500 dark:text-slate-400 transition-colors shrink-0"
             >
               <IconX size={18} />
             </button>
           </div>
+
+          <div className="flex flex-col items-start gap-3 inscritos:flex-row inscritos:items-center inscritos:justify-between">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                <strong className="text-slate-800 dark:text-slate-200">{total}</strong> inscritos
+              </span>
+              <span>
+                <strong className="text-emerald-600 dark:text-emerald-400">{confirmados}</strong>{" "}
+                presenças confirmadas
+              </span>
+            </div>
+
+            <div className="flex flex-row items-start gap-2 self-start">
+              <button
+                onClick={() => handleExportar("excel")}
+                disabled={loadingExport !== null || inscricoes.length === 0}
+                className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#404040] px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <IconFileSpreadsheet size={16} />
+                {loadingExport === "excel" ? "Exportando Excel..." : "Exportar Excel"}
+              </button>
+
+              <button
+                onClick={() => handleExportar("pdf")}
+                disabled={loadingExport !== null || inscricoes.length === 0}
+                className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[#FFDE00] px-4 py-2.5 text-sm font-bold text-[#252525] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <IconFileTypePdf size={16} />
+                {loadingExport === "pdf" ? "Exportando PDF..." : "Exportar PDF"}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Resumo mobile */}
-        <div className="sm:hidden flex items-center gap-4 px-5 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1e1e1e] shrink-0">
-          <span>
-            <strong className="text-slate-800 dark:text-slate-200">{total}</strong> inscritos
-          </span>
-          <span>
-            <strong className="text-emerald-600 dark:text-emerald-400">{confirmados}</strong> presenças confirmadas
-          </span>
-        </div>
-
-        {/* Tabela com scroll */}
         <div className="overflow-auto flex-1">
           {inscricoes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -115,7 +147,6 @@ export function ModalListaInscritos({ eventoNome, inscricoes, onFechar }: Props)
                   <th className="hidden lg:table-cell px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Presença
                   </th>
-                  {/* Coluna da seta — some no lg */}
                   <th className="lg:hidden px-3 py-3 w-10" />
                 </tr>
               </thead>
@@ -132,14 +163,10 @@ export function ModalListaInscritos({ eventoNome, inscricoes, onFechar }: Props)
   );
 }
 
-// ─── Linha com clique na linha inteira, só ativo abaixo de lg (1024px) ────────
-
 function ExpandableRow({ insc }: { insc: Inscricao }) {
   const [expandida, setExpandida] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
-  // Só expande se a largura atual for menor que lg (1024px).
-  // No desktop todas as colunas já aparecem, então o clique não faz nada.
   const handleRowClick = useCallback(() => {
     if (window.innerWidth < 1024) {
       setExpandida((v) => !v);
@@ -155,38 +182,32 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
           insc.presencaConfirmada
             ? "hover:bg-[#eafde6] dark:hover:bg-[#3d5838]"
             : "hover:bg-slate-50 dark:hover:bg-[#252525]",
-          // cursor-pointer só em telas menores que lg; no desktop fica padrão
           "cursor-pointer lg:cursor-default",
           insc.presencaConfirmada
             ? "bg-[#DFFCD7] dark:bg-[#42573C]"
             : expandida
-            ? "bg-slate-50/60 dark:bg-[#222]"
-            : "",
+              ? "bg-slate-50/60 dark:bg-[#222]"
+              : "",
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        {/* Nome — sempre visível */}
         <td className="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200">
           {insc.alunoNome}
         </td>
 
-        {/* Matrícula — sm+ */}
         <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600 dark:text-slate-300 font-mono">
           {insc.alunoMatricula}
         </td>
 
-        {/* Área — md+ */}
         <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
           {insc.alunoArea}
         </td>
 
-        {/* Inscrito em — lg+ */}
         <td className="hidden lg:table-cell px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
           {dataFormatada}
         </td>
 
-        {/* Presença — lg+ */}
         <td className="hidden lg:table-cell px-4 py-3 text-sm">
           {insc.presencaConfirmada ? (
             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
@@ -199,7 +220,6 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
           )}
         </td>
 
-        {/* Seta indicadora — some no lg, pointer-events-none pois o clique é da linha */}
         <td className="lg:hidden px-3 py-3 text-right">
           <span
             aria-hidden="true"
@@ -210,12 +230,10 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
         </td>
       </tr>
 
-      {/* Linha expandida — renderizada só abaixo de lg */}
       {expandida && (
         <tr className="lg:hidden bg-slate-50 dark:bg-[#1e1e1e] border-b border-slate-100 dark:border-[#2a2a2a]">
           <td colSpan={3} className="px-4 py-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-              {/* Matrícula — só no mobile puro */}
               <div className="sm:hidden">
                 <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Matrícula
@@ -225,7 +243,6 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
                 </dd>
               </div>
 
-              {/* Área — abaixo de md */}
               <div className="md:hidden">
                 <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Área
@@ -235,7 +252,6 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
                 </dd>
               </div>
 
-              {/* Inscrito em — sempre no expand (lg nunca renderiza isso) */}
               <div>
                 <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Inscrito em
@@ -245,12 +261,11 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
                 </dd>
               </div>
 
-              {/* Presença — sempre no expand */}
               <div>
                 <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Presença
                 </dt>
-                <dd className="mt-0.5">
+                <dd className="text-sm mt-0.5">
                   {insc.presencaConfirmada ? (
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
                       <IconCircleCheck size={14} /> Confirmada

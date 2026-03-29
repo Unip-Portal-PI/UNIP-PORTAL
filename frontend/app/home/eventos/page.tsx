@@ -1,4 +1,3 @@
-// app/home/eventos/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,6 +18,7 @@ import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
 import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
 import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
 import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
+import { CarrosselEventos } from "@/app/components/eventos/CarrosselEventos";
 // import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
@@ -33,6 +33,17 @@ type UsuarioEventos = {
   role: UserRole;
 };
 
+function isEventoExpirado(evento: Evento) {
+  if (!evento?.data) return false;
+
+  const horario = evento.horario && evento.horario.trim() !== "" ? evento.horario : "23:59";
+  const dataHoraEvento = new Date(`${evento.data}T${horario}:00`);
+
+  if (Number.isNaN(dataHoraEvento.getTime())) return false;
+
+  return dataHoraEvento.getTime() < Date.now();
+}
+
 export default function EventosPage() {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<UserRole>("aluno");
@@ -46,17 +57,14 @@ export default function EventosPage() {
     role: "aluno",
   });
 
-  // ── Estado ──────────────────────────────────────────────────────────────────
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [erroCarga, setErroCarga] = useState(false);
 
-  // Filtros
   const [search, setSearch] = useState("");
   const [curso, setCurso] = useState(CURSOS[0]);
   const [turno, setTurno] = useState(TURNOS[0]);
 
-  // Modais
   const [modalInscricao, setModalInscricao] = useState<Evento | null>(null);
   const [modalExcluir, setModalExcluir] = useState<Evento | null>(null);
   const [modalForm, setModalForm] = useState<Evento | null | "novo">(null);
@@ -64,7 +72,6 @@ export default function EventosPage() {
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
   const [minhasInscricoes, setMinhasInscricoes] = useState<Record<string, Inscricao>>({});
 
-  // ── Carga ────────────────────────────────────────────────────────────────────
   async function carregarEventos(currentRole: UserRole) {
     setLoading(true);
     setErroCarga(false);
@@ -115,16 +122,31 @@ export default function EventosPage() {
     carregarEventos(currentRole);
   }, []);
 
-  // ── Filtros ───────────────────────────────────────────────────────────────────
+  const eventosDisponiveis = useMemo(() => {
+    return eventos.filter((evento) => !isEventoExpirado(evento));
+  }, [eventos]);
+
+  const eventosDestaque = useMemo(() => {
+    return [...eventosDisponiveis]
+      .sort((a, b) => {
+        const dataA = new Date(a.criadoEm ?? `${a.data}T${a.horario || "00:00"}:00`).getTime();
+        const dataB = new Date(b.criadoEm ?? `${b.data}T${b.horario || "00:00"}:00`).getTime();
+        return dataB - dataA;
+      })
+      .slice(0, 5);
+  }, [eventosDisponiveis]);
+
   const eventosFiltrados = useMemo(() => {
-    return eventos.filter((e) => {
+    return eventosDisponiveis.filter((e) => {
       const nome = e.nome?.toLowerCase?.() ?? "";
+      const descricaoCompleta = e.descricaoCompleta?.toLowerCase?.() ?? "";
       const descricaoBreve = e.descricaoBreve?.toLowerCase?.() ?? "";
       const termoBusca = search.toLowerCase();
 
       const matchSearch =
         search === "" ||
         nome.includes(termoBusca) ||
+        descricaoCompleta.includes(termoBusca) ||
         descricaoBreve.includes(termoBusca);
 
       const matchCurso =
@@ -134,14 +156,12 @@ export default function EventosPage() {
 
       return matchSearch && matchCurso && matchTurno;
     });
-  }, [eventos, search, curso, turno]);
+  }, [eventosDisponiveis, search, curso, turno]);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────────
   function isInscrito(eventoId: string) {
     return !!minhasInscricoes[eventoId];
   }
 
-  // ── Ações ─────────────────────────────────────────────────────────────────────
   async function handleInscrever(evento: Evento) {
     if (evento.tipoInscricao === "externa" && evento.urlExterna) {
       window.open(evento.urlExterna, "_blank");
@@ -152,7 +172,6 @@ export default function EventosPage() {
   }
 
   async function handleConfirmarInscricao(evento: Evento): Promise<Inscricao> {
-    console.log("Inscrição User: ", user.area);
     const result = await EventoService.inscrever(evento.id);
     await carregarEventos(role);
     return result;
@@ -204,10 +223,8 @@ export default function EventosPage() {
     setModalQR(evento);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -218,7 +235,6 @@ export default function EventosPage() {
           </p>
         </div>
 
-        {/* Ações do colaborador/adm */}
         {mounted && canEdit(role) && (
           <div className="flex gap-2">
             <button
@@ -231,6 +247,30 @@ export default function EventosPage() {
           </div>
         )}
       </div>
+
+      {/* Skeleton: Carrossel */}
+      {loading && (
+        <div className="w-full rounded-2xl overflow-hidden border border-slate-100 dark:border-[#303030] mb-8 animate-pulse">
+          <div className="relative h-52 sm:h-[380px] bg-slate-200 dark:bg-[#2a2a2a]">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
+              <div className="h-4 bg-white/20 rounded-full w-24" />
+              <div className="h-6 bg-white/20 rounded w-2/3" />
+              <div className="h-4 bg-white/20 rounded w-1/2" />
+            </div>
+            <div className="absolute bottom-4 right-5 flex gap-1.5">
+              <div className="w-5 h-2 bg-white/30 rounded-full" />
+              <div className="w-2 h-2 bg-white/20 rounded-full" />
+              <div className="w-2 h-2 bg-white/20 rounded-full" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Carrossel de destaques */}
+      {!loading && !erroCarga && eventosDestaque.length > 0 && (
+        <CarrosselEventos eventos={eventosDestaque} />
+      )}
 
       {/* Filtros */}
       <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
@@ -256,7 +296,6 @@ export default function EventosPage() {
         </div>
       </div>
 
-      {/* Estado: carregando */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -275,7 +314,6 @@ export default function EventosPage() {
         </div>
       )}
 
-      {/* Estado: erro */}
       {!loading && erroCarga && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
@@ -293,7 +331,6 @@ export default function EventosPage() {
         </div>
       )}
 
-      {/* Estado: sem resultados */}
       {!loading && !erroCarga && eventosFiltrados.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <div className="w-14 h-14 bg-slate-100 dark:bg-[#2a2a2a] rounded-full flex items-center justify-center">
@@ -305,7 +342,6 @@ export default function EventosPage() {
         </div>
       )}
 
-      {/* Grid de eventos */}
       {!loading && !erroCarga && eventosFiltrados.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {eventosFiltrados.map((evento) => (
@@ -314,16 +350,13 @@ export default function EventosPage() {
                 evento={evento}
                 role={role}
                 isInscrito={isInscrito(evento.id)}
-                canCancelarInscricao={
-                  !minhasInscricoes[evento.id]?.presencaConfirmada
-                }
+                canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
                 onInscrever={handleInscrever}
                 onCancelarInscricao={handleCancelarInscricao}
                 onEditar={(e) => setModalForm(e)}
                 onExcluir={(e) => setModalExcluir(e)}
               />
 
-              {/* Botão QR Check-in para colaborador/adm */}
               {mounted && canEdit(role) && (
                 <button
                   onClick={() => abrirModalQR(evento)}
@@ -337,8 +370,6 @@ export default function EventosPage() {
           ))}
         </div>
       )}
-
-      {/* ── MODAIS ── */}
 
       {modalInscricao && (
         <ModalInscricao

@@ -1,11 +1,18 @@
-// app/components/gestor/usuarios/modal/FormUsuario.tsx
 "use client";
 
 import { useState, useImperativeHandle, forwardRef } from "react";
-import { IconEye, IconEyeOff } from "@tabler/icons-react";
+import { User, AtSign, Lock, Hash, BookOpen } from "lucide-react";
 import { UsuarioGestor, StatusUsuario } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import {
+  InputCad,
+  SelectCad,
+  validateEmail,
+  validateMatricula,
+  validateSenha,
+  validateBlockedTermsField,
+} from "@/app/components/inputCad";
 
 export interface FormUsuarioRef {
   submit: () => void;
@@ -51,15 +58,6 @@ function Campo({ label, erro, children, required, span2 }: CampoProps) {
   );
 }
 
-const inputCls =
-  "w-full px-3 py-2 border rounded-md text-sm bg-slate-50 dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 focus:outline-none transition-colors";
-
-function inputBorder(erros: Record<string, string>, key: string) {
-  return erros[key]
-    ? "border-red-400 dark:border-red-600"
-    : "border-slate-300 dark:border-[#505050] focus:border-[#FFDE00]";
-}
-
 const INITIAL: FormData = {
   matricula: "",
   nome: "",
@@ -74,14 +72,22 @@ const INITIAL: FormData = {
 
 export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
   ({ inicial, isEdicao, criadoPor, onSalvar, onLoadingChange }, ref) => {
+    const statusInicial: StatusUsuario =
+      typeof inicial?.ativo === "boolean"
+        ? inicial.ativo
+          ? "ativo"
+          : "inativo"
+        : INITIAL.status;
+
     const [form, setForm] = useState<FormData>({
       ...INITIAL,
       ...inicial,
-      senha: "", // nunca pré-preenche senha
-      status: (inicial?.ativo ? "ativo" : "inativo") as StatusUsuario,
+      senha: "",
+      status: statusInicial,
+      ativo: statusInicial === "ativo",
     });
+
     const [erros, setErros] = useState<Record<string, string>>({});
-    const [mostrarSenha, setMostrarSenha] = useState(false);
 
     function set<K extends keyof FormData>(key: K, value: FormData[K]) {
       setForm((prev) => ({ ...prev, [key]: value }));
@@ -90,17 +96,40 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
 
     function validar(): boolean {
       const e: Record<string, string> = {};
-      if (!form.nome.trim()) e.nome = "Nome é obrigatório.";
-      if (!form.apelido.trim()) e.apelido = "Apelido é obrigatório.";
-      if (!form.email.trim()) e.email = "E-mail é obrigatório.";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-        e.email = "E-mail inválido.";
-      if (!form.matricula.trim()) e.matricula = "Matrícula é obrigatória.";
 
-      // Senha obrigatória só na criação
+      if (!form.nome.trim()) e.nome = "Nome é obrigatório.";
+      else {
+        const nomeErro = validateBlockedTermsField("Nome completo", form.nome);
+        if (nomeErro) e.nome = nomeErro;
+      }
+
+      if (!form.apelido.trim()) e.apelido = "Apelido é obrigatório.";
+      else {
+        const apelidoErro = validateBlockedTermsField("Apelido", form.apelido);
+        if (apelidoErro) e.apelido = apelidoErro;
+      }
+
+      if (!form.email.trim()) e.email = "E-mail é obrigatório.";
+      else {
+        const emailErro = validateEmail(form.email);
+        if (emailErro) e.email = emailErro;
+      }
+
+      if (!form.matricula.trim()) e.matricula = "Matrícula é obrigatória.";
+      else {
+        const matriculaErro = validateMatricula(form.matricula);
+        if (matriculaErro) e.matricula = matriculaErro;
+      }
+
+      if (!form.area.trim()) e.area = "Área é obrigatória.";
+
       if (!isEdicao) {
         if (!form.senha.trim()) e.senha = "Senha é obrigatória.";
-        else if (form.senha.length < 6) e.senha = "Mínimo 6 caracteres.";
+        else {
+          const senhaErro = validateSenha(form.senha);
+          if (senhaErro) e.senha = senhaErro;
+          else if (form.senha.length < 6) e.senha = "Mínimo 6 caracteres.";
+        }
       }
 
       setErros(e);
@@ -110,13 +139,14 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
     useImperativeHandle(ref, () => ({
       submit: async () => {
         if (!validar()) return;
+
         onLoadingChange?.(true);
         try {
           await onSalvar({
             matricula: form.matricula,
-            nome: form.nome,
-            apelido: form.apelido,
-            email: form.email,
+            nome: form.nome.trim(),
+            apelido: form.apelido.trim(),
+            email: form.email.trim(),
             area: form.area,
             permission: form.permission,
             status: form.status,
@@ -132,96 +162,127 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
-
-        {/* Nome */}
-        <Campo label="Nome completo" erro={erros.nome} required span2>
-          <input
+        <Campo label="Nome completo" required span2>
+          <InputCad
+            id="nome"
+            label=""
             type="text"
-            value={form.nome}
-            onChange={(e) => set("nome", e.target.value)}
             placeholder="Nome completo"
-            className={`${inputCls} ${inputBorder(erros, "nome")}`}
+            Icon={User}
+            erro={!!erros.nome}
+            defaultValue={form.nome}
+            validator={(value) => {
+              if (!value.trim()) return "";
+              return validateBlockedTermsField("Nome completo", value);
+            }}
+            onValidatedChange={(_, message, value) => {
+              set("nome", value);
+              if (message) {
+                setErros((prev) => ({ ...prev, nome: message }));
+              }
+            }}
           />
         </Campo>
 
-        {/* Apelido */}
-        <Campo label="Apelido" erro={erros.apelido} required>
-          <input
+        <Campo label="Apelido" required>
+          <InputCad
+            id="apelido"
+            label=""
             type="text"
-            value={form.apelido}
-            onChange={(e) => set("apelido", e.target.value)}
             placeholder="Como prefere ser chamado(a)"
-            className={`${inputCls} ${inputBorder(erros, "apelido")}`}
+            Icon={User}
+            erro={!!erros.apelido}
+            defaultValue={form.apelido}
+            validator={(value) => {
+              if (!value.trim()) return "";
+              return validateBlockedTermsField("Apelido", value);
+            }}
+            onValidatedChange={(_, message, value) => {
+              set("apelido", value);
+              if (message) {
+                setErros((prev) => ({ ...prev, apelido: message }));
+              }
+            }}
           />
         </Campo>
 
-        {/* Matrícula */}
-        <Campo label="Matrícula" erro={erros.matricula} required>
-          <input
-            type="text"
-            value={form.matricula}
-            onChange={(e) => set("matricula", e.target.value)}
-            placeholder="Ex: CC20230456"
-            disabled={isEdicao}
-            className={`${inputCls} ${inputBorder(erros, "matricula")} ${isEdicao ? "opacity-50 cursor-not-allowed" : ""}`}
-          />
+        <Campo label="Matrícula" required>
+          <div className={isEdicao ? "opacity-50 pointer-events-none" : ""}>
+            <InputCad
+              id="matricula"
+              label=""
+              type="text"
+              placeholder="Ex: CC20230456"
+              Icon={Hash}
+              erro={!!erros.matricula}
+              defaultValue={form.matricula}
+              validator={validateMatricula}
+              onValidatedChange={(_, message, value) => {
+                set("matricula", value);
+                if (message) {
+                  setErros((prev) => ({ ...prev, matricula: message }));
+                }
+              }}
+            />
+          </div>
           {isEdicao && (
-            <p className="text-xs text-slate-400 mt-0.5">A matrícula não pode ser alterada.</p>
+            <p className="text-xs text-slate-400 mt-1">A matrícula não pode ser alterada.</p>
           )}
         </Campo>
 
-        {/* E-mail */}
-        <Campo label="E-mail" erro={erros.email} required span2>
-          <input
+        <Campo label="E-mail" required span2>
+          <InputCad
+            id="email"
+            label=""
             type="email"
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
             placeholder="email@unip.br"
-            className={`${inputCls} ${inputBorder(erros, "email")}`}
+            Icon={AtSign}
+            erro={!!erros.email}
+            defaultValue={form.email}
+            validator={validateEmail}
+            onValidatedChange={(_, message, value) => {
+              set("email", value);
+              if (message) {
+                setErros((prev) => ({ ...prev, email: message }));
+              }
+            }}
           />
         </Campo>
 
-        {/* Senha — só na criação */}
         {!isEdicao && (
-          <Campo label="Senha" erro={erros.senha} required span2>
-            <div className="relative">
-              <input
-                type={mostrarSenha ? "text" : "password"}
-                value={form.senha}
-                onChange={(e) => set("senha", e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                className={`${inputCls} pr-10 ${inputBorder(erros, "senha")}`}
-              />
-              <button
-                type="button"
-                onClick={() => setMostrarSenha((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              >
-                {mostrarSenha ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-              </button>
-            </div>
+          <Campo label="Senha" required span2>
+            <InputCad
+              id="senha"
+              label=""
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              Icon={Lock}
+              erro={!!erros.senha}
+              defaultValue={form.senha}
+              validator={validateSenha}
+              onValidatedChange={(_, message, value) => {
+                set("senha", value);
+                if (message) {
+                  setErros((prev) => ({ ...prev, senha: message }));
+                }
+              }}
+            />
           </Campo>
         )}
 
-        {/* Área */}
-        <Campo label="Área" required>
-          <div className="relative">
-            <select
-              value={form.area}
-              onChange={(e) => set("area", e.target.value)}
-              className={`${inputCls} border-slate-300 dark:border-[#505050] focus:border-[#FFDE00] appearance-none pr-10 w-full`}
-            >
-              {CURSOS.filter((curso) => curso !== "Todos").map((a) => <option key={a}>{a}</option>)}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+        <Campo label="Área" erro={erros.area} required>
+          <SelectCad
+            id="area"
+            label=""
+            placeholder="Selecione a área"
+            options={CURSOS.filter((curso) => curso !== "Todos")}
+            Icon={BookOpen}
+            erro={!!erros.area}
+            value={form.area}
+            onChange={(value) => set("area", value)}
+          />
         </Campo>
 
-        {/* Perfil */}
         <Campo label="Perfil de acesso" required>
           <div className="flex gap-2">
             {(["aluno", "colaborador", "adm"] as UserRole[]).map((p) => (
@@ -241,7 +302,6 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           </div>
         </Campo>
 
-        {/* Status — só na edição */}
         {isEdicao && (
           <Campo label="Status" required>
             <div className="flex gap-2">
@@ -249,7 +309,10 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
                 <button
                   key={s}
                   type="button"
-                  onClick={() => { set("status", s); set("ativo", s === "ativo"); }}
+                  onClick={() => {
+                    set("status", s);
+                    set("ativo", s === "ativo");
+                  }}
                   className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
                     form.status === s
                       ? s === "ativo"
@@ -264,7 +327,6 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             </div>
           </Campo>
         )}
-
       </div>
     );
   }
