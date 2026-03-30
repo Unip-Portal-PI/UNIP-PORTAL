@@ -64,18 +64,18 @@ function mapTurnoToApi(turno?: string | null): string | null {
   const normalized = turno.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
   const map: Record<string, string> = {
-    Manha: "MANHA",
-    Tarde: "TARDE",
-    Noite: "NOITE",
-    MANHA: "MANHA",
-    TARDE: "TARDE",
-    NOITE: "NOITE",
-    manha: "MANHA",
-    tarde: "TARDE",
-    noite: "NOITE",
+    Manha: "manha",
+    Tarde: "tarde",
+    Noite: "noite",
+    MANHA: "manha",
+    TARDE: "tarde",
+    NOITE: "noite",
+    manha: "manha",
+    tarde: "tarde",
+    noite: "noite",
   };
 
-  return map[normalized] ?? normalized.toUpperCase();
+  return map[normalized] ?? normalized.toLowerCase();
 }
 
 function mapEvento(evento: ApiEvento): Evento {
@@ -147,6 +147,7 @@ export const EventoService = {
       turno: mapTurnoToApi(dados.turno),
       local: dados.local || null,
       vagas: dados.vagas,
+      area: dados.area || null,
       dataLimiteInscricao: dados.dataLimiteInscricao || null,
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,
@@ -176,6 +177,7 @@ export const EventoService = {
       turno: mapTurnoToApi(dados.turno),
       local: dados.local || null,
       vagas: dados.vagas,
+      area: dados.area,
       dataLimiteInscricao: dados.dataLimiteInscricao || null,
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,

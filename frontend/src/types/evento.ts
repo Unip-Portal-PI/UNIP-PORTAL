@@ -1,7 +1,7 @@
 // app/types/evento.ts
 
-export type TipoInscricao = "INTERNA" | "EXTERNA";
-export type Visibilidade = "PUBLICA" | "PRIVADA";
+export type TipoInscricao = "interna" | "externa";
+export type Visibilidade = "publica" | "privada";
 export type StatusVaga = "disponivel" | "quase_esgotado" | "esgotado";
 
 export interface Anexo {

@@ -37,9 +37,9 @@ class EventoResponse(BaseModel):
     data_limite_inscricao: date | None = None
     vagas: int | None = None
     vagas_ocupadas: int = 0
-    tipo_inscricao: TipoInscricao = TipoInscricao.INTERNA
+    tipo_inscricao: TipoInscricao = TipoInscricao.interna
     url_externa: str | None = None
-    visibilidade: Visibilidade = Visibilidade.PUBLICA
+    visibilidade: Visibilidade = Visibilidade.publica
     anexos: list[AnexoResponse] = []
     criado_em: datetime | None = None
 
@@ -58,9 +58,9 @@ class EventoCreate(BaseModel):
     local: str | None = None
     vagas: int | None = None
     data_limite_inscricao: date | None = None
-    tipo_inscricao: TipoInscricao = TipoInscricao.INTERNA
+    tipo_inscricao: TipoInscricao = TipoInscricao.interna
     url_externa: str | None = None
-    visibilidade: Visibilidade = Visibilidade.PUBLICA
+    visibilidade: Visibilidade = Visibilidade.publica
     anexos: list[AnexoRequest] = []
     cursos_ids: list[str] = []
     palestrantes_ids: list[str] = []
