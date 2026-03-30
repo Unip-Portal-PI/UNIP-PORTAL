@@ -48,6 +48,7 @@ class EventoCreate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     nome: str
+    area: str | None = None
     descricao: str | None = None
     descricao_breve: str | None = None
     banner_url: str | None = None
@@ -69,6 +70,7 @@ class EventoUpdate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     nome: str | None = None
+    area: str | None = None
     descricao: str | None = None
     descricao_breve: str | None = None
     banner_url: str | None = None

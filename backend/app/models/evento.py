@@ -26,6 +26,7 @@ class EventoModel(Base):
 
     id_evento = Column(String(36), primary_key=True, server_default=text("(UUID())"))
     nome = Column(String(200), nullable=False)
+    area = Column(String(100), nullable=True)
     descricao = Column(String(2000), nullable=True)
     descricao_breve = Column(String(120), nullable=True)
     banner_url = Column(String(500), nullable=True)

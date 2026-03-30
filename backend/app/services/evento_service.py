@@ -18,8 +18,8 @@ def _normalize_anexos(anexos):
 
 
 def _serialize_evento(evento: EventoModel, vagas_ocupadas: int = 0) -> EventoResponse:
-    area = None
-    if evento.cursos:
+    area = evento.area
+    if not area and evento.cursos:
         area = ", ".join(c.nome_curso for c in evento.cursos)
 
     return EventoResponse(
@@ -81,6 +81,7 @@ def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResp
 
     evento = EventoModel(
         nome=data.nome,
+        area=data.area,
         descricao=data.descricao,
         descricao_breve=data.descricao_breve,
         banner_url=extract_file_path(data.banner_url),
