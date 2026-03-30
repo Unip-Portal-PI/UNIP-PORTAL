@@ -9,6 +9,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - ".github/workflows/deploy_on_server_using_docker.yml"
+      - "backend/**"
+      - "frontend/**"
 
 jobs:
   docker_deploy:
@@ -64,6 +68,8 @@ jobs:
           push: true
           tags: ${{ steps.meta_backend.outputs.tags }}
           labels: ${{ steps.meta_backend.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -73,13 +79,8 @@ jobs:
           push: true
           tags: ${{ steps.meta_frontend.outputs.tags }}
           labels: ${{ steps.meta_frontend.outputs.labels }}
-
-      - name: Debug secrets
-        run: |
-          echo "HOST is set: ${{ secrets.SSH_HOST != '' }}"
-          echo "USER is set: ${{ secrets.SSH_USER != '' }}"
-          echo "KEY is set: ${{ secrets.SSH_KEY != '' }}"
-          echo "APP_DIR is set: ${{ secrets.APP_DIR != '' }}"
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -92,6 +93,10 @@ jobs:
             set -e
             cd "${{ secrets.APP_DIR }}"
             docker login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GHCR_TOKEN || github.token }}"
-            docker compose pull
-            docker compose up -d --remove-orphans
+            COMPOSE_FILE="${{ secrets.DEPLOY_COMPOSE_FILE }}"
+            if [ -z "$COMPOSE_FILE" ]; then
+              COMPOSE_FILE="docker-compose.yml"
+            fi
+            docker compose -f "$COMPOSE_FILE" pull backend frontend || docker compose -f "$COMPOSE_FILE" pull
+            docker compose -f "$COMPOSE_FILE" up -d --remove-orphans backend frontend || docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
             docker image prune -f

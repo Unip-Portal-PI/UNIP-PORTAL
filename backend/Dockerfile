@@ -1,6 +1,9 @@
 FROM python:3.12-slim
 WORKDIR  /app
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 # deps necessárias pro mariadb (mariadb_config) + compilação
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
@@ -10,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir gunicorn
 
 COPY . .
 
