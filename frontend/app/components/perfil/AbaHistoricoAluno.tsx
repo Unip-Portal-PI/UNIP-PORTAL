@@ -407,7 +407,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   </button>
 
                   {/* Certificado */}
-                  {/* <button
+                  <button
                     onClick={() => evento && handleDownloadCertificado(inscricao, evento)}
                     disabled={!confirmado || !evento}
                     title={confirmado ? "Baixar certificado" : "Disponível após confirmação de presença"}
@@ -417,7 +417,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                       }`}
                   >
                     <IconDownload size={14} /> Certificado
-                  </button> */}
+                  </button> 
                 </div>
               </div>
             </div>
