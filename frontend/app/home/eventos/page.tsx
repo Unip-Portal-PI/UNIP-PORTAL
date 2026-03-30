@@ -41,12 +41,11 @@ function isEventoExpirado(evento: Evento) {
   const [ano, mes, dia] = evento.data.split("-").map(Number);
   if (!ano || !mes || !dia) return false;
 
-  // Ex.: evento em 2026-03-29
-  // aparece só até 2026-03-29 23:59:59
-  // em 2026-03-30 00:00 já some
-  const limiteVisibilidade = new Date(ano, mes - 1, dia + 1, 0, 0, 0, 0);
+  // Cria a data limite como sendo o final do dia do evento (23:59:59.999)
+  // Usando a data local para evitar problemas de fuso horário na comparação com Date.now()
+  const limiteVisibilidade = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
 
-  return Date.now() >= limiteVisibilidade.getTime();
+  return Date.now() > limiteVisibilidade.getTime();
 }
 
 function podeVerEvento(role: UserRole, evento: Evento) {

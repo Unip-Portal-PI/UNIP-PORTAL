@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from jose import jwt
@@ -40,6 +40,27 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
 
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
+
+    # Regra: Inscrições encerram 1 hora antes do evento
+    try:
+        horario = evento.horario
+        if isinstance(horario, str):
+            horario_time = datetime.strptime(horario, "%H:%M").time()
+        else:
+            horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
+
+        data_hora_evento = datetime.combine(evento.data, horario_time)
+        limite_inscricao = data_hora_evento - timedelta(hours=1)
+        
+        if datetime.now() > limite_inscricao:
+            raise HTTPException(
+                status_code=400, 
+                detail="As inscricoes para este evento estao encerradas (limite de 1 hora antes do inicio)."
+            )
+    except (ValueError, TypeError):
+        # Caso o formato do horário seja inválido, mantém a lógica legada de data
+        if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
+            raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
 
     if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
         raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")

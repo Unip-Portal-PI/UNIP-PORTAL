@@ -105,16 +105,23 @@ function buildEventStartDateTime(evento: Evento): Date | null {
 }
 
 function buildEnrollmentDeadline(evento: Evento): Date | null {
+  const eventStart = buildEventStartDateTime(evento);
+  if (!eventStart) return null;
+
+  // Regra padrão: 1 hora antes do início
+  const defaultDeadline = new Date(eventStart.getTime() - 60 * 60 * 1000);
+
   const limiteDate = parseDateOnly(evento.dataLimiteInscricao);
-  if (!limiteDate) return null;
+  if (!limiteDate) return defaultDeadline;
 
   const eventDate = parseDateOnly(evento.data);
-  const eventStart = buildEventStartDateTime(evento);
-
-  if (eventDate && isSameDay(limiteDate, eventDate) && eventStart) {
-    return eventStart;
+  
+  // Se a data limite for o próprio dia do evento ou posterior, usa a regra de 1h antes
+  if (eventDate && limiteDate.getTime() >= eventDate.getTime()) {
+    return defaultDeadline;
   }
 
+  // Se for uma data anterior, encerra no final desse dia anterior
   return new Date(
     limiteDate.getFullYear(),
     limiteDate.getMonth(),

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { API_BASE_URL } from "@/src/service/api-base-url";
 
-type RouteContext = { params: { path: string[] } };
+type RouteContext = { params: Promise<{ path: string[] }> };
 
 function joinPath(segments: string[]) {
   // evita "//" e evita segment vazio
@@ -58,8 +58,9 @@ function filterResponseHeaders(headers: Headers) {
 }
 
 async function proxy(request: Request, ctx: RouteContext) {
-  const token = cookies().get("token")?.value;
-  const targetUrl = buildTargetUrl(ctx.params.path ?? [], request.url);
+  const token = (await cookies()).get("token")?.value;
+  const { path } = await ctx.params;
+  const targetUrl = buildTargetUrl(path ?? [], request.url);
 
   const headers = new Headers(request.headers);
 

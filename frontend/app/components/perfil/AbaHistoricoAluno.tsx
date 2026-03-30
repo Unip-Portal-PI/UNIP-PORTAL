@@ -279,7 +279,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
     ctx.font = "11px Georgia, serif";
     ctx.fillStyle = CINZA_MEDIO;
     ctx.fillText(
-      `Emitido em ${dataEmissao}   |   Código de verificação: ${inscricao.qrCode}`,
+      `Emitido em ${dataEmissao}`,
       cx, base + 106
     );
 
@@ -348,6 +348,13 @@ export function AbaHistoricoAluno({ matricula }: Props) {
       <div className="space-y-3">
         {itens.map(({ inscricao, evento }) => {
           const confirmado = inscricao.presencaConfirmada;
+          
+          const hoje = new Date();
+          hoje.setHours(0, 0, 0, 0);
+          const dataEventoDate = evento ? new Date(evento.data + "T00:00:00") : null;
+          const diaPassou = dataEventoDate ? hoje > dataEventoDate : false;
+          const certificadoDisponivel = confirmado && diaPassou;
+
           const dataEvento = evento
             ? new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
             : "—";
@@ -409,11 +416,17 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   {/* Certificado */}
                   <button
                     onClick={() => evento && handleDownloadCertificado(inscricao, evento)}
-                    disabled={!confirmado || !evento}
-                    title={confirmado ? "Baixar certificado" : "Disponível após confirmação de presença"}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${confirmado && evento
-                        ? "border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                        : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                    disabled={!certificadoDisponivel || !evento}
+                    title={
+                      certificadoDisponivel
+                        ? "Baixar certificado"
+                        : !confirmado
+                          ? "Disponível após confirmação de presença"
+                          : "Disponível após o dia do evento"
+                    }
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${certificadoDisponivel && evento
+                      ? "border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed"
                       }`}
                   >
                     <IconDownload size={14} /> Certificado
