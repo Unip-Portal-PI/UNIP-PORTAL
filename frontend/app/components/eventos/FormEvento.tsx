@@ -1,13 +1,27 @@
 // app/components/eventos/modal/FormEvento.tsx
 "use client";
 
-import { useState, useRef, useImperativeHandle, forwardRef, useMemo } from "react";
-import { IconUpload, IconX, IconPaperclip, IconCalendar } from "@tabler/icons-react";
+import {
+  useState,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  useMemo,
+} from "react";
+import {
+  IconUpload,
+  IconX,
+  IconPaperclip,
+  IconCalendar,
+} from "@tabler/icons-react";
 import { FileService } from "@/src/service/file.service";
-import { Evento } from "@/src/types/evento";
+import { Evento, Visibilidade } from "@/src/types/evento";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 
-type FormState = Omit<Evento, "id" | "criadoEm" | "vagasOcupadas" | "banner" | "anexos" | "descricaoBreve"> & {
+type FormState = Omit<
+  Evento,
+  "id" | "criadoEm" | "vagasOcupadas" | "banner" | "anexos" | "descricaoBreve"
+> & {
   banner: string;
   anexos: { id: string; nome: string; url: string }[];
 };
@@ -18,7 +32,9 @@ export interface FormEventoRef {
 
 interface FormEventoProps {
   inicial?: Partial<Evento>;
-  onSalvar: (dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">) => Promise<void>;
+  onSalvar: (
+    dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">
+  ) => Promise<void>;
   onLoadingChange?: (loading: boolean) => void;
 }
 
@@ -85,9 +101,25 @@ function inputBorder(erros: Record<string, string>, key: string) {
     : "border-slate-300 dark:border-[#505050] focus:border-[#FFDE00] dark:focus:border-[#FFDE00]";
 }
 
+function visibilidadeButtonClass(
+  ativo: boolean,
+  erros: Record<string, string>
+) {
+  if (ativo) {
+    return "border-[#FFDE00] bg-[#FFDE00]/10 text-[#e6c800] dark:text-[#FFDE00] shadow-[inset_0_0_0_1px_rgba(255,222,0,0.35)]";
+  }
+
+  return erros.visibilidade
+    ? "border-red-400 dark:border-red-600 text-slate-500 dark:text-slate-400"
+    : "border-slate-300 dark:border-[#505050] text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-400";
+}
+
 export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
   ({ inicial, onSalvar, onLoadingChange }, ref) => {
-    const initialHorario = inicial?.horario ? String(inicial.horario).slice(0, 5) : INITIAL.horario;
+    const initialHorario = inicial?.horario
+      ? String(inicial.horario).slice(0, 5)
+      : INITIAL.horario;
+
     const turnoInicial = getTurnoFromHorario(initialHorario);
 
     const [form, setForm] = useState<FormState>({
@@ -96,9 +128,15 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       area: inicial?.area?.trim() ? inicial.area : "Todos",
       horario: initialHorario,
       turno: turnoInicial,
-      tipoInscricao: "interna",
-      visibilidade: "publica",
+      tipoInscricao: inicial?.tipoInscricao ?? "interna",
+      visibilidade: inicial?.visibilidade ?? "publica",
       descricaoCompleta: inicial?.descricaoCompleta ?? "",
+      banner: inicial?.banner ?? "",
+      anexos: (inicial?.anexos ?? []).map((anexo) => ({
+        id: anexo.id,
+        nome: anexo.nome,
+        url: anexo.url,
+      })),
     });
 
     const [erros, setErros] = useState<Record<string, string>>({});
@@ -118,7 +156,6 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         }
 
         next.tipoInscricao = "interna";
-        next.visibilidade = "publica";
 
         return next;
       });
@@ -126,13 +163,23 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       setErros((prev) => ({ ...prev, [key]: "" }));
     }
 
-    const turnoCalculado = useMemo(() => getTurnoFromHorario(form.horario), [form.horario]);
+    function setVisibilidade(value: Visibilidade) {
+      set("visibilidade", value);
+    }
+
+    const turnoCalculado = useMemo(
+      () => getTurnoFromHorario(form.horario),
+      [form.horario]
+    );
 
     function validar(): boolean {
       const e: Record<string, string> = {};
 
       if (!form.nome.trim()) e.nome = "Nome é obrigatório.";
-      if (!form.descricaoCompleta.trim()) e.descricaoCompleta = "Descrição é obrigatória.";
+      if (!form.descricaoCompleta.trim()) {
+        e.descricaoCompleta = "Descrição é obrigatória.";
+      }
+
       if (!form.data) e.data = "Data é obrigatória.";
       else if (form.data < hoje) e.data = "Data não pode ser retroativa.";
 
@@ -146,6 +193,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       }
 
       if (form.vagas < 1) e.vagas = "Deve ter ao menos 1 vaga.";
+      if (!form.visibilidade) e.visibilidade = "Selecione a visibilidade.";
 
       setErros(e);
       return Object.keys(e).length === 0;
@@ -160,7 +208,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           descricaoBreve: "",
           turno: turnoCalculado,
           tipoInscricao: "interna",
-          visibilidade: "publica",
+          visibilidade: form.visibilidade,
         };
 
         onLoadingChange?.(true);
@@ -173,7 +221,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
     }));
 
     function removerAnexo(id: string) {
-      set("anexos", form.anexos.filter((a) => a.id !== id));
+      set(
+        "anexos",
+        form.anexos.filter((a) => a.id !== id)
+      );
     }
 
     async function handleBannerUpload(file: File) {
@@ -187,7 +238,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       } catch (error) {
         setErros((prev) => ({
           ...prev,
-          banner: error instanceof Error ? error.message : "Nao foi possivel enviar o banner.",
+          banner:
+            error instanceof Error
+              ? error.message
+              : "Nao foi possivel enviar o banner.",
         }));
       } finally {
         setUploadingBanner(false);
@@ -212,7 +266,9 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         ]);
       } catch (error) {
         setErroAnexo(
-          error instanceof Error ? error.message : "Nao foi possivel enviar o anexo."
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel enviar o anexo."
         );
       } finally {
         setUploadingAnexo(false);
@@ -229,7 +285,11 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           >
             {form.banner ? (
               <>
-                <img src={form.banner} alt="Banner" className="w-full h-full object-cover" />
+                <img
+                  src={form.banner}
+                  alt="Banner"
+                  className="w-full h-full object-cover"
+                />
                 <button
                   type="button"
                   className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
@@ -245,7 +305,9 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               <>
                 <IconUpload size={24} className="text-slate-400" />
                 <p className="text-sm text-slate-400">
-                  {uploadingBanner ? "Enviando banner..." : "Clique para fazer upload do banner"}
+                  {uploadingBanner
+                    ? "Enviando banner..."
+                    : "Clique para fazer upload do banner"}
                 </p>
                 <p className="text-xs text-slate-300 dark:text-slate-500">
                   PNG, JPG — recomendado 800×400px
@@ -271,6 +333,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           <input
             type="text"
             value={form.nome}
+            maxLength={50}
             onChange={(e) => set("nome", e.target.value)}
             placeholder="Ex: Semana de Tecnologia 2025"
             className={`${inputCls} ${inputBorder(erros, "nome")}`}
@@ -283,10 +346,14 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             value={form.descricaoCompleta}
             onChange={(e) => set("descricaoCompleta", e.target.value)}
             placeholder="Descreva o evento com detalhes..."
-            className={`${inputCls} resize-none ${inputBorder(erros, "descricaoCompleta")}`}
+            className={`${inputCls} resize-none ${inputBorder(
+              erros,
+              "descricaoCompleta"
+            )}`}
           />
           <p className="text-xs text-slate-400">
-            Use *texto* para negrito e @link para links.
+            Use * no início e no fim para negrito e @ no início para link. Ex:
+            *texto* e @google.com
           </p>
         </Campo>
 
@@ -300,6 +367,32 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               <option key={c}>{c}</option>
             ))}
           </select>
+        </Campo>
+
+        <Campo label="Visibilidade" erro={erros.visibilidade} required>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setVisibilidade("publica")}
+              className={`h-11 rounded-lg border text-sm font-bold transition-colors ${visibilidadeButtonClass(
+                form.visibilidade === "publica",
+                erros
+              )}`}
+            >
+              Pública
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibilidade("privada")}
+              className={`h-11 rounded-lg border text-sm font-bold transition-colors ${visibilidadeButtonClass(
+                form.visibilidade === "privada",
+                erros
+              )}`}
+            >
+              Privada
+            </button>
+          </div>
         </Campo>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -328,7 +421,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               value={turnoCalculado}
               disabled
               readOnly
-              className={`${inputCls} ${inputBorder(erros, "turno")} opacity-80 cursor-not-allowed`}
+              className={`${inputCls} ${inputBorder(
+                erros,
+                "turno"
+              )} opacity-80 cursor-not-allowed`}
             />
           </Campo>
         </div>
@@ -344,7 +440,11 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         </Campo>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Campo label="Data limite para inscrições" erro={erros.dataLimiteInscricao} required>
+          <Campo
+            label="Data limite para inscrições"
+            erro={erros.dataLimiteInscricao}
+            required
+          >
             <div className="relative">
               <IconCalendar
                 size={14}
@@ -355,7 +455,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 value={form.dataLimiteInscricao}
                 min={hoje}
                 onChange={(e) => set("dataLimiteInscricao", e.target.value)}
-                className={`${inputCls} pl-8 ${inputBorder(erros, "dataLimiteInscricao")}`}
+                className={`${inputCls} pl-8 ${inputBorder(
+                  erros,
+                  "dataLimiteInscricao"
+                )}`}
               />
             </div>
           </Campo>
@@ -372,10 +475,6 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         </div>
 
         {/*
-          Visibilidade fixa como Pública ao cadastrar/editar
-        */}
-
-        {/*
           Tipo de inscrição fixo como Interna (Sistema) ao cadastrar/editar
         */}
 
@@ -386,7 +485,9 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           >
             <IconPaperclip size={20} className="text-slate-400" />
             <p className="text-sm text-slate-400">
-              {uploadingAnexo ? "Enviando anexo..." : "Clique para adicionar um anexo"}
+              {uploadingAnexo
+                ? "Enviando anexo..."
+                : "Clique para adicionar um anexo"}
             </p>
           </div>
 

@@ -1,3 +1,4 @@
+// app/home/comunicado/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +12,7 @@ import { UserRole, UsuarioSessao } from "@/src/types/user";
 import { ComunicadoService } from "@/src/service/comunicado.service";
 import {
   canEditComunicado,
+  isComunicadoExpirado,
 } from "@/src/utils/comunicado.helpers";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 import { Auth } from "@/src/service/auth.service";
@@ -66,13 +68,22 @@ export default function ComunicadoPage() {
     carregarComunicados();
   }, []);
 
+  const comunicadosDisponiveis = useMemo(() => {
+    return comunicados.filter((c) => !isComunicadoExpirado(c));
+  }, [comunicados]);
+
   const comunicadosFiltrados = useMemo(() => {
-    return comunicados.filter((c) => {
+    return comunicadosDisponiveis.filter((c) => {
+      const titulo = c.titulo?.toLowerCase?.() ?? "";
+      const assunto = c.assunto?.toLowerCase?.() ?? "";
+      const conteudo = c.conteudo?.toLowerCase?.() ?? "";
+      const termoBusca = search.toLowerCase();
+
       const matchSearch =
         search === "" ||
-        c.titulo.toLowerCase().includes(search.toLowerCase()) ||
-        c.assunto.toLowerCase().includes(search.toLowerCase()) ||
-        c.conteudo.toLowerCase().includes(search.toLowerCase());
+        titulo.includes(termoBusca) ||
+        assunto.includes(termoBusca) ||
+        conteudo.includes(termoBusca);
 
       const matchCurso =
         curso === "Todos" ||
@@ -81,7 +92,7 @@ export default function ComunicadoPage() {
 
       return matchSearch && matchCurso;
     });
-  }, [comunicados, search, curso]);
+  }, [comunicadosDisponiveis, search, curso]);
 
   async function handleSalvar(dados: Omit<Comunicado, "id" | "criadoEm">) {
     if (modalForm === "novo") {
@@ -144,9 +155,9 @@ export default function ComunicadoPage() {
           </div>
         )}
 
-        {!loading && !erroCarga && comunicados.length > 0 && (
+        {!loading && !erroCarga && comunicadosDisponiveis.length > 0 && (
           <CarrosselComunicados
-            comunicados={comunicados}
+            comunicados={comunicadosDisponiveis}
             onAbrir={setModalVer}
           />
         )}

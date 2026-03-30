@@ -1,3 +1,4 @@
+// app/home/eventos/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -18,8 +19,8 @@ import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
 import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
 import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
 import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
+import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import { CarrosselEventos } from "@/app/components/eventos/CarrosselEventos";
-// import { FilterDateRange } from "@/app/components/eventos/filters/FilterDateRange";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
 import AuthGuard from "@/src/guard/AuthGuard";
@@ -37,12 +38,23 @@ type UsuarioEventos = {
 function isEventoExpirado(evento: Evento) {
   if (!evento?.data) return false;
 
-  const horario = evento.horario && evento.horario.trim() !== "" ? evento.horario : "23:59";
-  const dataHoraEvento = new Date(`${evento.data}T${horario}:00`);
+  const [ano, mes, dia] = evento.data.split("-").map(Number);
+  if (!ano || !mes || !dia) return false;
 
-  if (Number.isNaN(dataHoraEvento.getTime())) return false;
+  // Ex.: evento em 2026-03-29
+  // aparece só até 2026-03-29 23:59:59
+  // em 2026-03-30 00:00 já some
+  const limiteVisibilidade = new Date(ano, mes - 1, dia + 1, 0, 0, 0, 0);
 
-  return dataHoraEvento.getTime() < Date.now();
+  return Date.now() >= limiteVisibilidade.getTime();
+}
+
+function podeVerEvento(role: UserRole, evento: Evento) {
+  if (role === "aluno") {
+    return evento.visibilidade === "publica";
+  }
+
+  return true;
 }
 
 export default function EventosPage() {
@@ -70,8 +82,15 @@ export default function EventosPage() {
   const [modalExcluir, setModalExcluir] = useState<Evento | null>(null);
   const [modalForm, setModalForm] = useState<Evento | null | "novo">(null);
   const [modalQR, setModalQR] = useState<Evento | null>(null);
-  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
-  const [minhasInscricoes, setMinhasInscricoes] = useState<Record<string, Inscricao>>({});
+  const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
+    useState<Evento | null>(null);
+
+  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>(
+    []
+  );
+  const [minhasInscricoes, setMinhasInscricoes] = useState<
+    Record<string, Inscricao>
+  >({});
 
   async function carregarEventos(currentRole: UserRole) {
     setLoading(true);
@@ -82,8 +101,12 @@ export default function EventosPage() {
       setEventos(data);
 
       if (currentRole === "aluno") {
+        const eventosVisiveis = data.filter((evento) =>
+          podeVerEvento(currentRole, evento)
+        );
+
         const inscricoes = await Promise.all(
-          data.map(async (evento) => {
+          eventosVisiveis.map(async (evento) => {
             const inscricao = await EventoService.getMinhaInscricao(evento.id);
             return inscricao ? [evento.id, inscricao] : null;
           })
@@ -91,7 +114,9 @@ export default function EventosPage() {
 
         setMinhasInscricoes(
           Object.fromEntries(
-            inscricoes.filter((item): item is [string, Inscricao] => item !== null)
+            inscricoes.filter(
+              (item): item is [string, Inscricao] => item !== null
+            )
           )
         );
       } else {
@@ -124,14 +149,20 @@ export default function EventosPage() {
   }, []);
 
   const eventosDisponiveis = useMemo(() => {
-    return eventos.filter((evento) => !isEventoExpirado(evento));
-  }, [eventos]);
+    return eventos.filter(
+      (evento) => !isEventoExpirado(evento) && podeVerEvento(role, evento)
+    );
+  }, [eventos, role]);
 
   const eventosDestaque = useMemo(() => {
     return [...eventosDisponiveis]
       .sort((a, b) => {
-        const dataA = new Date(a.criadoEm ?? `${a.data}T${a.horario || "00:00"}:00`).getTime();
-        const dataB = new Date(b.criadoEm ?? `${b.data}T${b.horario || "00:00"}:00`).getTime();
+        const dataA = new Date(
+          a.criadoEm ?? `${a.data}T${a.horario || "00:00"}:00`
+        ).getTime();
+        const dataB = new Date(
+          b.criadoEm ?? `${b.data}T${b.horario || "00:00"}:00`
+        ).getTime();
         return dataB - dataA;
       })
       .slice(0, 5);
@@ -181,6 +212,7 @@ export default function EventosPage() {
   async function handleCancelarInscricao(evento: Evento) {
     await EventoService.cancelarInscricao(evento.id);
     await carregarEventos(role);
+    setModalDesinscricaoSucesso(evento);
   }
 
   async function handleSalvarEvento(
@@ -250,7 +282,6 @@ export default function EventosPage() {
           )}
         </div>
 
-        {/* Skeleton: Carrossel */}
         {loading && (
           <div className="w-full rounded-2xl overflow-hidden border border-slate-100 dark:border-[#303030] mb-8 animate-pulse">
             <div className="relative h-52 sm:h-[380px] bg-slate-200 dark:bg-[#2a2a2a]">
@@ -269,12 +300,10 @@ export default function EventosPage() {
           </div>
         )}
 
-        {/* Carrossel de destaques */}
         {!loading && !erroCarga && eventosDestaque.length > 0 && (
           <CarrosselEventos eventos={eventosDestaque} />
         )}
 
-        {/* Filtros */}
         <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <FilterInput
@@ -352,7 +381,9 @@ export default function EventosPage() {
                   evento={evento}
                   role={role}
                   isInscrito={isInscrito(evento.id)}
-                  canCancelarInscricao={!minhasInscricoes[evento.id]?.presencaConfirmada}
+                  canCancelarInscricao={
+                    !minhasInscricoes[evento.id]?.presencaConfirmada
+                  }
                   onInscrever={handleInscrever}
                   onCancelarInscricao={handleCancelarInscricao}
                   onEditar={(e) => setModalForm(e)}
@@ -404,6 +435,13 @@ export default function EventosPage() {
             onLer={handleQRConfirmar}
             onFechar={() => setModalQR(null)}
             presencasConfirmadas={presencasConfirmadas}
+          />
+        )}
+
+        {modalDesinscricaoSucesso && (
+          <ModalDesinscricaoSucesso
+            eventoNome={modalDesinscricaoSucesso.nome}
+            onFechar={() => setModalDesinscricaoSucesso(null)}
           />
         )}
       </div>

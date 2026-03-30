@@ -23,20 +23,43 @@ interface InscricaoComEvento {
   evento: Evento | null;
 }
 
-function ModalQR({ qrCode, eventoNome, onFechar }: { qrCode: string; eventoNome: string; onFechar: () => void }) {
+function ModalQR({
+  qrCode,
+  eventoNome,
+  onFechar,
+}: {
+  qrCode: string;
+  eventoNome: string;
+  onFechar: () => void;
+}) {
+  const [copiado, setCopiado] = useState(false);
+
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onFechar();
+      }}
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-[#303030]">
           <div>
-            <p className="text-xs text-amber-500 font-bold uppercase tracking-wider">QR Code</p>
-            <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 line-clamp-1">{eventoNome}</p>
+            <p className="text-xs text-amber-500 font-bold uppercase tracking-wider">
+              QR Code
+            </p>
+            <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 line-clamp-1">
+              {eventoNome}
+            </p>
           </div>
-          <button onClick={onFechar} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none">×</button>
+
+          <button
+            onClick={onFechar}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none"
+          >
+            ×
+          </button>
         </div>
+
         <div className="flex flex-col items-center gap-4 p-6">
           <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
             <img
@@ -47,11 +70,52 @@ function ModalQR({ qrCode, eventoNome, onFechar }: { qrCode: string; eventoNome:
               className="rounded"
             />
           </div>
-          <p className="text-xs font-mono text-slate-400 text-center break-all">{qrCode}</p>
+
+          <div className="relative flex items-center justify-center w-full min-w-0">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(qrCode);
+                setCopiado(true);
+                setTimeout(() => setCopiado(false), 2000);
+              }}
+              className="group flex items-center gap-1.5 cursor-pointer min-w-0 max-w-full"
+            >
+              <p className="text-xs text-slate-400 font-mono text-center truncate min-w-0 max-w-full group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                {qrCode}
+              </p>
+
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="shrink-0 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors"
+              >
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            </button>
+
+            {copiado && (
+              <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
+                Copiado!
+              </span>
+            )}
+          </div>
+
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
             Apresente este código no dia do evento para confirmar sua presença.
           </p>
-          <button onClick={onFechar} className="w-full py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors">
+
+          <button
+            onClick={onFechar}
+            className="w-full py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
+          >
             Fechar
           </button>
         </div>
@@ -292,8 +356,8 @@ export function AbaHistoricoAluno({ matricula }: Props) {
             <div
               key={inscricao.id}
               className={`bg-white dark:bg-[#202020] rounded-2xl border shadow-sm p-4 transition-colors ${confirmado
-                  ? "border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-900/5"
-                  : "border-slate-100 dark:border-[#303030]"
+                ? "border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-900/5"
+                : "border-slate-100 dark:border-[#303030]"
                 }`}
             >
               <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">

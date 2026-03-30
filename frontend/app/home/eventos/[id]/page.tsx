@@ -1,7 +1,7 @@
 // app/home/eventos/[id]/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   IconArrowLeft,
@@ -31,13 +31,67 @@ import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
 import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
 import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscritos";
+import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import AuthGuard from "@/src/guard/AuthGuard";
+
+function formatarLink(valor: string) {
+  if (/^https?:\/\//i.test(valor)) return valor;
+  return `https://${valor}`;
+}
+
+function renderDescricaoEventoFormatada(texto: string) {
+  if (!texto) return null;
+
+  return texto.split("\n").map((linha, linhaIndex) => {
+    const partes = linha.split(/(\*[^\*]+\*|@\S+)/g).filter(Boolean);
+
+    return (
+      <p
+        key={linhaIndex}
+        className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
+      >
+        {partes.map((parte, parteIndex) => {
+          if (/^\*[^\*]+\*$/.test(parte)) {
+            return (
+              <strong
+                key={`${linhaIndex}-${parteIndex}`}
+                className="font-bold text-slate-800 dark:text-slate-100"
+              >
+                {parte.slice(1, -1)}
+              </strong>
+            );
+          }
+
+          if (/^@\S+$/.test(parte)) {
+            const textoLink = parte.slice(1);
+            const href = formatarLink(textoLink);
+
+            return (
+              <a
+                key={`${linhaIndex}-${parteIndex}`}
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-semibold text-[#e6c800] dark:text-[#FFDE00] hover:underline break-all"
+              >
+                {textoLink}
+              </a>
+            );
+          }
+
+          return <span key={`${linhaIndex}-${parteIndex}`}>{parte}</span>;
+        })}
+      </p>
+    );
+  });
+}
 
 export default function DetalheEventoPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const sessao = Auth.getUser();
   const role = (sessao?.permission ?? "aluno") as UserRole;
+
   const user = {
     id: sessao?.id ?? "",
     apelido: sessao?.apelido ?? "",
@@ -52,27 +106,33 @@ export default function DetalheEventoPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
 
-  // Modais
   const [modalInscricao, setModalInscricao] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
   const [modalForm, setModalForm] = useState(false);
   const [modalQRAluno, setModalQRAluno] = useState(false);
   const [modalQR, setModalQR] = useState(false);
   const [modalInscritos, setModalInscritos] = useState(false);
-  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
+  const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
+    useState(false);
+
+  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>(
+    []
+  );
   const [inscricaoAluno, setInscricaoAluno] = useState<Inscricao | null>(null);
   const [inscritosDoEvento, setInscritosDoEvento] = useState<Inscricao[]>([]);
   const [copiado, setCopiado] = useState(false);
-  
+
   async function carregar() {
     setLoading(true);
     setErro(false);
+
     try {
       const data = await EventoService.getById(id);
       if (!data) {
         setErro(true);
         return;
       }
+
       setEvento(data);
 
       if (role === "aluno") {
@@ -92,6 +152,10 @@ export default function DetalheEventoPage() {
   useEffect(() => {
     carregar();
   }, [id]);
+
+  const descricaoFormatada = useMemo(() => {
+    return renderDescricaoEventoFormatada(evento?.descricaoCompleta ?? "");
+  }, [evento?.descricaoCompleta]);
 
   if (loading) {
     return (
@@ -126,12 +190,18 @@ export default function DetalheEventoPage() {
     );
   }
 
-  const status = getStatusVaga(evento);
-  const encerrado = isInscricaoEncerrada(evento);
+  const eventoAtual = evento;
+
+  const status = getStatusVaga(eventoAtual);
+  const encerrado = isInscricaoEncerrada(eventoAtual);
   const isInscrito = !!inscricaoAluno;
-  const canCancelarInscricao = !!inscricaoAluno && !inscricaoAluno.presencaConfirmada;
-  const vagasLivres = evento.vagas - evento.vagasOcupadas;
-  const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
+  const canCancelarInscricao =
+    !!inscricaoAluno && !inscricaoAluno.presencaConfirmada;
+  const vagasLivres = eventoAtual.vagas - eventoAtual.vagasOcupadas;
+  const porcento = Math.min(
+    (eventoAtual.vagasOcupadas / eventoAtual.vagas) * 100,
+    100
+  );
 
   const barColor =
     status === "esgotado"
@@ -140,7 +210,9 @@ export default function DetalheEventoPage() {
         ? "bg-amber-400"
         : "bg-emerald-500";
 
-  const dataFormatada = new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", {
+  const dataFormatada = new Date(
+    eventoAtual.data + "T00:00:00"
+  ).toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -148,7 +220,7 @@ export default function DetalheEventoPage() {
   });
 
   const dataLimiteFormatada = new Date(
-    evento.dataLimiteInscricao + "T00:00:00"
+    eventoAtual.dataLimiteInscricao + "T00:00:00"
   ).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
@@ -156,48 +228,54 @@ export default function DetalheEventoPage() {
   });
 
   async function handleConfirmarInscricao(): Promise<Inscricao> {
-    const result = await EventoService.inscrever(evento!.id);
+    const result = await EventoService.inscrever(eventoAtual.id);
     setInscricaoAluno(result);
     setModalInscricao(false);
+    setModalQRAluno(true);
     await carregar();
     return result;
   }
 
   async function handleCancelarInscricao() {
-    await EventoService.cancelarInscricao(evento!.id);
+    await EventoService.cancelarInscricao(eventoAtual.id);
     setInscricaoAluno(null);
     setModalQRAluno(false);
     await carregar();
+    setModalDesinscricaoSucesso(true);
   }
 
   async function handleSalvarEvento(
     dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">
   ) {
-    await EventoService.editar(evento!.id, dados);
+    await EventoService.editar(eventoAtual.id, dados);
     await carregar();
     setModalForm(false);
   }
 
   async function handleExcluir() {
-    await EventoService.excluir(evento!.id);
+    await EventoService.excluir(eventoAtual.id);
     router.push("/home/eventos");
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
-    if (!evento) throw new Error("Evento não encontrado.");
-    const result = await EventoService.confirmarPresenca(evento.id, qrCode);
+    const result = await EventoService.confirmarPresenca(eventoAtual.id, qrCode);
+
     setPresencasConfirmadas((prev) => {
       const exists = prev.find((p) => p.id === result.id);
       return exists ? prev : [...prev, result];
     });
+
     setInscritosDoEvento((prev) =>
-      prev.map((inscricao) => (inscricao.id === result.id ? result : inscricao))
+      prev.map((inscricao) =>
+        inscricao.id === result.id ? result : inscricao
+      )
     );
+
     return result;
   }
 
   async function abrirModalQR() {
-    const inscricoes = await EventoService.getInscricoesEvento(evento!.id);
+    const inscricoes = await EventoService.getInscricoesEvento(eventoAtual.id);
     setInscritosDoEvento(inscricoes);
     const confirmadas = inscricoes.filter((i) => i.presencaConfirmada);
     setPresencasConfirmadas(confirmadas);
@@ -207,7 +285,6 @@ export default function DetalheEventoPage() {
   return (
     <AuthGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Voltar */}
         <button
           onClick={() => router.push("/home/eventos")}
           className="flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-[#e6c800] dark:hover:text-[#FFDE00] transition-colors mb-6"
@@ -216,23 +293,24 @@ export default function DetalheEventoPage() {
           Voltar para eventos
         </button>
 
-        {/* Banner */}
-        {evento.banner ? (
+        {eventoAtual.banner ? (
           <img
-            src={evento.banner}
-            alt={evento.nome}
+            src={eventoAtual.banner}
+            alt={eventoAtual.nome}
             className="w-full h-64 object-cover rounded-2xl mb-6 shadow-sm"
           />
         ) : (
           <div className="w-full h-64 rounded-2xl mb-6 bg-gradient-to-br from-[#FFDE00] to-[#e6c800] flex items-center justify-center shadow-sm">
-            <span className="text-[#252525] text-7xl font-black opacity-20 text-center">Evento<br />AVP</span>
+            <span className="text-[#252525] text-7xl font-black opacity-20 text-center">
+              Evento
+              <br />
+              AVP
+            </span>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Coluna principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Nome e badges */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 {status === "esgotado" && (
@@ -240,49 +318,54 @@ export default function DetalheEventoPage() {
                     Esgotado
                   </span>
                 )}
+
                 {status === "quase_esgotado" && (
                   <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full">
                     Últimas vagas!
                   </span>
                 )}
+
                 {isInscrito && (
                   <span className="bg-[#FFDE00]/10 dark:bg-[#FFDE00]/5 text-[#e6c800] dark:text-[#FFDE00] border border-[#e6c800]/60 dark:border-[#FFDE00]/40 text-xs font-bold px-2.5 py-1 rounded-full">
                     Inscrito ✓
                   </span>
                 )}
-                {evento.tipoInscricao === "externa" && (
+
+                {eventoAtual.tipoInscricao === "externa" && (
                   <span className="bg-slate-100 dark:bg-[#2a2a2a] text-slate-500 dark:text-slate-400 text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
                     <IconExternalLink size={11} />
                     Inscrição externa
                   </span>
                 )}
               </div>
+
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-snug">
-                {evento.nome}
+                {eventoAtual.nome}
               </h1>
+
               <p className="text-slate-500 dark:text-slate-400 text-base">
-                {evento.descricaoBreve}
+                {eventoAtual.descricaoBreve}
               </p>
             </div>
 
-            {/* Descrição completa */}
             <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-5">
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wide">
                 Sobre o evento
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {evento.descricaoCompleta}
-              </p>
+
+              <div className="space-y-3 whitespace-pre-wrap">
+                {descricaoFormatada}
+              </div>
             </div>
 
-            {/* Anexos */}
-            {evento.anexos.length > 0 && (
+            {eventoAtual.anexos.length > 0 && (
               <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-5">
                 <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wide">
                   Anexos
                 </h2>
+
                 <div className="space-y-2">
-                  {evento.anexos.map((a) => (
+                  {eventoAtual.anexos.map((a) => (
                     <a
                       key={a.id}
                       href={a.url}
@@ -299,14 +382,13 @@ export default function DetalheEventoPage() {
             )}
           </div>
 
-          {/* Coluna lateral */}
           <div className="space-y-4">
-            {/* Botão de inscrição (aluno) */}
             {role === "aluno" && (
               <>
-                {evento.tipoInscricao === "externa" && evento.urlExterna ? (
+                {eventoAtual.tipoInscricao === "externa" &&
+                eventoAtual.urlExterna ? (
                   <a
-                    href={evento.urlExterna}
+                    href={eventoAtual.urlExterna}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525] text-sm font-bold transition-colors"
@@ -322,14 +404,19 @@ export default function DetalheEventoPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => (isInscrito ? handleCancelarInscricao() : setModalInscricao(true))}
+                        onClick={() =>
+                          isInscrito
+                            ? handleCancelarInscricao()
+                            : setModalInscricao(true)
+                        }
                         disabled={!isInscrito && (status === "esgotado" || encerrado)}
-                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
-                          ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
-                          : status === "esgotado" || encerrado
-                            ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                            : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                          }`}
+                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${
+                          isInscrito
+                            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                            : status === "esgotado" || encerrado
+                              ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                              : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                        }`}
                       >
                         {isInscrito
                           ? "Cancelar minha inscricao"
@@ -343,7 +430,6 @@ export default function DetalheEventoPage() {
                   </>
                 )}
 
-                {/* Botão Ver QR Code */}
                 {isInscrito && inscricaoAluno && (
                   <button
                     onClick={() => setModalQRAluno(true)}
@@ -356,7 +442,6 @@ export default function DetalheEventoPage() {
               </>
             )}
 
-            {/* Ações colaborador/adm */}
             {canEdit(role) && (
               <div className="space-y-2">
                 <button
@@ -400,59 +485,76 @@ export default function DetalheEventoPage() {
               </div>
             )}
 
-            {/* Informações */}
             <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-5 space-y-4">
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                 Informações
               </h2>
 
               <div className="flex items-start gap-3 text-sm">
-                <IconCalendar size={16} className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0" />
+                <IconCalendar
+                  size={16}
+                  className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0"
+                />
                 <div>
                   <p className="font-medium text-slate-800 dark:text-slate-200">
-                    {dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1).toLowerCase()}
+                    {dataFormatada.charAt(0).toUpperCase() +
+                      dataFormatada.slice(1).toLowerCase()}
                   </p>
                   <p className="text-slate-400 text-xs mt-0.5">
-                    {evento.turno} · {evento.horario}
+                    {eventoAtual.turno} · {eventoAtual.horario}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 text-sm">
-                <IconMapPin size={16} className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0" />
-                <p className="text-slate-700 dark:text-slate-300">{evento.local}</p>
+                <IconMapPin
+                  size={16}
+                  className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0"
+                />
+                <p className="text-slate-700 dark:text-slate-300">
+                  {eventoAtual.local}
+                </p>
               </div>
 
               <div className="flex items-start gap-3 text-sm">
-                <IconClock size={16} className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0" />
+                <IconClock
+                  size={16}
+                  className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0"
+                />
                 <div>
                   <p className="text-slate-700 dark:text-slate-300">
                     Inscrições até{" "}
                     <span className="font-medium">{dataLimiteFormatada}</span>
                   </p>
                   {encerrado && (
-                    <p className="text-red-500 text-xs mt-0.5">Inscrições encerradas</p>
+                    <p className="text-red-500 text-xs mt-0.5">
+                      Inscrições encerradas
+                    </p>
                   )}
                 </div>
               </div>
 
-              {/* Vagas */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                    <IconUsers size={14} className="text-[#e6c800] dark:text-[#FFDE00]" />
+                    <IconUsers
+                      size={14}
+                      className="text-[#e6c800] dark:text-[#FFDE00]"
+                    />
                     Vagas
                   </span>
                   <span className="text-slate-500 dark:text-slate-400 text-xs">
-                    {evento.vagasOcupadas}/{evento.vagas}
+                    {eventoAtual.vagasOcupadas}/{eventoAtual.vagas}
                   </span>
                 </div>
+
                 <div className="w-full h-2 bg-slate-200 dark:bg-[#363636] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${barColor}`}
                     style={{ width: `${porcento}%` }}
                   />
                 </div>
+
                 <p className="text-xs text-slate-400">
                   {status === "esgotado"
                     ? "Sem vagas disponíveis"
@@ -463,46 +565,55 @@ export default function DetalheEventoPage() {
           </div>
         </div>
 
-        {/* ── MODAIS ── */}
         {modalInscricao && (
           <ModalInscricao
-            evento={evento}
+            evento={eventoAtual}
             user={user}
             onConfirmar={handleConfirmarInscricao}
             onFechar={() => setModalInscricao(false)}
           />
         )}
+
         {modalExcluir && (
           <ModalExcluir
-            evento={evento}
+            evento={eventoAtual}
             onConfirmar={handleExcluir}
             onFechar={() => setModalExcluir(false)}
           />
         )}
+
         {modalForm && (
           <ModalFormEvento
-            evento={evento}
+            evento={eventoAtual}
             onSalvar={handleSalvarEvento}
             onFechar={() => setModalForm(false)}
           />
         )}
+
         {modalQR && (
           <ModalQRReader
-            eventoNome={evento.nome}
+            eventoNome={eventoAtual.nome}
             onLer={handleQRConfirmar}
             onFechar={() => setModalQR(false)}
             presencasConfirmadas={presencasConfirmadas}
           />
         )}
+
         {modalInscritos && (
           <ModalListaInscritos
-            evento={evento}
+            evento={eventoAtual}
             inscricoes={inscritosDoEvento}
             onFechar={() => setModalInscritos(false)}
           />
         )}
 
-        {/* Modal QR Code do aluno */}
+        {modalDesinscricaoSucesso && (
+          <ModalDesinscricaoSucesso
+            eventoNome={eventoAtual.nome}
+            onFechar={() => setModalDesinscricaoSucesso(false)}
+          />
+        )}
+
         {modalQRAluno && inscricaoAluno && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm bg-black/50"
@@ -518,21 +629,42 @@ export default function DetalheEventoPage() {
 
               <div className="relative w-[200px] h-[200px] shadow rounded-md bg-white flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <svg className="animate-spin w-10 h-10 text-slate-300" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  <svg
+                    className="animate-spin w-10 h-10 text-slate-300"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
                   </svg>
                 </div>
 
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(inscricaoAluno.qrCode)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                    inscricaoAluno.qrCode
+                  )}`}
                   alt="QR Code"
                   width={180}
                   height={180}
                   className="rounded-md opacity-0 transition-opacity duration-300"
                   onLoad={(e) => {
-                    (e.target as HTMLImageElement).classList.remove("opacity-0");
-                    (e.target as HTMLImageElement).previousElementSibling?.classList.add("hidden");
+                    (
+                      e.target as HTMLImageElement
+                    ).classList.remove("opacity-0");
+                    (
+                      e.target as HTMLImageElement
+                    ).previousElementSibling?.classList.add("hidden");
                   }}
                 />
               </div>
@@ -549,7 +681,18 @@ export default function DetalheEventoPage() {
                   <p className="text-xs text-slate-400 font-mono text-center truncate min-w-0 max-w-full group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
                     {inscricaoAluno.qrCode}
                   </p>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors"
+                  >
                     <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                     <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                   </svg>
@@ -561,6 +704,7 @@ export default function DetalheEventoPage() {
                   </span>
                 )}
               </div>
+
               <button
                 onClick={() => setModalQRAluno(false)}
                 className="w-full cursor-pointer py-2 rounded-md bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#333] transition-colors"

@@ -116,13 +116,13 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
               ? parseAssuntos(comunicado.assunto).map((item) => (
                 <span
                   key={item}
-                  className="rounded-full bg-amber-100 px-2 py-1.5 text-[9px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]"
+                  className="rounded-full bg-amber-100 px-2 py-1.5 text-[12px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]"
                 >
                   {item}
                 </span>
               ))
               : (
-                <span className="rounded-full bg-amber-100 px-2 py-1.5 text-[9px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]">
+                <span className="rounded-full bg-amber-100 px-2 py-1.5 text-[12px] leading-none font-medium text-amber-600 dark:bg-[#FFDE00]/10 dark:text-[#FFDE00]">
                   Comunicado
                 </span>
               )}
@@ -168,13 +168,7 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
                         <IconExternalLink size={13} />
                         Visualizar
                       </a>
-                      <button
-                        onClick={() => handleDownload(anexo.url, anexo.nome)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#363636] border border-slate-200 dark:border-[#505050] text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#404040] transition-colors"
-                      >
-                        <IconDownload size={13} />
-                        Baixar
-                      </button>
+                      
                     </div>
                   </div>
                 ))}

@@ -1,3 +1,4 @@
+// src/service/evento.service.ts
 import { Evento, Inscricao } from "@/src/types/evento";
 import { buildFileUrl, extractFilePath } from "@/src/service/file.service";
 import { api } from "./api";

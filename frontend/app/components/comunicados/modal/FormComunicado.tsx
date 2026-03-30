@@ -269,6 +269,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
           <input
             type="text"
             value={form.titulo}
+            maxLength={50}
             onChange={(e) => set("titulo", e.target.value)}
             placeholder="Ex: Reunião Geral — Resultados Q1"
             className={`${inputCls} ${inputBorder(erros, "titulo")}`}
@@ -348,10 +349,10 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
             rows={6}
             value={form.conteudo}
             onChange={(e) => set("conteudo", e.target.value)}
-            placeholder="Escreva o conteúdo do comunicado. Use *texto* para negrito e @link para links."
+            placeholder="Use * no início e no fim para negrito e @ no início para link. Ex: *texto* e @google.com"
             className={`${inputCls} resize-none ${inputBorder(erros, "conteudo")}`}
           />
-          <p className="text-xs text-slate-400">Use *texto* para negrito e @link para links.</p>
+          <p className="text-xs text-slate-400">Use * no início e no fim para negrito e @ no início para link. Ex: *texto* e @google.com</p>
         </Campo>
 
         {/* Visibilidade */}

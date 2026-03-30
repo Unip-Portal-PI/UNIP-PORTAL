@@ -123,11 +123,8 @@ export default function ComunicadoDetalhePage() {
   }
 
   const expirado = isComunicadoExpirado(comunicado);
-  const podeEditar =
-    canEditComunicado(role) &&
-    (canDeleteAllComunicados(role) || isAutor(comunicado, matricula));
-  const podeExcluir =
-    canDeleteAllComunicados(role) || isAutor(comunicado, matricula);
+  const podeEditar = canEditComunicado(role);
+  const podeExcluir = canDeleteAllComunicados(role);
 
   const dataFormatada = new Date(comunicado.criadoEm).toLocaleDateString("pt-BR", {
     day: "2-digit",

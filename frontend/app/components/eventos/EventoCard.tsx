@@ -1,6 +1,7 @@
 // app/components/eventos/EventoCard.tsx
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
@@ -12,7 +13,11 @@ import {
 } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
-import { isInscricaoEncerrada, canEdit, canDelete } from "@/src/utils/evento.helpers";
+import {
+  isInscricaoEncerrada,
+  canEdit,
+  canDelete,
+} from "@/src/utils/evento.helpers";
 
 interface EventoCardProps {
   evento: Evento;
@@ -23,6 +28,50 @@ interface EventoCardProps {
   onCancelarInscricao: (evento: Evento) => void;
   onEditar: (evento: Evento) => void;
   onExcluir: (evento: Evento) => void;
+}
+
+function formatarLink(valor: string) {
+  if (/^https?:\/\//i.test(valor)) return valor;
+  return `https://${valor}`;
+}
+
+function renderResumoFormatado(texto: string) {
+  if (!texto) return null;
+
+  const partes = texto.split(/(\*[^\*]+\*|@\S+)/g).filter(Boolean);
+
+  return partes.map((parte, index) => {
+    if (/^\*[^\*]+\*$/.test(parte)) {
+      return (
+        <strong
+          key={index}
+          className="font-bold text-slate-700 dark:text-slate-200"
+        >
+          {parte.slice(1, -1)}
+        </strong>
+      );
+    }
+
+    if (/^@\S+$/.test(parte)) {
+      const textoLink = parte.slice(1);
+      const href = formatarLink(textoLink);
+
+      return (
+        <a
+          key={index}
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          onClick={(e) => e.stopPropagation()}
+          className="font-semibold text-[#e6c800] dark:text-[#FFDE00] hover:underline break-all"
+        >
+          {textoLink}
+        </a>
+      );
+    }
+
+    return <span key={index}>{parte}</span>;
+  });
 }
 
 export function EventoCard({
@@ -56,16 +105,23 @@ export function EventoCard({
           ? "bg-amber-400"
           : "bg-emerald-500";
 
-  const dataFormatada = new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const dataFormatada = new Date(evento.data + "T00:00:00").toLocaleDateString(
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }
+  );
 
   const descricaoResumo =
     (evento.descricaoCompleta ?? "").trim() ||
     (evento.descricaoBreve ?? "").trim() ||
     "Sem descrição disponível.";
+
+  const resumoFormatado = useMemo(() => {
+    return renderResumoFormatado(descricaoResumo);
+  }, [descricaoResumo]);
 
   function handleCardClick() {
     router.push(`/home/eventos/${evento.id}`);
@@ -73,7 +129,6 @@ export function EventoCard({
 
   return (
     <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
-      {/* Banner */}
       <div
         className="relative cursor-pointer overflow-hidden"
         onClick={handleCardClick}
@@ -87,7 +142,9 @@ export function EventoCard({
         ) : (
           <div className="w-full h-40 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
             <span className="text-[#252525] text-4xl font-black opacity-20 select-none text-center">
-              Evento<br />AVP
+              Evento
+              <br />
+              AVP
             </span>
           </div>
         )}
@@ -120,17 +177,21 @@ export function EventoCard({
           </span>
         )}
 
+        {evento.area && (
+          <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+            {evento.area}
+          </span>
+        )}
+
         {evento.tipoInscricao === "externa" && (
-          <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
             <IconExternalLink size={11} />
             Inscrição externa
           </span>
         )}
       </div>
 
-      {/* Conteúdo */}
       <div className="flex flex-col flex-1 p-4 gap-3">
-        {/* Nome */}
         <h3
           className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2"
           onClick={handleCardClick}
@@ -138,12 +199,10 @@ export function EventoCard({
           {evento.nome}
         </h3>
 
-        {/* Início da descrição com elipse em uma linha */}
-        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 leading-relaxed break-words">
-          {descricaoResumo}
-        </p>
+        <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 leading-relaxed break-words">
+          {resumoFormatado}
+        </div>
 
-        {/* Meta: data e turno */}
         <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1">
             <IconCalendar size={13} />
@@ -155,14 +214,17 @@ export function EventoCard({
           </span>
         </div>
 
-        {/* Barra de vagas */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1">
               <IconUsers size={12} />
-              {status === "esgotado" ? "Sem vagas" : `${vagasLivres} vagas restantes`}
+              {status === "esgotado"
+                ? "Sem vagas"
+                : `${vagasLivres} vagas restantes`}
             </span>
-            <span>{evento.vagasOcupadas}/{evento.vagas}</span>
+            <span>
+              {evento.vagasOcupadas}/{evento.vagas}
+            </span>
           </div>
           <div className="w-full h-1.5 bg-slate-200 dark:bg-[#363636] rounded-full overflow-hidden">
             <div
@@ -172,7 +234,6 @@ export function EventoCard({
           </div>
         </div>
 
-        {/* Ações */}
         <div className="flex items-center gap-2 mt-auto pt-1">
           {role === "aluno" && (
             <>
@@ -182,7 +243,11 @@ export function EventoCard({
                 </div>
               ) : (
                 <button
-                  onClick={() => (isInscrito ? onCancelarInscricao(evento) : onInscrever(evento))}
+                  onClick={() =>
+                    isInscrito
+                      ? onCancelarInscricao(evento)
+                      : onInscrever(evento)
+                  }
                   disabled={!isInscrito && (status === "esgotado" || encerrado)}
                   className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${
                     isInscrito
@@ -225,7 +290,9 @@ export function EventoCard({
 
           <button
             onClick={handleCardClick}
-            className={`${role === "aluno" ? "" : "flex-1"} py-2 px-3 cursor-pointer rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
+            className={`${
+              role === "aluno" ? "" : "flex-1"
+            } py-2 px-3 cursor-pointer rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
           >
             Ver detalhes
           </button>

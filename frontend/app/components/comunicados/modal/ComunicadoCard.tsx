@@ -1,6 +1,7 @@
 // app/components/comunicados/modal/ComunicadoCard.tsx
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconEdit,
@@ -14,8 +15,6 @@ import { UserRole } from "@/src/types/user";
 import {
   canEditComunicado,
   canDeleteAllComunicados,
-  isAutor,
-  getResumoComunicado,
   parseAssuntos,
 } from "@/src/utils/comunicado.helpers";
 
@@ -28,6 +27,58 @@ interface ComunicadoCardProps {
   onExcluir: (c: Comunicado) => void;
 }
 
+function formatarLink(valor: string) {
+  if (/^https?:\/\//i.test(valor)) return valor;
+  return `https://${valor}`;
+}
+
+function resumirConteudoFormatado(texto: string, max = 180) {
+  const conteudo = String(texto ?? "").trim();
+  if (!conteudo) return "";
+
+  if (conteudo.length <= max) return conteudo;
+  return `${conteudo.slice(0, max).trim()}...`;
+}
+
+function renderResumoFormatado(texto: string) {
+  if (!texto) return null;
+
+  const partes = texto.split(/(\*[^\*]+\*|@\S+)/g).filter(Boolean);
+
+  return partes.map((parte, index) => {
+    if (/^\*[^\*]+\*$/.test(parte)) {
+      return (
+        <strong
+          key={index}
+          className="font-bold text-slate-700 dark:text-slate-200"
+        >
+          {parte.slice(1, -1)}
+        </strong>
+      );
+    }
+
+    if (/^@\S+$/.test(parte)) {
+      const textoLink = parte.slice(1);
+      const href = formatarLink(textoLink);
+
+      return (
+        <a
+          key={index}
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          onClick={(e) => e.stopPropagation()}
+          className="font-semibold text-[#e6c800] dark:text-[#FFDE00] hover:underline break-all"
+        >
+          {textoLink}
+        </a>
+      );
+    }
+
+    return <span key={index}>{parte}</span>;
+  });
+}
+
 export function ComunicadoCard({
   comunicado,
   role,
@@ -37,27 +88,31 @@ export function ComunicadoCard({
   onExcluir,
 }: ComunicadoCardProps) {
   const router = useRouter();
-  const podeEditar =
-    canEditComunicado(role) &&
-    (canDeleteAllComunicados(role) || isAutor(comunicado, matricula));
-  const podeExcluir =
-    canDeleteAllComunicados(role) || isAutor(comunicado, matricula);
 
-  const dataFormatada = new Date(comunicado.criadoEm).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const podeEditar = canEditComunicado(role);
+  const podeExcluir = canDeleteAllComunicados(role);
+
+  const dataFormatada = new Date(comunicado.criadoEm).toLocaleDateString(
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
+
+  const resumoFormatado = useMemo(() => {
+    const resumo = resumirConteudoFormatado(comunicado.conteudo, 180);
+    return renderResumoFormatado(resumo);
+  }, [comunicado.conteudo]);
 
   function handleAbrir() {
+    onVerConteudo(comunicado);
     router.push(`/home/comunicado/${comunicado.id}`);
   }
 
   return (
-    <div
-      className={`bg-white dark:bg-[#202020] rounded-2xl border shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all duration-200`}
-    >
-      {/* Banner */}
+    <div className="bg-white dark:bg-[#202020] rounded-2xl border shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all duration-200">
       <div
         className="relative cursor-pointer overflow-hidden"
         onClick={handleAbrir}
@@ -71,16 +126,20 @@ export function ComunicadoCard({
         ) : (
           <div className="w-full h-72 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
             <span className="text-[#252525] text-5xl font-black opacity-40 select-none text-center">
-            Comunicado<br />AVP
+              Comunicado
+              <br />
+              AVP
             </span>
           </div>
         )}
 
-        {/* Badge Assunto */}
         {parseAssuntos(comunicado.assunto).length > 0 && (
           <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5">
             {parseAssuntos(comunicado.assunto).map((item) => (
-              <span key={item} className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium">
+              <span
+                key={item}
+                className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium"
+              >
                 {item}
               </span>
             ))}
@@ -88,9 +147,7 @@ export function ComunicadoCard({
         )}
       </div>
 
-      {/* Conteúdo */}
       <div className="flex flex-col flex-1 p-6 gap-4">
-        {/* Título */}
         <h3
           className="font-bold text-slate-900 dark:text-white text-xl leading-snug cursor-pointer hover:text-amber-600 dark:hover:text-[#FFDE00] transition-colors line-clamp-2"
           onClick={handleAbrir}
@@ -98,12 +155,10 @@ export function ComunicadoCard({
           {comunicado.titulo}
         </h3>
 
-        {/* Prévia */}
-        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-4 leading-relaxed">
-          {getResumoComunicado(comunicado)}
-        </p>
+        <div className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed break-words line-clamp-4">
+          {resumoFormatado}
+        </div>
 
-        {/* Meta */}
         <div className="flex flex-wrap gap-3 text-xs text-slate-400 dark:text-slate-500">
           <span className="flex items-center gap-1">
             <IconCalendar size={13} />
@@ -121,10 +176,8 @@ export function ComunicadoCard({
           )}
         </div>
 
-        {/* Separador */}
         <div className="h-px bg-slate-100 dark:bg-[#2a2a2a]" />
 
-        {/* Ações */}
         <div className="flex items-center gap-2 mt-auto">
           <button
             onClick={handleAbrir}
