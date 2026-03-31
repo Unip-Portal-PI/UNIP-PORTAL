@@ -19,6 +19,7 @@ import {
   canDelete,
 } from "@/src/utils/evento.helpers";
 
+
 interface EventoCardProps {
   evento: Evento;
   role: UserRole;
