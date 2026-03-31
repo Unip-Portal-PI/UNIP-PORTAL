@@ -23,7 +23,21 @@ function formatarData(data: string) {
     year: "numeric",
   });
 }
-
+function renderizarDescricao(texto: string): string {
+  const partes = texto.split(/(\*[^*]+\*|@\S+)/g);
+  return partes
+    .map((parte) => {
+      if (parte.startsWith("*") && parte.endsWith("*")) {
+        return `<strong>${parte.slice(1, -1)}</strong>`;
+      }
+      if (parte.startsWith("@")) {
+        const url = parte.slice(1);
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#e6c800] dark:text-[#FFDE00] hover:underline break-all">${url}</a>`;
+      }
+      return parte;
+    })
+    .join("");
+}
 export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
   const router = useRouter();
   const [indexAtual, setIndexAtual] = useState(0);
@@ -144,9 +158,10 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
             {evento.nome}
           </h2>
 
-          <p className="mt-2 text-sm sm:text-base text-white/85 max-w-2xl line-clamp-2">
-            {descricao}
-          </p>
+          <p
+            className="mt-2 text-sm sm:text-base text-white/85 max-w-2xl line-clamp-2"
+            dangerouslySetInnerHTML={{ __html: renderizarDescricao(descricao) }}
+          />
 
           <div className="mt-3 flex flex-wrap gap-4 text-xs sm:text-sm text-white/90">
             <span className="inline-flex items-center gap-1.5">
@@ -172,11 +187,10 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
                   e.stopPropagation();
                   setIndexAtual(i);
                 }}
-                className={`rounded-full transition-all ${
-                  i === indexAtual
+                className={`rounded-full transition-all ${i === indexAtual
                     ? "w-5 h-2 bg-white"
                     : "w-2 h-2 bg-white/45 hover:bg-white/70"
-                }`}
+                  }`}
                 aria-label={`Ir para slide ${i + 1}`}
               />
             ))}

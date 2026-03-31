@@ -15,6 +15,7 @@ import {
   IconCircleX,
   IconClock,
   IconDownload,
+  IconSelector,
 } from "@tabler/icons-react";
 import { UsuarioGestor, PERMISSION_LABEL, PERMISSION_COR } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
@@ -32,6 +33,111 @@ import { FilterSelect } from "@/app/components/filters/FilterSelect";
 const FILTRO_PERFIS = ["Todos", "Aluno", "Colaborador", "Administrador"];
 const FILTRO_STATUS = ["Todos", "Ativos", "Inativos", "Excluídos"];
 
+// ─── Tipos de ordenação ───────────────────────────────────────────────────────
+type ColunasOrdenavel = "nome" | "email" | "matricula" | "permission" | "status";
+type DirecaoOrdenacao = "asc" | "desc";
+
+interface OrdenacaoState {
+  coluna: ColunasOrdenavel | null;
+  direcao: DirecaoOrdenacao;
+}
+
+// ─── Ícone de triângulo para o cabeçalho ─────────────────────────────────────
+function IconeOrdenacao({
+  coluna,
+  ordenacao,
+}: {
+  coluna: ColunasOrdenavel;
+  ordenacao: OrdenacaoState;
+}) {
+  const ativa = ordenacao.coluna === coluna;
+
+  if (!ativa) {
+    // Triângulos cinzas (neutros) quando a coluna não está ativa
+    return (
+      <span className="inline-flex flex-col items-center justify-center ml-1.5 opacity-30 group-hover:opacity-60 transition-opacity">
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+          <path d="M4 0L8 5H0L4 0Z" />
+        </svg>
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="mt-0.5">
+          <path d="M4 5L0 0H8L4 5Z" />
+        </svg>
+      </span>
+    );
+  }
+
+  if (ordenacao.direcao === "asc") {
+    // Triângulo para cima (crescente) — ativo amarelo
+    return (
+      <span className="inline-flex flex-col items-center justify-center ml-1.5">
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="text-[#FFDE00]">
+          <path d="M4 0L8 5H0L4 0Z" />
+        </svg>
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="mt-0.5 opacity-20">
+          <path d="M4 5L0 0H8L4 5Z" />
+        </svg>
+      </span>
+    );
+  }
+
+  // Triângulo para baixo (decrescente) — ativo amarelo
+  return (
+    <span className="inline-flex flex-col items-center justify-center ml-1.5">
+      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="opacity-20">
+        <path d="M4 0L8 5H0L4 0Z" />
+      </svg>
+      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="mt-0.5 text-[#FFDE00]">
+        <path d="M4 5L0 0H8L4 5Z" />
+      </svg>
+    </span>
+  );
+}
+
+// ─── Componente do cabeçalho clicável ────────────────────────────────────────
+function CabecalhoOrdenavel({
+  coluna,
+  ordenacao,
+  onOrdenar,
+  children,
+  className = "",
+}: {
+  coluna: ColunasOrdenavel;
+  ordenacao: OrdenacaoState;
+  onOrdenar: (coluna: ColunasOrdenavel) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const ativa = ordenacao.coluna === coluna;
+
+  return (
+    <th
+      onClick={() => onOrdenar(coluna)}
+      className={[
+        "px-4 py-3 text-sm font-bold uppercase tracking-wide select-none cursor-pointer group",
+        "transition-colors",
+        ativa
+          ? "text-[#FFDE00]"
+          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span className="inline-flex items-center">
+        {children}
+        <IconeOrdenacao coluna={coluna} ordenacao={ordenacao} />
+      </span>
+    </th>
+  );
+}
+
+// ─── Função para obter o valor de status (para ordenar) ──────────────────────
+function getStatusValor(u: UsuarioGestor): number {
+  if (u.deletedAt) return 2; // excluído
+  if (u.ativo) return 0;     // ativo
+  return 1;                  // inativo
+}
+
 export function TabelaUsuarios() {
   const sessao = Auth.getUser();
   const adminMatricula = sessao?.matricula ?? "";
@@ -43,6 +149,12 @@ export function TabelaUsuarios() {
   const [search, setSearch] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState(FILTRO_PERFIS[0]);
   const [filtroStatus, setFiltroStatus] = useState(FILTRO_STATUS[0]);
+
+  // ── Estado de ordenação ──────────────────────────────────────────────────
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoState>({
+    coluna: null,
+    direcao: "asc",
+  });
 
   const [modalForm, setModalForm] = useState<UsuarioGestor | null | "novo">(null);
   const [modalDetalhes, setModalDetalhes] = useState<UsuarioGestor | null>(null);
@@ -74,8 +186,18 @@ export function TabelaUsuarios() {
     carregar();
   }, []);
 
+  // ── Alterna a ordenação: mesma coluna inverte direção, nova coluna começa asc
+  function handleOrdenar(coluna: ColunasOrdenavel) {
+    setOrdenacao((prev) => {
+      if (prev.coluna === coluna) {
+        return { coluna, direcao: prev.direcao === "asc" ? "desc" : "asc" };
+      }
+      return { coluna, direcao: "asc" };
+    });
+  }
+
   const usuariosFiltrados = useMemo(() => {
-    return usuarios.filter((u) => {
+    const filtrados = usuarios.filter((u) => {
       if (filtroStatus === "Ativos" && (u.deletedAt || !u.ativo)) return false;
       if (filtroStatus === "Inativos" && (u.deletedAt || u.ativo)) return false;
       if (filtroStatus === "Excluídos" && !u.deletedAt) return false;
@@ -97,9 +219,47 @@ export function TabelaUsuarios() {
         u.area.toLowerCase().includes(q)
       );
     });
-  }, [usuarios, search, filtroPerfil, filtroStatus]);
+
+    // ── Ordenação ──────────────────────────────────────────────────────────
+    if (!ordenacao.coluna) return filtrados;
+
+    return [...filtrados].sort((a, b) => {
+      let valA: string | number = "";
+      let valB: string | number = "";
+
+      switch (ordenacao.coluna) {
+        case "nome":
+          valA = a.nome.toLowerCase();
+          valB = b.nome.toLowerCase();
+          break;
+        case "email":
+          valA = a.email.toLowerCase();
+          valB = b.email.toLowerCase();
+          break;
+        case "matricula":
+          valA = a.matricula.toLowerCase();
+          valB = b.matricula.toLowerCase();
+          break;
+        case "permission": {
+          const ordemPerfil: Record<string, number> = { adm: 0, colaborador: 1, aluno: 2 };
+          valA = ordemPerfil[a.permission] ?? 99;
+          valB = ordemPerfil[b.permission] ?? 99;
+          break;
+        }
+        case "status":
+          valA = getStatusValor(a);
+          valB = getStatusValor(b);
+          break;
+      }
+
+      if (valA < valB) return ordenacao.direcao === "asc" ? -1 : 1;
+      if (valA > valB) return ordenacao.direcao === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [usuarios, search, filtroPerfil, filtroStatus, ordenacao]);
 
   const totalAtivos = usuariosFiltrados.filter((u) => !u.deletedAt && u.ativo).length;
+  const totalInativos = usuariosFiltrados.filter((u) => !u.deletedAt && !u.ativo).length;
   const totalExcluidos = usuariosFiltrados.filter((u) => !!u.deletedAt).length;
 
   async function handleSalvar(dados: Omit<UsuarioGestor, "id" | "criadoEm" | "atualizadoEm">) {
@@ -260,11 +420,17 @@ export function TabelaUsuarios() {
                 <strong className="text-emerald-600 dark:text-emerald-400">{totalAtivos}</strong>{" "}
                 ativos
               </span>
+               {totalInativos > 0 && (
+                <span>
+                  <strong className="text-amber-500">{totalInativos}</strong> inativos
+                </span>
+              )}
               {totalExcluidos > 0 && (
                 <span>
                   <strong className="text-red-500">{totalExcluidos}</strong> excluídos
                 </span>
               )}
+             
             </div>
           </div>
 
@@ -273,6 +439,11 @@ export function TabelaUsuarios() {
               <strong className="text-emerald-600 dark:text-emerald-400">{totalAtivos}</strong>{" "}
               ativos
             </span>
+             {totalInativos > 0 && (
+                <span>
+                  <strong className="text-amber-500">{totalInativos}</strong> inativos
+                </span>
+              )}
             {totalExcluidos > 0 && (
               <span>
                 <strong className="text-red-500">{totalExcluidos}</strong> excluídos
@@ -284,21 +455,51 @@ export function TabelaUsuarios() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 dark:bg-[#1e1e1e] sticky top-0 z-[1]">
                 <tr>
-                  <th className="px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  {/* ── Cabeçalhos clicáveis ── */}
+                  <CabecalhoOrdenavel
+                    coluna="nome"
+                    ordenacao={ordenacao}
+                    onOrdenar={handleOrdenar}
+                  >
                     Usuário
-                  </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  </CabecalhoOrdenavel>
+
+                  <CabecalhoOrdenavel
+                    coluna="email"
+                    ordenacao={ordenacao}
+                    onOrdenar={handleOrdenar}
+                    className="hidden sm:table-cell"
+                  >
                     E-mail
-                  </th>
-                  <th className="hidden md:table-cell px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  </CabecalhoOrdenavel>
+
+                  <CabecalhoOrdenavel
+                    coluna="matricula"
+                    ordenacao={ordenacao}
+                    onOrdenar={handleOrdenar}
+                    className="hidden md:table-cell"
+                  >
                     Matrícula
-                  </th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  </CabecalhoOrdenavel>
+
+                  <CabecalhoOrdenavel
+                    coluna="permission"
+                    ordenacao={ordenacao}
+                    onOrdenar={handleOrdenar}
+                    className="hidden lg:table-cell"
+                  >
                     Perfil
-                  </th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  </CabecalhoOrdenavel>
+
+                  <CabecalhoOrdenavel
+                    coluna="status"
+                    ordenacao={ordenacao}
+                    onOrdenar={handleOrdenar}
+                    className="hidden lg:table-cell"
+                  >
                     Status
-                  </th>
+                  </CabecalhoOrdenavel>
+
                   <th className="px-4 py-3 text-right text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Ações
                   </th>
