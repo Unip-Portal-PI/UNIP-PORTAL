@@ -3,6 +3,7 @@ from sqlalchemy import func
 from app.models.evento import EventoModel, EventoCurso, EventoPalestrante
 from app.models.anexo import AnexoModel
 from app.models.inscricao import InscricaoModel
+from app.models.presenca import PresencaModel
 
 
 class EventoRepository:
@@ -52,6 +53,11 @@ class EventoRepository:
         ).all()
 
         for inscricao in inscricoes:
+            # Remove presenca explicitamente antes da inscricao para evitar
+            # tentativa do ORM de nullificar id_inscricao (NOT NULL).
+            self.db.query(PresencaModel).filter(
+                PresencaModel.id_inscricao == inscricao.id_inscricao
+            ).delete(synchronize_session=False)
             inscricao.qr_code_usuario = None
             self.db.flush()
             self.db.delete(inscricao)

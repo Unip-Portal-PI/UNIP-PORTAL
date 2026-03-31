@@ -64,6 +64,9 @@ async def integrity_exception_handler(request: Request, exc: IntegrityError):
     # MySQL duplicate key
     if error_code == 1062:
         detail = "Conflito de dados: registro duplicado."
+    # MySQL column cannot be null
+    elif error_code == 1048:
+        detail = "Conflito de dados: existe relacionamento obrigatorio impedindo a operacao."
     # MySQL foreign key constraint fails (parent/child)
     elif error_code in (1451, 1452):
         detail = "Conflito de dados: violacao de integridade referencial."
