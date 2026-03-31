@@ -18,4 +18,12 @@ class InscricaoModel(Base):
 
     evento = relationship("EventoModel", back_populates="inscricoes")
     usuario = relationship("UsuarioModel", lazy="joined")
-    presenca = relationship("PresencaModel", back_populates="inscricao", uselist=False, lazy="joined")
+    # Deixamos o banco (ON DELETE CASCADE) cuidar da remocao de presenca
+    # quando a inscricao for excluida.
+    presenca = relationship(
+        "PresencaModel",
+        back_populates="inscricao",
+        uselist=False,
+        lazy="joined",
+        passive_deletes=True,
+    )
