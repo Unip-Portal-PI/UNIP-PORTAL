@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
+from app.models.evento import EventoModel
 from app.models.inscricao import InscricaoModel
 
 
@@ -34,7 +35,32 @@ class InscricaoRepository:
         return self._base_query().filter(InscricaoModel.id_evento == id_evento).all()
 
     def list_by_user(self, id_usuario: str) -> list[InscricaoModel]:
-        return self._base_query().filter(InscricaoModel.id_usuario == id_usuario).all()
+        return self._base_query().join(
+            EventoModel,
+            EventoModel.id_evento == InscricaoModel.id_evento,
+        ).filter(
+            InscricaoModel.id_usuario == id_usuario,
+            EventoModel.cancelado.is_(False),
+        ).all()
+
+    def get_by_user_and_event_date(
+        self,
+        id_usuario: str,
+        data_evento,
+        exclude_event_id: str | None = None,
+    ) -> InscricaoModel | None:
+        query = self._base_query().join(
+            EventoModel,
+            EventoModel.id_evento == InscricaoModel.id_evento,
+        ).filter(
+            InscricaoModel.id_usuario == id_usuario,
+            EventoModel.data == data_evento,
+        )
+
+        if exclude_event_id:
+            query = query.filter(InscricaoModel.id_evento != exclude_event_id)
+
+        return query.first()
 
     def get_by_qr_code(self, qr_code: str) -> InscricaoModel | None:
         return self._base_query().filter(InscricaoModel.qr_code_usuario == qr_code).first()

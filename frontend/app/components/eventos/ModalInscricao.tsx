@@ -19,6 +19,7 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
   const [inscricao, setInscricao] = useState<Inscricao | null>(null);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const bloqueioMesmoDia = erro.includes("mais de um evento por dia");
 
   async function handleConfirmar() {
     setLoading(true);
@@ -107,7 +108,10 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
           <h2 className="font-bold text-slate-900 dark:text-white text-lg">
             {etapa === "confirmacao" && "Confirmar inscrição"}
             {etapa === "sucesso" && "Inscrição realizada!"}
-            {etapa === "erro" && "Ops! Algo deu errado"}
+            {etapa === "erro" &&
+              (bloqueioMesmoDia
+                ? "Inscrição não permitida"
+                : "Ops! Algo deu errado")}
           </h2>
           <button
             onClick={onFechar}
@@ -185,10 +189,24 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
           {/* ── ERRO ── */}
           {etapa === "erro" && (
             <div className="flex flex-col items-center gap-4 py-2">
-              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                  bloqueioMesmoDia
+                    ? "bg-amber-100 dark:bg-amber-900/30"
+                    : "bg-red-100 dark:bg-red-900/30"
+                }`}
+              >
                 <IconX size={28} className="text-red-500" />
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300 text-center">{erro}</p>
+              <div className="space-y-2 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-300">{erro}</p>
+                {bloqueioMesmoDia && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Você já possui uma inscrição em outro evento na data de{" "}
+                    {new Date(`${evento.data}T00:00:00`).toLocaleDateString("pt-BR")}.
+                  </p>
+                )}
+              </div>
               <button
                 onClick={onFechar}
                 className="w-full cursor-pointer py-2.5 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"

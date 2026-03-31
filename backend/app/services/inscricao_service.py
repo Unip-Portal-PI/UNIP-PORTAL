@@ -70,6 +70,17 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
     if existing:
         raise HTTPException(status_code=409, detail="Voce ja esta inscrito neste evento.")
 
+    existing_same_day = insc_repo.get_by_user_and_event_date(
+        id_usuario=id_usuario,
+        data_evento=evento.data,
+        exclude_event_id=id_evento,
+    )
+    if existing_same_day:
+        raise HTTPException(
+            status_code=409,
+            detail="Voce nao pode se inscrever em mais de um evento por dia.",
+        )
+
     if evento.vagas is not None:
         count = evento_repo.count_inscricoes(id_evento)
         if count >= evento.vagas:
