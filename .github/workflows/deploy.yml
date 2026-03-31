@@ -10,7 +10,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/deploy_on_server_using_docker.yml"
+      - ".github/workflows/deploy.yml"
       - "backend/**"
       - "frontend/**"
 
@@ -92,11 +92,12 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.APP_DIR }}"
-            docker login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GHCR_TOKEN || github.token }}"
+            docker login ghcr.io -u "${{ secrets.SSH_USER }}" -p "${{ secrets.GHCR_TOKEN || github.token }}"
             COMPOSE_FILE="${{ secrets.DEPLOY_COMPOSE_FILE }}"
             if [ -z "$COMPOSE_FILE" ]; then
               COMPOSE_FILE="docker-compose.yml"
             fi
             docker compose -f "$COMPOSE_FILE" pull backend frontend || docker compose -f "$COMPOSE_FILE" pull
-            docker compose -f "$COMPOSE_FILE" up -d --remove-orphans backend frontend || docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+            #docker compose -f "$COMPOSE_FILE" up -d --remove-orphans backend frontend || docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+            docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --scale frontend=5 --scale backend=5 frontend backend
             docker image prune -f
