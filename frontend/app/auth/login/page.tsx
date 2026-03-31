@@ -16,6 +16,7 @@ export default function Login() {
   const router = useRouter();
   const { showLoading } = useLoading();
   const [erro, setErro] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroRecuperacao, setErroRecuperacao] = useState("");
   const [lembrar, setLembrar] = useState(false);
   const [matriculaInicial, setMatriculaInicial] = useState("");
@@ -31,23 +32,30 @@ export default function Login() {
   }, []);
 
   async function handleLogin() {
+    if (isSubmitting) return;
+
     const matricula = (document.getElementById("matricula") as HTMLInputElement).value;
     const senha = (document.getElementById("senha") as HTMLInputElement).value;
     setErroRecuperacao("");
+    setIsSubmitting(true);
 
-    if (lembrar) {
-      localStorage.setItem("matricula_lembrar", matricula);
-    } else {
-      localStorage.removeItem("matricula_lembrar");
-    }
+    try {
+      if (lembrar) {
+        localStorage.setItem("matricula_lembrar", matricula);
+      } else {
+        localStorage.removeItem("matricula_lembrar");
+      }
 
-    const resultado = await Auth.login(matricula, senha);
-    if (resultado.sucesso) {
-      setErro(false);
-      showLoading();
-      router.push("/home/eventos");
-    } else {
-      setErro(true);
+      const resultado = await Auth.login(matricula, senha);
+      if (resultado.sucesso) {
+        setErro(false);
+        showLoading();
+        router.push("/home/eventos");
+      } else {
+        setErro(true);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -142,9 +150,10 @@ export default function Login() {
               {/* ✅ type="submit" para o browser reconhecer o fluxo de login */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="bg-[#0f0f1e] cursor-pointer dark:bg-yellow-400 dark:text-[#202020] text-white font-bold py-3 rounded-md mt-2 hover:bg-slate-800 dark:hover:bg-yellow-300 transition-all text-lg"
               >
-                Entrar
+                {isSubmitting ? "Entrando..." : "Entrar"}
               </button>
             </form>
 
