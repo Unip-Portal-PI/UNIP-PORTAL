@@ -42,9 +42,7 @@ next-env.d.ts
 
 #python venv
 .venv/
-__init__.py
 __pycache__/
 
 # requests
 http/
-
