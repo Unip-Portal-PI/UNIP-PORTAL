@@ -10,6 +10,7 @@ import { api } from "./api";
 const TOKEN_KEY = "avp_token";
 const USER_KEY = "avp_user";
 const CANCELLED_EVENTS_KEY = "avp_cancelled_events";
+const RECENT_LOGIN_KEY = "avp_recent_login";
 
 // ---------------------------------------------------------------------------
 // Helpers internos (Storage)
@@ -27,6 +28,7 @@ function removerSessao(): void {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
   sessionStorage.removeItem(CANCELLED_EVENTS_KEY);
+  sessionStorage.removeItem(RECENT_LOGIN_KEY);
 }
 
 function obterToken(): string | null {
@@ -48,6 +50,17 @@ function obterUsuario(): UsuarioSessao | null {
 
 function salvarEventosCancelados(eventos: EventoCanceladoNotificacao[]): void {
   sessionStorage.setItem(CANCELLED_EVENTS_KEY, JSON.stringify(eventos));
+}
+
+function marcarLoginRecente(): void {
+  sessionStorage.setItem(RECENT_LOGIN_KEY, "1");
+}
+
+function consumirLoginRecente(): boolean {
+  if (typeof window === "undefined") return false;
+  const recente = sessionStorage.getItem(RECENT_LOGIN_KEY) === "1";
+  sessionStorage.removeItem(RECENT_LOGIN_KEY);
+  return recente;
 }
 
 function consumirEventosCancelados(): EventoCanceladoNotificacao[] {
@@ -100,6 +113,7 @@ export const Auth = {
     salvarToken(data.token);
     salvarUsuario(data.usuario);
     salvarEventosCancelados(data.eventosCancelados ?? []);
+    marcarLoginRecente();
 
     return {
       sucesso: true,
@@ -171,6 +185,11 @@ export const Auth = {
   },
 
   consumeCancelledEvents(): EventoCanceladoNotificacao[] {
+    return consumirEventosCancelados();
+  },
+
+  consumePostLoginCancelledEvents(): EventoCanceladoNotificacao[] {
+    if (!consumirLoginRecente()) return [];
     return consumirEventosCancelados();
   },
 };
