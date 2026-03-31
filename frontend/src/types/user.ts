@@ -31,6 +31,12 @@ export interface UsuarioSessao {
   fotoUrl?: string | null;
 }
 
+export interface EventoCanceladoNotificacao {
+  eventoId: string;
+  nome: string;
+  data: string;
+}
+
 export interface PayloadToken {
   matricula: string;
   exp: number;
@@ -40,6 +46,7 @@ export interface ResultadoLogin {
   sucesso: boolean;
   mensagem: string;
   usuario?: UsuarioSessao;
+  eventosCancelados?: EventoCanceladoNotificacao[];
 }
 
 export interface ResultadoPadraoAuth {

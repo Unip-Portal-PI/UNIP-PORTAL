@@ -17,15 +17,19 @@ class EventoRepository:
         )
 
     def list_all(self) -> list[EventoModel]:
-        return self._base_query().all()
+        return self._base_query().filter(EventoModel.cancelado.is_(False)).all()
 
     def list_by_creator(self, creator_id: str) -> list[EventoModel]:
         return self._base_query().filter(
-            EventoModel.id_criador == creator_id
+            EventoModel.id_criador == creator_id,
+            EventoModel.cancelado.is_(False),
         ).all()
 
-    def get_by_id(self, evento_id: str) -> EventoModel | None:
-        return self._base_query().filter(EventoModel.id_evento == evento_id).first()
+    def get_by_id(self, evento_id: str, include_cancelled: bool = False) -> EventoModel | None:
+        query = self._base_query().filter(EventoModel.id_evento == evento_id)
+        if not include_cancelled:
+            query = query.filter(EventoModel.cancelado.is_(False))
+        return query.first()
 
     def create(self, evento: EventoModel) -> EventoModel:
         self.db.add(evento)
@@ -41,6 +45,23 @@ class EventoRepository:
     def delete(self, evento: EventoModel) -> None:
         self.db.delete(evento)
         self.db.commit()
+
+    def clear_event_enrollments(self, evento_id: str) -> int:
+        inscricoes = self.db.query(InscricaoModel).filter(
+            InscricaoModel.id_evento == evento_id
+        ).all()
+
+        for inscricao in inscricoes:
+            inscricao.qr_code_usuario = None
+            self.db.flush()
+            self.db.delete(inscricao)
+
+        return len(inscricoes)
+
+    def list_event_enrollments(self, evento_id: str) -> list[InscricaoModel]:
+        return self.db.query(InscricaoModel).filter(
+            InscricaoModel.id_evento == evento_id
+        ).all()
 
     def count_inscricoes(self, evento_id: str) -> int:
         return self.db.query(func.count(InscricaoModel.id_inscricao)).filter(

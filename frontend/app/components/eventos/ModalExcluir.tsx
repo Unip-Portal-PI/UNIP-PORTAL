@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconTrash, IconX } from "@tabler/icons-react";
+import { IconCalendarOff, IconX } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
 
 interface ModalExcluirProps {
@@ -14,7 +14,7 @@ interface ModalExcluirProps {
 export function ModalExcluir({ evento, onConfirmar, onFechar }: ModalExcluirProps) {
   const [loading, setLoading] = useState(false);
 
-  async function handleExcluir() {
+  async function handleCancelar() {
     setLoading(true);
     try {
       await onConfirmar();
@@ -33,7 +33,7 @@ export function ModalExcluir({ evento, onConfirmar, onFechar }: ModalExcluirProp
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030]">
-          <h2 className="font-bold text-slate-900 dark:text-white text-lg">Excluir evento</h2>
+          <h2 className="font-bold text-slate-900 dark:text-white text-lg">Cancelar evento</h2>
           <button onClick={onFechar} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
             <IconX size={20} />
           </button>
@@ -41,15 +41,15 @@ export function ModalExcluir({ evento, onConfirmar, onFechar }: ModalExcluirProp
 
         <div className="px-6 py-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-              <IconTrash size={22} className="text-red-500" />
+            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <IconCalendarOff size={22} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900 dark:text-white">
                 {evento.nome}
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Essa ação não pode ser desfeita.
+                Ao cancelar, todos os inscritos serão removidos e os QR Codes serão apagados.
               </p>
             </div>
           </div>
@@ -62,11 +62,11 @@ export function ModalExcluir({ evento, onConfirmar, onFechar }: ModalExcluirProp
               Cancelar
             </button>
             <button
-              onClick={handleExcluir}
+              onClick={handleCancelar}
               disabled={loading}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-bold transition-colors"
+              className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-bold transition-colors"
             >
-              {loading ? "Excluindo..." : "Sim, excluir"}
+              {loading ? "Cancelando..." : "Sim, cancelar"}
             </button>
           </div>
         </div>

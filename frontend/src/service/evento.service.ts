@@ -42,6 +42,13 @@ type ApiPresencaResponse = {
   inscricao?: ApiInscricao | null;
 };
 
+type ApiEventoCancelResponse = {
+  sucesso: boolean;
+  mensagem: string;
+  eventoId: string;
+  inscricoesCanceladas: number;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers de Mapeamento
 // ---------------------------------------------------------------------------
@@ -195,9 +202,10 @@ export const EventoService = {
     return mapEvento(data);
   },
 
-  async excluir(id: string): Promise<void> {
-    const { ok, error } = await api.delete(`/events/${id}`);
-    if (!ok) throw new Error(error || "Falha ao excluir evento");
+  async cancelar(id: string): Promise<ApiEventoCancelResponse> {
+    const { data, ok, error } = await api.delete<ApiEventoCancelResponse>(`/events/${id}`);
+    if (!ok || !data) throw new Error(error || "Falha ao cancelar evento");
+    return data;
   },
 
   async inscrever(eventoId: string): Promise<Inscricao> {

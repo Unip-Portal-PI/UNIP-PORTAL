@@ -23,6 +23,14 @@ class LoginRequest(BaseModel):
     senha: str
 
 
+class EventoCanceladoResumo(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    evento_id: str
+    nome: str
+    data: date
+
+
 class LoginResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -30,6 +38,7 @@ class LoginResponse(BaseModel):
     mensagem: str
     token: str | None = None
     usuario: UsuarioResumo | None = None
+    eventos_cancelados: list[EventoCanceladoResumo] = []
 
 
 class CadastroRequest(BaseModel):

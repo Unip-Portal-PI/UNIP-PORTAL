@@ -1,9 +1,15 @@
 import { decodeJwt } from "jose";
-import { ResultadoLogin, ResultadoPadraoAuth, UsuarioSessao } from "@/src/types/user";
+import {
+  EventoCanceladoNotificacao,
+  ResultadoLogin,
+  ResultadoPadraoAuth,
+  UsuarioSessao,
+} from "@/src/types/user";
 import { api } from "./api";
 
 const TOKEN_KEY = "avp_token";
 const USER_KEY = "avp_user";
+const CANCELLED_EVENTS_KEY = "avp_cancelled_events";
 
 // ---------------------------------------------------------------------------
 // Helpers internos (Storage)
@@ -20,6 +26,7 @@ function salvarUsuario(usuario: UsuarioSessao): void {
 function removerSessao(): void {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(CANCELLED_EVENTS_KEY);
 }
 
 function obterToken(): string | null {
@@ -36,6 +43,23 @@ function obterUsuario(): UsuarioSessao | null {
   } catch {
     removerSessao();
     return null;
+  }
+}
+
+function salvarEventosCancelados(eventos: EventoCanceladoNotificacao[]): void {
+  sessionStorage.setItem(CANCELLED_EVENTS_KEY, JSON.stringify(eventos));
+}
+
+function consumirEventosCancelados(): EventoCanceladoNotificacao[] {
+  if (typeof window === "undefined") return [];
+  const raw = sessionStorage.getItem(CANCELLED_EVENTS_KEY);
+  sessionStorage.removeItem(CANCELLED_EVENTS_KEY);
+  if (!raw) return [];
+
+  try {
+    return JSON.parse(raw) as EventoCanceladoNotificacao[];
+  } catch {
+    return [];
   }
 }
 
@@ -65,6 +89,7 @@ export const Auth = {
       mensagem: string;
       token?: string;
       usuario?: UsuarioSessao;
+      eventosCancelados?: EventoCanceladoNotificacao[];
     }>("/auth/login", { matricula, senha });
 
     if (!ok || !data?.sucesso || !data.token || !data.usuario) {
@@ -74,8 +99,14 @@ export const Auth = {
 
     salvarToken(data.token);
     salvarUsuario(data.usuario);
+    salvarEventosCancelados(data.eventosCancelados ?? []);
 
-    return { sucesso: true, mensagem: data.mensagem, usuario: data.usuario };
+    return {
+      sucesso: true,
+      mensagem: data.mensagem,
+      usuario: data.usuario,
+      eventosCancelados: data.eventosCancelados ?? [],
+    };
   },
 
   logout(): void {
@@ -137,5 +168,9 @@ export const Auth = {
     if (current) {
       salvarUsuario({ ...current, ...user });
     }
+  },
+
+  consumeCancelledEvents(): EventoCanceladoNotificacao[] {
+    return consumirEventosCancelados();
   },
 };

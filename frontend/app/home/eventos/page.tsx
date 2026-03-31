@@ -20,10 +20,13 @@ import { ModalExcluir } from "@/app/components/eventos/ModalExcluir";
 import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
 import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
+import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
+import { ModalAvisosEventosCancelados } from "@/app/components/eventos/ModalAvisosEventosCancelados";
 import { CarrosselEventos } from "@/app/components/eventos/CarrosselEventos";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
 import AuthGuard from "@/src/guard/AuthGuard";
+import { EventoCanceladoNotificacao } from "@/src/types/user";
 
 type UsuarioEventos = {
   id: string;
@@ -83,6 +86,10 @@ export default function EventosPage() {
   const [modalQR, setModalQR] = useState<Evento | null>(null);
   const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
     useState<Evento | null>(null);
+  const [mensagemEventoCancelado, setMensagemEventoCancelado] = useState("");
+  const [avisosEventosCancelados, setAvisosEventosCancelados] = useState<
+    EventoCanceladoNotificacao[]
+  >([]);
 
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>(
     []
@@ -145,6 +152,10 @@ export default function EventosPage() {
 
     setMounted(true);
     carregarEventos(currentRole);
+
+    if (currentRole === "aluno") {
+      setAvisosEventosCancelados(Auth.consumeCancelledEvents());
+    }
   }, []);
 
   const eventosDisponiveis = useMemo(() => {
@@ -228,8 +239,9 @@ export default function EventosPage() {
   }
 
   async function handleExcluir(evento: Evento) {
-    await EventoService.excluir(evento.id);
+    const response = await EventoService.cancelar(evento.id);
     await carregarEventos(role);
+    setMensagemEventoCancelado(response.mensagem);
     setModalExcluir(null);
   }
 
@@ -441,6 +453,20 @@ export default function EventosPage() {
           <ModalDesinscricaoSucesso
             eventoNome={modalDesinscricaoSucesso.nome}
             onFechar={() => setModalDesinscricaoSucesso(null)}
+          />
+        )}
+
+        {mensagemEventoCancelado && (
+          <ModalEventoCancelado
+            mensagem={mensagemEventoCancelado}
+            onFechar={() => setMensagemEventoCancelado("")}
+          />
+        )}
+
+        {avisosEventosCancelados.length > 0 && (
+          <ModalAvisosEventosCancelados
+            eventos={avisosEventosCancelados}
+            onFechar={() => setAvisosEventosCancelados([])}
           />
         )}
       </div>

@@ -86,3 +86,12 @@ class EventoUpdate(BaseModel):
     anexos: list[AnexoRequest] | None = None
     cursos_ids: list[str] | None = None
     palestrantes_ids: list[str] | None = None
+
+
+class EventoCancelResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    sucesso: bool
+    mensagem: str
+    evento_id: str
+    inscricoes_canceladas: int = 0

@@ -4,8 +4,15 @@ from sqlalchemy.orm import Session
 
 from app.core.storage import build_file_url, extract_file_path
 from app.models.evento import EventoModel
+from app.models.evento_cancelamento_aviso import EventoCancelamentoAvisoModel
 from app.repositories.evento_repository import EventoRepository
-from app.schemas.evento import EventoResponse, EventoCreate, EventoUpdate, AnexoResponse
+from app.schemas.evento import (
+    EventoResponse,
+    EventoCreate,
+    EventoUpdate,
+    EventoCancelResponse,
+    AnexoResponse,
+)
 
 
 def _normalize_anexos(anexos):
@@ -144,17 +151,36 @@ def update_event(evento_id: str, data: EventoUpdate, db: Session) -> EventoRespo
     return _serialize_evento(evento, count)
 
 
-def delete_event(evento_id: str, db: Session) -> None:
+def cancel_event(evento_id: str, db: Session) -> EventoCancelResponse:
     repo = EventoRepository(db)
-    evento = repo.get_by_id(evento_id)
+    evento = repo.get_by_id(evento_id, include_cancelled=True)
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
 
-    count = repo.count_inscricoes(evento_id)
-    if count > 0:
+    if evento.cancelado:
         raise HTTPException(
             status_code=409,
-            detail="Nao e possivel excluir evento com inscricoes ativas.",
+            detail="Evento ja esta cancelado.",
         )
 
-    repo.delete(evento)
+    inscricoes_ativas = repo.list_event_enrollments(evento_id)
+    for inscricao in inscricoes_ativas:
+        db.add(
+            EventoCancelamentoAvisoModel(
+                id_usuario=inscricao.id_usuario,
+                id_evento=evento_id,
+                evento_nome=evento.nome,
+                evento_data=evento.data,
+            )
+        )
+
+    inscricoes_canceladas = repo.clear_event_enrollments(evento_id)
+    evento.cancelado = True
+    repo.update(evento)
+
+    return EventoCancelResponse(
+        sucesso=True,
+        mensagem="Evento cancelado com sucesso.",
+        evento_id=evento_id,
+        inscricoes_canceladas=inscricoes_canceladas,
+    )

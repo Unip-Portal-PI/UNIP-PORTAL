@@ -5,11 +5,11 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
+  IconCalendarOff,
   IconClock,
   IconUsers,
   IconExternalLink,
   IconEdit,
-  IconTrash,
 } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -282,9 +282,10 @@ export function EventoCard({
           {canDelete(role) && (
             <button
               onClick={() => onExcluir(evento)}
-              className="flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              title="Cancelar evento"
+              className="flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
             >
-              <IconTrash size={14} />
+              <IconCalendarOff size={14} />
             </button>
           )}
 

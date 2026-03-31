@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
-from app.schemas.evento import EventoResponse, EventoCreate, EventoUpdate
+from app.schemas.evento import (
+    EventoResponse,
+    EventoCreate,
+    EventoUpdate,
+    EventoCancelResponse,
+)
 from app.schemas.inscricao import (
     InscricaoResponse,
     PresencaConfirmRequest,
@@ -72,13 +77,13 @@ def update_event(
     return evento_service.update_event(evento_id, data, db)
 
 
-@router.delete("/{evento_id}", status_code=204)
-def delete_event(
+@router.delete("/{evento_id}", response_model=EventoCancelResponse)
+def cancel_event(
     evento_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(allow_adm),
 ):
-    evento_service.delete_event(evento_id, db)
+    return evento_service.cancel_event(evento_id, db)
 
 
 @router.post("/{evento_id}/enroll", response_model=InscricaoResponse, status_code=201)

@@ -5,11 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password, create_access_token, generate_otp
 from app.core.email_service import EmailService
+from app.models.evento_cancelamento_aviso import EventoCancelamentoAvisoModel
 from app.models.usuario import UsuarioModel
 from app.models.nivel_acesso import NivelAcessoModel
 from app.repositories.usuario_repository import UsuarioRepository
 from app.repositories.curso_repository import CursoRepository
 from app.schemas.auth import (
+    EventoCanceladoResumo,
     LoginRequest, LoginResponse, UsuarioResumo,
     CadastroRequest, CadastroResponse,
     ResetSolicitarRequest, ResetPreviewResponse, ResetValidarResponse,
@@ -42,6 +44,37 @@ def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
         foto_url=user.foto_url,
         permission=user.nivel_acesso.nome_perfil,
     )
+
+
+def _consume_cancelled_events(user_id: str, db: Session) -> list[EventoCanceladoResumo]:
+    avisos = (
+        db.query(EventoCancelamentoAvisoModel)
+        .filter(
+            EventoCancelamentoAvisoModel.id_usuario == user_id,
+            EventoCancelamentoAvisoModel.visualizado_em.is_(None),
+        )
+        .order_by(EventoCancelamentoAvisoModel.criado_em.asc())
+        .all()
+    )
+
+    if not avisos:
+        return []
+
+    visualizado_em = datetime.now(timezone.utc)
+    eventos_cancelados = []
+
+    for aviso in avisos:
+        aviso.visualizado_em = visualizado_em
+        eventos_cancelados.append(
+            EventoCanceladoResumo(
+                evento_id=aviso.id_evento,
+                nome=aviso.evento_nome,
+                data=aviso.evento_data,
+            )
+        )
+
+    db.commit()
+    return eventos_cancelados
 
 
 def login(data: LoginRequest, db: Session) -> LoginResponse:
@@ -89,6 +122,7 @@ def login(data: LoginRequest, db: Session) -> LoginResponse:
         mensagem="Login realizado com sucesso.",
         token=token,
         usuario=_build_usuario_resumo(user),
+        eventos_cancelados=_consume_cancelled_events(user.id_usuario, db),
     )
 
 

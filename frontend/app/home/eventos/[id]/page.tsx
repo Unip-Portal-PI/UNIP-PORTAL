@@ -12,9 +12,9 @@ import {
   IconPaperclip,
   IconExternalLink,
   IconAlertCircle,
+  IconCalendarOff,
   IconQrcode,
   IconEdit,
-  IconTrash,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -32,6 +32,7 @@ import { ModalFormEvento } from "@/app/components/eventos/ModalFormEvento";
 import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscritos";
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
+import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
 import AuthGuard from "@/src/guard/AuthGuard";
 
 function formatarLink(valor: string) {
@@ -114,6 +115,7 @@ export default function DetalheEventoPage() {
   const [modalInscritos, setModalInscritos] = useState(false);
   const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
     useState(false);
+  const [mensagemEventoCancelado, setMensagemEventoCancelado] = useState("");
 
   const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>(
     []
@@ -253,8 +255,9 @@ export default function DetalheEventoPage() {
   }
 
   async function handleExcluir() {
-    await EventoService.excluir(eventoAtual.id);
-    router.push("/home/eventos");
+    const response = await EventoService.cancelar(eventoAtual.id);
+    setModalExcluir(false);
+    setMensagemEventoCancelado(response.mensagem);
   }
 
   async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
@@ -476,10 +479,10 @@ export default function DetalheEventoPage() {
                 {canDelete(role) && (
                   <button
                     onClick={() => setModalExcluir(true)}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-red-200 dark:border-red-900/40 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-amber-200 dark:border-amber-900/40 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                   >
-                    <IconTrash size={15} />
-                    Excluir evento
+                    <IconCalendarOff size={15} />
+                    Cancelar evento
                   </button>
                 )}
               </div>
@@ -611,6 +614,16 @@ export default function DetalheEventoPage() {
           <ModalDesinscricaoSucesso
             eventoNome={eventoAtual.nome}
             onFechar={() => setModalDesinscricaoSucesso(false)}
+          />
+        )}
+
+        {mensagemEventoCancelado && (
+          <ModalEventoCancelado
+            mensagem={mensagemEventoCancelado}
+            onFechar={() => {
+              setMensagemEventoCancelado("");
+              router.push("/home/eventos");
+            }}
           />
         )}
 

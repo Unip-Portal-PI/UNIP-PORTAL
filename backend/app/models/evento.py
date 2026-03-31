@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Date, DateTime, Time, Enum, ForeignKey, text
+from sqlalchemy import Column, String, Integer, Date, DateTime, Time, Enum, ForeignKey, Boolean, text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.core.database import Base
@@ -39,6 +39,7 @@ class EventoModel(Base):
     tipo_inscricao = Column(Enum(TipoInscricao, values_callable=lambda x: [e.value for e in x]), default=TipoInscricao.interna, nullable=False)
     url_externa = Column(String(500), nullable=True)
     visibilidade = Column(Enum(Visibilidade, values_callable=lambda x: [e.value for e in x]), default=Visibilidade.publica, nullable=False)
+    cancelado = Column(Boolean, nullable=False, default=False, server_default=text("0"))
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
     data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
