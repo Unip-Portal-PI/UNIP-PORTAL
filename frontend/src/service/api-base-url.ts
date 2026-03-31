@@ -37,7 +37,16 @@ export function resolveApiBaseUrl(): string {
     console.log("[api-base-url] pathname:", window.location.pathname);
 
     const protocol = window.location.protocol === "https:" ? "https" : "http";
-    const resolved = `${protocol}://${window.location.hostname}:7000`;
+    const hostname = window.location.hostname;
+
+    const isLocalhost =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0";
+
+    const resolved = isLocalhost
+      ? `${protocol}://${hostname}:7000`
+      : `${protocol}://api.${hostname}`;
 
     console.log("[api-base-url] Protocolo inferido:", protocol);
     console.log("[api-base-url] URL montada automaticamente:", resolved);
@@ -50,7 +59,10 @@ export function resolveApiBaseUrl(): string {
     return resolved;
   }
 
-  const fallback = "http://127.0.0.1:7000";
+  const fallback =
+    process.env.NODE_ENV === "production"
+      ? "https://api.avpconecta.com.br"
+      : "http://127.0.0.1:7000";
   console.log("[api-base-url] Executando no servidor/SSR");
   console.log("[api-base-url] Usando fallback local:", fallback);
   console.groupEnd();
