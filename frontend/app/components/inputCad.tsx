@@ -138,17 +138,17 @@ export function InputCad({
   const isTel = type === "tel";
   const isMatricula = id === "matricula";
 
-const shouldTrimOnBlur =
-  id === "nome" ||
-  id === "apelido" ||
-  id === "nome_social" ||
-  id === "email" ||
-  id === "senha" ||
-  id === "confirmar" ||
-  id === "confirmarSenha" ||
-  id === "confirmar_senha" ||
-  type === "email" ||
-  type === "password";  
+  const shouldTrimOnBlur =
+    id === "nome" ||
+    id === "apelido" ||
+    id === "nome_social" ||
+    id === "email" ||
+    id === "senha" ||
+    id === "confirmar" ||
+    id === "confirmarSenha" ||
+    id === "confirmar_senha" ||
+    type === "email" ||
+    type === "password";
 
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
@@ -168,6 +168,18 @@ const shouldTrimOnBlur =
   }
 
   function handleValueChange(nextValue: string) {
+    if (type === "date" && nextValue) {
+      const anoLimite = 2100;
+      const anoDigitado = parseInt(nextValue.split('-')[0], 10);
+
+      if (anoDigitado > anoLimite) {
+        // Substitui o ano pelo limite, mantendo o restante da string (-MM-DD)
+        const dataAjustada = nextValue.replace(/^\d{4,}/, String(anoLimite));
+        setValue(dataAjustada);
+        emitValidation(dataAjustada);
+        return;
+      }
+    }
     if (isTel) {
       const formatted = formatTelefone(nextValue);
       emitValidation(formatted);
@@ -232,10 +244,9 @@ const shouldTrimOnBlur =
           className={`w-full border rounded-md p-2 text-sm outline-none transition-colors
             ${Icon ? "pl-9" : "pl-3"}
             ${isPassword ? "pr-10" : "pr-3"}
-            ${
-              erro || !!validationMessage
-                ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200 placeholder:text-red-300"
-                : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-[#888888]"
+            ${erro || !!validationMessage
+              ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200 placeholder:text-red-300"
+              : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-[#888888]"
             }`}
         />
 
@@ -282,10 +293,9 @@ export function SelectCad({
           onChange={(e) => onChange?.(e.target.value)}
           className={`w-full border rounded-md p-2 text-sm outline-none transition-colors appearance-none cursor-pointer
             ${Icon ? "pl-9" : "pl-3"} pr-9
-            ${
-              erro
-                ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200"
-                : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200"
+            ${erro
+              ? "border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-600 focus:border-red-500 text-[#4D4D4D] dark:text-red-200"
+              : "border-slate-300 dark:border-[#505050] bg-blue-100 dark:bg-[#424242] focus:border-blue-500 dark:focus:border-blue-400 text-[#4D4D4D] dark:text-slate-200"
             }`}
         >
           <option value="" disabled className="text-slate-400 dark:text-[#888888]">

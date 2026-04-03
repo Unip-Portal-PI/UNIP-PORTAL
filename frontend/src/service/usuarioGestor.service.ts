@@ -71,6 +71,7 @@ export const UsuarioGestorService = {
   async editar(id: string, dados: Partial<Omit<UsuarioGestor, "id" | "criadoEm">>): Promise<void> {
     const payload = {
       nome: dados.nome,
+      matricula: dados.matricula,
       apelido: dados.apelido,
       email: dados.email,
       area: dados.area,

@@ -386,7 +386,15 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
             type="date"
             value={form.dataValidade}
             min={hoje}
-            onChange={(e) => set("dataValidade", e.target.value)}
+            max="2100-12-31"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v && parseInt(v.split('-')[0], 10) > 2100) {
+                set("dataValidade", v.replace(/^\d{4,}/, "2100"));
+              } else {
+                set("dataValidade", v);
+              }
+            }}
             className={`${inputCls} ${inputBorder(erros, "dataValidade")}`}
           />
           <p className="text-xs text-slate-400">

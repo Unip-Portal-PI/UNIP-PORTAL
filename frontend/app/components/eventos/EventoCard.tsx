@@ -1,7 +1,6 @@
 // app/components/eventos/EventoCard.tsx
 "use client";
-
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
@@ -89,7 +88,7 @@ export function EventoCard({
   const encerrado = isInscricaoEncerrada(evento);
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
-
+  const [mostrarModalCancelamento, setMostrarModalCancelamento] = useState(false);
   const status =
     porcento >= 100
       ? "esgotado"
@@ -152,9 +151,8 @@ export function EventoCard({
 
         {!isInscrito && status === "disponivel" && (
           <span
-            className={`absolute top-3 left-3 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow ${
-              porcento >= 60 ? "bg-amber-400" : "bg-green-500"
-            }`}
+            className={`absolute top-3 left-3 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow ${porcento >= 60 ? "bg-amber-400" : "bg-green-500"
+              }`}
           >
             Disponível
           </span>
@@ -246,20 +244,19 @@ export function EventoCard({
                 <button
                   onClick={() =>
                     isInscrito
-                      ? onCancelarInscricao(evento)
+                      ? setMostrarModalCancelamento(true)
                       : onInscrever(evento)
                   }
                   disabled={!isInscrito && (status === "esgotado" || encerrado)}
-                  className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${
-                    isInscrito
-                      ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
-                      : status === "esgotado" || encerrado
-                        ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                        : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                  }`}
+                  className={`flex-1 py-2 cursor-pointer rounded-md text-sm font-bold transition-colors ${isInscrito
+                    ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                    : status === "esgotado" || encerrado
+                      ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                      : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                    }`}
                 >
                   {isInscrito
-                    ? "Cancelar inscricao"
+                    ? "Cancelar inscrição"
                     : encerrado
                       ? "Inscrições encerradas"
                       : status === "esgotado"
@@ -292,14 +289,59 @@ export function EventoCard({
 
           <button
             onClick={handleCardClick}
-            className={`${
-              role === "aluno" ? "" : "flex-1"
-            } py-2 px-3 cursor-pointer rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
+            className={`${role === "aluno" ? "" : "flex-1"
+              } py-2 px-3 cursor-pointer rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] border border-slate-200 dark:border-[#404040] transition-colors`}
           >
             Ver detalhes
           </button>
         </div>
       </div>
+      {mostrarModalCancelamento && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setMostrarModalCancelamento(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center flex-shrink-0">
+                <IconCalendarOff size={18} className="text-red-500" />
+              </div>
+              <p className="text-base font-bold text-slate-900 dark:text-white">
+                Cancelar inscrição?
+              </p>
+            </div>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+              Tem certeza que deseja cancelar sua inscrição em{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                {evento.nome}
+              </span>
+              ? Essa ação não pode ser desfeita.
+            </p>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setMostrarModalCancelamento(false)}
+                className="px-4 py-2 rounded-md text-sm font-medium border border-slate-200 dark:border-[#404040] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarModalCancelamento(false);
+                  onCancelarInscricao(evento);
+                }}
+                className="px-4 py-2 rounded-md text-sm font-bold bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+              >
+                Sim, cancelar inscrição
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

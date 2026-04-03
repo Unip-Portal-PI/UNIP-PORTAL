@@ -64,7 +64,7 @@ class UsuarioAdminCreateRequest(BaseModel):
 
 class UsuarioAdminUpdateRequest(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
+    matricula: str| None = None
     nome: str | None = None
     apelido: str | None = None
     email: EmailStr | None = None

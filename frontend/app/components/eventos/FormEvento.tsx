@@ -401,7 +401,15 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               type="date"
               value={form.data}
               min={hoje}
-              onChange={(e) => set("data", e.target.value)}
+              max="2100-12-31"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v && parseInt(v.split('-')[0], 10) > 2100) {
+                  set("data", v.replace(/^\d{4,}/, "2100"));
+                } else {
+                  set("data", v);
+                }
+              }}
               className={`${inputCls} ${inputBorder(erros, "data")}`}
             />
           </Campo>

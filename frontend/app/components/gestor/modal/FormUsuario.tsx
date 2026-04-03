@@ -207,7 +207,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
         </Campo>
 
         <Campo label="Matrícula" required>
-          <div className={isEdicao ? "opacity-50 pointer-events-none" : ""}>
+          <div >
             <InputCad
               id="matricula"
               label=""
@@ -225,9 +225,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
               }}
             />
           </div>
-          {isEdicao && (
-            <p className="text-xs text-slate-400 mt-1">A matrícula não pode ser alterada.</p>
-          )}
+          
         </Campo>
 
         <Campo label="E-mail" required span2>
@@ -290,11 +288,10 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
                 key={p}
                 type="button"
                 onClick={() => set("permission", p)}
-                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
-                  form.permission === p
+                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.permission === p
                     ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
                     : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                }`}
+                  }`}
               >
                 {p === "adm" ? "Admin" : p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
@@ -313,13 +310,12 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
                     set("status", s);
                     set("ativo", s === "ativo");
                   }}
-                  className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
-                    form.status === s
+                  className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.status === s
                       ? s === "ativo"
                         ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
                         : "border-slate-400 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                       : "border-slate-200 dark:border-[#404040] text-slate-400 hover:border-slate-300"
-                  }`}
+                    }`}
                 >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>

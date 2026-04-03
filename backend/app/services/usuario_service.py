@@ -169,6 +169,12 @@ def update_user(user_id: str, data: UsuarioAdminUpdateRequest, db: Session) -> U
             raise HTTPException(status_code=409, detail="E-mail ja cadastrado.")
         user.email = data.email
 
+    if data.matricula is not None:
+        existing_username = repo.get_by_username(data.matricula)
+        if existing_username and existing_username.id_usuario != user_id:
+            raise HTTPException(status_code=409, detail="Matricula ja cadastrada.")
+        user.username = data.matricula      
+
     if data.nome is not None:
         user.nome = data.nome
     if data.apelido is not None:

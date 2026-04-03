@@ -85,7 +85,7 @@ export default function Login() {
               <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={130} height={80} className="object-contain" />
             </div>
 
-            <h2 className="text-2xl font-bold text-[#202020] dark:text-white text-center mb-6">Login</h2>
+            {/* <h2 className="text-2xl font-bold text-[#202020] dark:text-white text-center mb-6">Login</h2> */}
 
             {/* ✅ form com onSubmit — essencial para o browser oferecer salvar credenciais */}
             <form

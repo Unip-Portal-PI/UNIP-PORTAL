@@ -32,7 +32,7 @@ def upgrade() -> None:
             sa.Column("visualizado_em", sa.DateTime(), nullable=True),
             mysql_engine="InnoDB",
             mysql_charset="utf8mb4",
-            mysql_collate="utf8mb4_general_ci",
+            mysql_collate="utf8mb4_uca1400_ai_ci",
         )
 
 
