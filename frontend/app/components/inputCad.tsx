@@ -75,6 +75,17 @@ export function validateMatricula(value: string): string {
     return "A matrícula deve ter no máximo 10 caracteres.";
   }
 
+  const PREFIXOS_VALIDOS = ["PI", "UP", "UG", "CL", "AD"];
+  const prefixo = cleaned.slice(0, 2);
+
+  if (prefixo.length === 2 && !/^[A-Z]{2}$/.test(prefixo)) {
+    return "A matrícula deve começar com letras maiúsculas.";
+  }
+
+  if (prefixo.length === 2 && !PREFIXOS_VALIDOS.includes(prefixo)) {
+    return "A matrícula deve começar com: PI, UP, UG, CL ou AD.";
+  }
+
   if (!/^[A-Z]{2}[0-9]{8}$/.test(cleaned)) {
     return "A matrícula deve ter 2 letras maiúsculas iniciais e 8 números.";
   }

@@ -13,6 +13,7 @@ import {
 } from "@tabler/icons-react";
 import { Inscricao, Evento } from "@/src/types/evento";
 import { EventoService } from "@/src/service/evento.service";
+import { downloadCertificado } from "@/src/utils/certificado.helpers";
 
 interface Props {
   matricula: string;
@@ -146,8 +147,10 @@ export function AbaHistoricoAluno({ matricula }: Props) {
         }));
 
         // Ordena por data de inscrição mais recente
-        lista.sort((a, b) =>
-          new Date(b.inscricao.dataInscricao).getTime() - new Date(a.inscricao.dataInscricao).getTime()
+        lista.sort(
+          (a, b) =>
+            new Date(b.inscricao.dataInscricao).getTime() -
+            new Date(a.inscricao.dataInscricao).getTime()
         );
 
         setItens(lista);
@@ -160,154 +163,14 @@ export function AbaHistoricoAluno({ matricula }: Props) {
     carregar();
   }, [matricula]);
 
-  async function handleDownloadCertificado(inscricao: Inscricao, evento: Evento) {
-    const jsPDFModule = await import("jspdf");
-    const jsPDF = jsPDFModule.default;
-
-    const dataEvento = new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
-    const dataEmissao = new Date().toLocaleDateString("pt-BR", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
-
-    // Canvas A4 paisagem em pixels
-    const W = 1123, H = 794;
-    const cvs = document.createElement("canvas");
-    cvs.width = W;
-    cvs.height = H;
-    const ctx = cvs.getContext("2d")!;
-    const cx = W / 2;
-
-    const CINZA_ESCURO = "#2e2e2e";
-    const CINZA_MEDIO = "#6b6b6b";
-    const CINZA_LEVE = "#999999";
-    const AMARELO = "#FACB14";
-
-    function carregarImagem(src: string): Promise<HTMLImageElement> {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.src = src;
-      });
-    }
-
-    const [bg, logoAvp, logoUnip] = await Promise.all([
-      carregarImagem("/img/bg_certificado.png"),
-      carregarImagem("/img/logo_avp.png"),
-      carregarImagem("/img/logo_unip.png"),
-    ]);
-
-    // ── Fundo ────────────────────────────────────────────────────────────────
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(bg, 0, 0, W, H);
-
-    // ── Logos ────────────────────────────────────────────────────────────────
-    const logoH = 52;
-
-    const avpW = logoH * (logoAvp.naturalWidth / logoAvp.naturalHeight);
-    ctx.drawImage(logoAvp, 56, 18, avpW, logoH);
-
-    const unipW = logoH * (logoUnip.naturalWidth / logoUnip.naturalHeight);
-    ctx.drawImage(logoUnip, W - unipW - 56, 18, unipW, logoH);
-
-    // ── Linha amarela ─────────────────────────────────────────────────────────
-    // ctx.strokeStyle = AMARELO;
-    // ctx.lineWidth = 2;
-    // ctx.beginPath();
-    // ctx.moveTo(W * 0.18, 86);
-    // ctx.lineTo(W * 0.82, 86);
-    // ctx.stroke();
-
-    // ── Conteúdo centralizado ─────────────────────────────────────────────────
-    const base = 390;
-
-    ctx.textAlign = "center";
-
-    ctx.fillStyle = CINZA_MEDIO;
-    ctx.font = "16px Georgia, serif";
-    ctx.fillText("Certificamos que", cx, base - 148);
-
-    ctx.font = "bold 30px Georgia, serif";
-    ctx.fillStyle = CINZA_ESCURO;
-    ctx.fillText(inscricao.alunoNome, cx, base - 106);
-
-    const nomeW = ctx.measureText(inscricao.alunoNome).width;
-    ctx.strokeStyle = AMARELO;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(cx - nomeW / 2 - 20, base - 94);
-    ctx.lineTo(cx + nomeW / 2 + 20, base - 94);
-    ctx.stroke();
-
-    ctx.font = "13px Georgia, serif";
-    ctx.fillStyle = CINZA_MEDIO;
-    ctx.fillText(
-      `Matrícula: ${inscricao.alunoMatricula}   |   Curso/Área: ${inscricao.alunoArea}`,
-      cx, base - 70
-    );
-
-    ctx.font = "16px Georgia, serif";
-    ctx.fillText("participou do evento", cx, base - 36);
-
-    ctx.font = "bold 21px Georgia, serif";
-    ctx.fillStyle = CINZA_ESCURO;
-    ctx.fillText(`"${evento.nome}"`, cx, base - 4);
-
-    ctx.font = "13px Georgia, serif";
-    ctx.fillStyle = CINZA_MEDIO;
-    ctx.fillText(
-      `Data: ${dataEvento}   |   Horário: ${evento.horario}   |   Local: ${evento.local}`,
-      cx, base + 34
-    );
-
-    ctx.font = "12px Georgia, serif";
-    ctx.fillText(
-      "A presença foi devidamente confirmada por meio do sistema AVP Conecta.",
-      cx, base + 60
-    );
-
-    ctx.strokeStyle = "#cccccc";
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(W * 0.18, base + 82);
-    ctx.lineTo(W * 0.82, base + 82);
-    ctx.stroke();
-
-    ctx.font = "11px Georgia, serif";
-    ctx.fillStyle = CINZA_MEDIO;
-    ctx.fillText(
-      `Emitido em ${dataEmissao}`,
-      cx, base + 106
-    );
-
-    ctx.font = "9.5px Georgia, serif";
-    ctx.fillStyle = CINZA_LEVE;
-    ctx.fillText(
-      "Este certificado é válido como comprovante de participação e foi gerado automaticamente pelo Portal AVP Conecta.",
-      cx, base + 128
-    );
-
-    // ── Converte canvas → PDF via jsPDF ──────────────────────────────────────
-    const imgData = cvs.toDataURL("image/png");
-
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "px",
-      format: [W, H],
-    });
-
-    pdf.addImage(imgData, "PNG", 0, 0, W, H);
-    pdf.save(`certificado_${evento.nome.replace(/\s+/g, "_")}_${inscricao.alunoMatricula}.pdf`);
-  }
-
   if (loading) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-4 animate-pulse">
+          <div
+            key={i}
+            className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-4 animate-pulse"
+          >
             <div className="flex gap-4">
               <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-[#2a2a2a] shrink-0" />
               <div className="flex-1 space-y-2">
@@ -327,7 +190,9 @@ export function AbaHistoricoAluno({ matricula }: Props) {
         <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
           <IconAlertCircle size={24} className="text-red-500" />
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Erro ao carregar histórico.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Erro ao carregar histórico.
+        </p>
       </div>
     );
   }
@@ -338,7 +203,9 @@ export function AbaHistoricoAluno({ matricula }: Props) {
         <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#2a2a2a] flex items-center justify-center">
           <IconCalendarOff size={24} className="text-slate-400" />
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Você ainda não se inscreveu em nenhum evento.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+          Você ainda não se inscreveu em nenhum evento.
+        </p>
       </div>
     );
   }
@@ -348,30 +215,49 @@ export function AbaHistoricoAluno({ matricula }: Props) {
       <div className="space-y-3">
         {itens.map(({ inscricao, evento }) => {
           const confirmado = inscricao.presencaConfirmada;
-          
+
           const hoje = new Date();
           hoje.setHours(0, 0, 0, 0);
-          const dataEventoDate = evento ? new Date(evento.data + "T00:00:00") : null;
+          const dataEventoDate = evento
+            ? new Date(evento.data + "T00:00:00")
+            : null;
           const diaPassou = dataEventoDate ? hoje > dataEventoDate : false;
           const certificadoDisponivel = confirmado && diaPassou;
 
           const dataEvento = evento
-            ? new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+            ? new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })
             : "—";
 
           return (
             <div
               key={inscricao.id}
-              className={`bg-white dark:bg-[#202020] rounded-2xl border shadow-sm p-4 transition-colors ${confirmado
-                ? "border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-900/5"
-                : "border-slate-100 dark:border-[#303030]"
-                }`}
+              className={`bg-white dark:bg-[#202020] rounded-2xl border shadow-sm p-4 transition-colors ${
+                confirmado
+                  ? "border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-900/5"
+                  : "border-slate-100 dark:border-[#303030]"
+              }`}
             >
               <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
                 {/* Ícone */}
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${confirmado ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10"
-                  }`}>
-                  <IconCalendar size={20} className={confirmado ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-[#FFDE00]"} />
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                    confirmado
+                      ? "bg-emerald-100 dark:bg-emerald-900/30"
+                      : "bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10"
+                  }`}
+                >
+                  <IconCalendar
+                    size={20}
+                    className={
+                      confirmado
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-[#FFDE00]"
+                    }
+                  />
                 </div>
 
                 {/* Info */}
@@ -407,7 +293,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   {/* QR Code */}
                   <button
                     onClick={() => setQrAberto(inscricao)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                    className="flex items-center cursor-pointer gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
                     title="Ver QR Code"
                   >
                     <IconQrcode size={14} /> QR
@@ -415,22 +301,25 @@ export function AbaHistoricoAluno({ matricula }: Props) {
 
                   {/* Certificado */}
                   <button
-                    onClick={() => evento && handleDownloadCertificado(inscricao, evento)}
+                    onClick={() =>
+                      evento && downloadCertificado(inscricao, evento)
+                    }
                     disabled={!certificadoDisponivel || !evento}
                     title={
                       certificadoDisponivel
                         ? "Baixar certificado"
                         : !confirmado
-                          ? "Disponível após confirmação de presença"
-                          : "Disponível após o dia do evento"
+                        ? "Disponível após confirmação de presença"
+                        : "Disponível após o dia do evento"
                     }
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${certificadoDisponivel && evento
-                      ? "border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                      : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                      }`}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      certificadoDisponivel && evento
+                        ? "border border-emerald-200 cursor-pointer dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                        : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                    }`}
                   >
                     <IconDownload size={14} /> Certificado
-                  </button> 
+                  </button>
                 </div>
               </div>
             </div>
@@ -441,7 +330,10 @@ export function AbaHistoricoAluno({ matricula }: Props) {
       {qrAberto && (
         <ModalQR
           qrCode={qrAberto.qrCode}
-          eventoNome={itens.find((i) => i.inscricao.id === qrAberto.id)?.evento?.nome ?? "Evento"}
+          eventoNome={
+            itens.find((i) => i.inscricao.id === qrAberto.id)?.evento?.nome ??
+            "Evento"
+          }
           onFechar={() => setQrAberto(null)}
         />
       )}
