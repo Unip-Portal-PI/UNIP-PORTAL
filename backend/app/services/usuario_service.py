@@ -14,6 +14,7 @@ from app.schemas.usuario import (
     UsuarioAdminResponse,
     UsuarioAdminUpdateRequest,
     UsuarioPerfilResponse,
+    UsuarioResumoResponse,
     UsuarioUpdateMeRequest,
 )
 
@@ -74,6 +75,22 @@ def _resolve_nivel(permission: str, db: Session):
 
 def get_me(current_user: UsuarioModel) -> UsuarioPerfilResponse:
     return _serialize_profile(current_user)
+
+
+def list_active_collaborators(db: Session) -> list[UsuarioResumoResponse]:
+    users = UsuarioRepository(db).list_active_collaborators()
+    return [
+        UsuarioResumoResponse(
+            id=user.id_usuario,
+            nome=user.nome,
+            apelido=user.apelido,
+            matricula=user.username,
+            email=user.email,
+            area=user.curso.nome_curso if user.curso else None,
+            permission=user.nivel_acesso.nome_perfil,
+        )
+        for user in users
+    ]
 
 
 def update_me(data: UsuarioUpdateMeRequest, current_user: UsuarioModel, db: Session) -> UsuarioPerfilResponse:

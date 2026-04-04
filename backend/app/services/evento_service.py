@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.storage import build_file_url, extract_file_path
 from app.models.evento import EventoModel
 from app.models.evento_cancelamento_aviso import EventoCancelamentoAvisoModel
+from app.models.usuario import UsuarioModel
 from app.repositories.evento_repository import EventoRepository
 from app.schemas.evento import (
     EventoResponse,
@@ -13,6 +14,7 @@ from app.schemas.evento import (
     EventoCancelResponse,
     AnexoResponse,
 )
+from app.schemas.usuario import UsuarioResumoResponse
 
 
 def _normalize_anexos(anexos):
@@ -46,12 +48,59 @@ def _serialize_evento(evento: EventoModel, vagas_ocupadas: int = 0) -> EventoRes
         tipo_inscricao=evento.tipo_inscricao,
         url_externa=evento.url_externa,
         visibilidade=evento.visibilidade,
+        modo_edicao=evento.modo_edicao,
+        colaboradores=[
+            UsuarioResumoResponse(
+                id=user.id_usuario,
+                nome=user.nome,
+                apelido=user.apelido,
+                matricula=user.username,
+                email=user.email,
+                area=user.curso.nome_curso if user.curso else None,
+                permission=user.nivel_acesso.nome_perfil,
+            )
+            for user in evento.colaboradores
+            if user.nivel_acesso.nome_perfil == "colaborador"
+        ],
         anexos=[
             AnexoResponse(id=a.id_anexo, nome=a.nome, url=build_file_url(a.url) or a.url)
             for a in evento.anexos
         ],
         criado_em=evento.data_criacao,
+        id_criador=evento.id_criador,
     )
+
+
+def _can_edit_event(evento: EventoModel, current_user: UsuarioModel) -> bool:
+    if current_user.nivel_acesso.nome_perfil == "adm":
+        return True
+
+    if evento.modo_edicao == "publica":
+        return current_user.nivel_acesso.nome_perfil == "colaborador"
+
+    if evento.id_criador == current_user.id_usuario:
+        return True
+
+    return any(user.id_usuario == current_user.id_usuario for user in evento.colaboradores)
+
+
+def _validate_colaboradores_ids(colaboradores_ids: list[str], db: Session) -> list[str]:
+    if not colaboradores_ids:
+        return []
+
+    unique_ids = list(dict.fromkeys(colaboradores_ids))
+    users = db.query(UsuarioModel).filter(UsuarioModel.id_usuario.in_(unique_ids)).all()
+    valid_ids = {
+        user.id_usuario
+        for user in users
+        if user.ativo
+        and user.deleted_at is None
+        and user.nivel_acesso.nome_perfil == "colaborador"
+    }
+    invalid_ids = [user_id for user_id in unique_ids if user_id not in valid_ids]
+    if invalid_ids:
+        raise HTTPException(status_code=400, detail="Um ou mais colaboradores informados sao invalidos.")
+    return unique_ids
 
 
 def list_events(db: Session) -> list[EventoResponse]:
@@ -85,6 +134,7 @@ def get_event(evento_id: str, db: Session) -> EventoResponse:
 
 def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResponse:
     repo = EventoRepository(db)
+    colaboradores_ids = _validate_colaboradores_ids(data.colaboradores_ids, db)
 
     evento = EventoModel(
         nome=data.nome,
@@ -101,6 +151,7 @@ def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResp
         tipo_inscricao=data.tipo_inscricao,
         url_externa=data.url_externa,
         visibilidade=data.visibilidade,
+        modo_edicao=data.modo_edicao,
         id_criador=criador_id,
     )
 
@@ -113,6 +164,8 @@ def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResp
         repo.set_cursos(evento.id_evento, data.cursos_ids)
     if data.palestrantes_ids:
         repo.set_palestrantes(evento.id_evento, data.palestrantes_ids)
+    if colaboradores_ids:
+        repo.set_colaboradores(evento.id_evento, colaboradores_ids)
 
     db.commit()
 
@@ -120,11 +173,13 @@ def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResp
     return _serialize_evento(evento, 0)
 
 
-def update_event(evento_id: str, data: EventoUpdate, db: Session) -> EventoResponse:
+def update_event(evento_id: str, data: EventoUpdate, current_user: UsuarioModel, db: Session) -> EventoResponse:
     repo = EventoRepository(db)
     evento = repo.get_by_id(evento_id)
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
+    if not _can_edit_event(evento, current_user):
+        raise HTTPException(status_code=403, detail="Sem permissao para editar este evento.")
 
     update_data = data.model_dump(exclude_unset=True)
     if "banner_url" in update_data:
@@ -133,6 +188,7 @@ def update_event(evento_id: str, data: EventoUpdate, db: Session) -> EventoRespo
     anexos = update_data.pop("anexos", None)
     cursos_ids = update_data.pop("cursos_ids", None)
     palestrantes_ids = update_data.pop("palestrantes_ids", None)
+    colaboradores_ids = update_data.pop("colaboradores_ids", None)
 
     for field, value in update_data.items():
         setattr(evento, field, value)
@@ -141,6 +197,11 @@ def update_event(evento_id: str, data: EventoUpdate, db: Session) -> EventoRespo
         repo.set_cursos(evento.id_evento, cursos_ids)
     if palestrantes_ids is not None:
         repo.set_palestrantes(evento.id_evento, palestrantes_ids)
+    if colaboradores_ids is not None:
+        repo.set_colaboradores(
+            evento.id_evento,
+            _validate_colaboradores_ids(colaboradores_ids, db),
+        )
     if anexos is not None:
         repo.set_anexos(evento.id_evento, _normalize_anexos(anexos))
 

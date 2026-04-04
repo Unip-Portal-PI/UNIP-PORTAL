@@ -34,3 +34,10 @@ class UsuarioRepository:
 
     def list_all(self) -> list[UsuarioModel]:
         return self._base_query().all()
+
+    def list_active_collaborators(self) -> list[UsuarioModel]:
+        return self._base_query().filter(
+            UsuarioModel.ativo.is_(True),
+            UsuarioModel.deleted_at.is_(None),
+            UsuarioModel.nivel_acesso.has(nome_perfil="colaborador"),
+        ).all()

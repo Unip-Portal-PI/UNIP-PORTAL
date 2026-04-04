@@ -3,6 +3,7 @@ from pydantic.alias_generators import to_camel
 from datetime import date, datetime, time
 
 from app.core.enums import Turno, TipoInscricao, Visibilidade
+from app.schemas.usuario import UsuarioResumoResponse
 
 
 class AnexoResponse(BaseModel):
@@ -40,8 +41,11 @@ class EventoResponse(BaseModel):
     tipo_inscricao: TipoInscricao = TipoInscricao.interna
     url_externa: str | None = None
     visibilidade: Visibilidade = Visibilidade.publica
+    modo_edicao: Visibilidade = Visibilidade.privada
+    colaboradores: list[UsuarioResumoResponse] = []
     anexos: list[AnexoResponse] = []
     criado_em: datetime | None = None
+    id_criador: str | None = None
 
 
 class EventoCreate(BaseModel):
@@ -61,6 +65,8 @@ class EventoCreate(BaseModel):
     tipo_inscricao: TipoInscricao = TipoInscricao.interna
     url_externa: str | None = None
     visibilidade: Visibilidade = Visibilidade.publica
+    modo_edicao: Visibilidade = Visibilidade.privada
+    colaboradores_ids: list[str] = []
     anexos: list[AnexoRequest] = []
     cursos_ids: list[str] = []
     palestrantes_ids: list[str] = []
@@ -83,6 +89,8 @@ class EventoUpdate(BaseModel):
     tipo_inscricao: TipoInscricao | None = None
     url_externa: str | None = None
     visibilidade: Visibilidade | None = None
+    modo_edicao: Visibilidade | None = None
+    colaboradores_ids: list[str] | None = None
     anexos: list[AnexoRequest] | None = None
     cursos_ids: list[str] | None = None
     palestrantes_ids: list[str] | None = None

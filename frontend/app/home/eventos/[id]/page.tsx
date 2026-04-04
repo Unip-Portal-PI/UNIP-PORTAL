@@ -21,6 +21,7 @@ import { UserRole } from "@/src/types/user";
 import { EventoService } from "@/src/service/evento.service";
 import {
   canEdit,
+  canEditEvent,
   getStatusVaga,
   isInscricaoEncerrada,
   canDelete,
@@ -123,6 +124,7 @@ export default function DetalheEventoPage() {
   const [inscricaoAluno, setInscricaoAluno] = useState<Inscricao | null>(null);
   const [inscritosDoEvento, setInscritosDoEvento] = useState<Inscricao[]>([]);
   const [copiado, setCopiado] = useState(false);
+  const podeEditarEvento = evento ? canEditEvent(evento, role, user.id) : false;
 
   async function carregar() {
     setLoading(true);
@@ -460,13 +462,15 @@ export default function DetalheEventoPage() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => setModalForm(true)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-                >
-                  <IconEdit size={15} />
-                  Editar evento
-                </button>
+                {podeEditarEvento && (
+                  <button
+                    onClick={() => setModalForm(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <IconEdit size={15} />
+                    Editar evento
+                  </button>
+                )}
 
                 <button
                   onClick={abrirModalQR}
