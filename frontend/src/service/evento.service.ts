@@ -1,10 +1,11 @@
 // src/service/evento.service.ts
-import { Evento, Inscricao } from "@/src/types/evento";
+import { Evento, EventoColaborador, Inscricao } from "@/src/types/evento";
 import { buildFileUrl, extractFilePath } from "@/src/service/file.service";
 import { api } from "./api";
 
 type ApiEvento = {
   id: string;
+  idCriador?: string | null;
   banner?: string | null;
   nome: string;
   descricaoBreve?: string | null;
@@ -20,6 +21,8 @@ type ApiEvento = {
   tipoInscricao: Evento["tipoInscricao"];
   urlExterna?: string | null;
   visibilidade: Evento["visibilidade"];
+  modoEdicao: Evento["modoEdicao"];
+  colaboradores?: EventoColaborador[];
   anexos?: Evento["anexos"];
   criadoEm?: string | null;
 };
@@ -89,6 +92,7 @@ function mapTurnoToApi(turno?: string | null): string | null {
 function mapEvento(evento: ApiEvento): Evento {
   return {
     id: evento.id,
+    idCriador: evento.idCriador ?? undefined,
     banner: evento.banner ? buildFileUrl(evento.banner) : undefined,
     nome: evento.nome,
     descricaoBreve: evento.descricaoBreve ?? "",
@@ -104,6 +108,8 @@ function mapEvento(evento: ApiEvento): Evento {
     tipoInscricao: evento.tipoInscricao,
     urlExterna: evento.urlExterna ?? undefined,
     visibilidade: evento.visibilidade,
+    modoEdicao: evento.modoEdicao,
+    colaboradores: evento.colaboradores ?? [],
     anexos: (evento.anexos ?? []).map((anexo) => ({
       ...anexo,
       url: buildFileUrl(anexo.url),
@@ -160,6 +166,8 @@ export const EventoService = {
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,
       visibilidade: dados.visibilidade,
+      modoEdicao: dados.modoEdicao,
+      colaboradoresIds: (dados.colaboradores ?? []).map((colaborador) => colaborador.id),
       anexos: (dados.anexos ?? []).map((anexo) => ({
         id: anexo.id,
         nome: anexo.nome,
@@ -190,6 +198,8 @@ export const EventoService = {
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,
       visibilidade: dados.visibilidade,
+      modoEdicao: dados.modoEdicao,
+      colaboradoresIds: dados.colaboradores?.map((colaborador) => colaborador.id),
       anexos: dados.anexos?.map((anexo) => ({
         id: anexo.id,
         nome: anexo.nome,

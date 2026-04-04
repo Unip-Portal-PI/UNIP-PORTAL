@@ -382,6 +382,7 @@ export default function EventosPage() {
                 <EventoCard
                   evento={evento}
                   role={role}
+                  currentUserId={user.id}
                   isInscrito={isInscrito(evento.id)}
                   canCancelarInscricao={
                     !minhasInscricoes[evento.id]?.presencaConfirmada

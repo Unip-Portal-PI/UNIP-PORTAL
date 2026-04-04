@@ -15,7 +15,7 @@ import { Evento } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
 import {
   isInscricaoEncerrada,
-  canEdit,
+  canEditEvent,
   canDelete,
 } from "@/src/utils/evento.helpers";
 
@@ -23,6 +23,7 @@ import {
 interface EventoCardProps {
   evento: Evento;
   role: UserRole;
+  currentUserId?: string;
   isInscrito: boolean;
   canCancelarInscricao: boolean;
   onInscrever: (evento: Evento) => void;
@@ -78,6 +79,7 @@ function renderResumoFormatado(texto: string) {
 export function EventoCard({
   evento,
   role,
+  currentUserId,
   isInscrito,
   canCancelarInscricao,
   onInscrever,
@@ -86,6 +88,7 @@ export function EventoCard({
   onExcluir,
 }: EventoCardProps) {
   const router = useRouter();
+  const podeEditarEvento = canEditEvent(evento, role, currentUserId);
   const encerrado = isInscricaoEncerrada(evento);
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
@@ -270,7 +273,7 @@ export function EventoCard({
             </>
           )}
 
-          {canEdit(role) && (
+          {podeEditarEvento && (
             <button
               onClick={() => onEditar(evento)}
               className="flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-slate-200 dark:border-[#404040] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"

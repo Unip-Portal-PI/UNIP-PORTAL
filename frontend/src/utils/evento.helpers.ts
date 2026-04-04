@@ -151,6 +151,18 @@ export function canEdit(role: UserRole): boolean {
   return role === "colaborador" || role === "adm";
 }
 
+export function canEditEvent(
+  evento: Evento,
+  role: UserRole,
+  currentUserId?: string | null
+): boolean {
+  if (!canEdit(role)) return false;
+  if (role === "adm") return true;
+  if (evento.modoEdicao === "publica") return true;
+  if (!!currentUserId && evento.idCriador === currentUserId) return true;
+  return !!currentUserId && (evento.colaboradores ?? []).some((colaborador) => colaborador.id === currentUserId);
+}
+
 export function canDelete(role: UserRole): boolean {
   return role === "adm";
 }

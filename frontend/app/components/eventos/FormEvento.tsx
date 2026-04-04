@@ -7,16 +7,19 @@ import {
   useImperativeHandle,
   forwardRef,
   useMemo,
+  useEffect,
 } from "react";
 import {
   IconUpload,
   IconX,
   IconPaperclip,
   IconCalendar,
+  IconUsers,
 } from "@tabler/icons-react";
 import { FileService } from "@/src/service/file.service";
-import { Evento, Visibilidade } from "@/src/types/evento";
+import { Evento, EventoColaborador, Visibilidade } from "@/src/types/evento";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import { UsuarioColaboradorService } from "@/src/service/usuarioColaborador.service";
 
 type FormState = Omit<
   Evento,
@@ -32,6 +35,7 @@ export interface FormEventoRef {
 
 interface FormEventoProps {
   inicial?: Partial<Evento>;
+  modoEdicao: Visibilidade;
   onSalvar: (
     dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">
   ) => Promise<void>;
@@ -76,6 +80,7 @@ function getTurnoFromHorario(horario?: string): "Manhã" | "Tarde" | "Noite" {
 }
 
 const INITIAL: FormState = {
+  idCriador: undefined,
   nome: "",
   descricaoCompleta: "",
   area: "Todos",
@@ -88,6 +93,8 @@ const INITIAL: FormState = {
   tipoInscricao: "interna",
   urlExterna: "",
   visibilidade: "publica",
+  modoEdicao: "privada",
+  colaboradores: [],
   banner: "",
   anexos: [],
 };
@@ -115,7 +122,7 @@ function visibilidadeButtonClass(
 }
 
 export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
-  ({ inicial, onSalvar, onLoadingChange }, ref) => {
+  ({ inicial, modoEdicao, onSalvar, onLoadingChange }, ref) => {
     const initialHorario = inicial?.horario
       ? String(inicial.horario).slice(0, 5)
       : INITIAL.horario;
@@ -130,6 +137,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
       turno: turnoInicial,
       tipoInscricao: inicial?.tipoInscricao ?? "interna",
       visibilidade: inicial?.visibilidade ?? "publica",
+      colaboradores: inicial?.colaboradores ?? [],
       descricaoCompleta: inicial?.descricaoCompleta ?? "",
       banner: inicial?.banner ?? "",
       anexos: (inicial?.anexos ?? []).map((anexo) => ({
@@ -143,9 +151,16 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
     const [uploadingBanner, setUploadingBanner] = useState(false);
     const [erroAnexo, setErroAnexo] = useState("");
     const [uploadingAnexo, setUploadingAnexo] = useState(false);
+    const [opcoesColaboradores, setOpcoesColaboradores] = useState<EventoColaborador[]>([]);
 
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const anexoInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      UsuarioColaboradorService.getAll()
+        .then((data) => setOpcoesColaboradores(data))
+        .catch(() => setOpcoesColaboradores([]));
+    }, []);
 
     function set<K extends keyof FormState>(key: K, value: FormState[K]) {
       setForm((prev) => {
@@ -165,6 +180,16 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
 
     function setVisibilidade(value: Visibilidade) {
       set("visibilidade", value);
+    }
+
+    function toggleColaborador(colaborador: EventoColaborador) {
+      const existe = form.colaboradores.some((item) => item.id === colaborador.id);
+      set(
+        "colaboradores",
+        existe
+          ? form.colaboradores.filter((item) => item.id !== colaborador.id)
+          : [...form.colaboradores, colaborador]
+      );
     }
 
     const turnoCalculado = useMemo(
@@ -209,6 +234,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           turno: turnoCalculado,
           tipoInscricao: "interna",
           visibilidade: form.visibilidade,
+          modoEdicao,
         };
 
         onLoadingChange?.(true);
@@ -392,6 +418,60 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             >
               Privada
             </button>
+          </div>
+        </Campo>
+
+        <Campo label="Colaboradores do evento">
+          <div className="rounded-xl border border-slate-200 dark:border-[#404040] bg-slate-50 dark:bg-[#242424] p-3 space-y-3">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <IconUsers size={14} />
+              Selecione colaboradores que podem editar este evento quando a edição estiver privada. Administradores continuam com acesso total.
+            </div>
+
+            {opcoesColaboradores.length === 0 ? (
+              <p className="text-sm text-slate-400">Nenhum colaborador disponível.</p>
+            ) : (
+              <div className="max-h-44 overflow-y-auto space-y-2">
+                {opcoesColaboradores.map((colaborador) => {
+                  const selecionado = form.colaboradores.some(
+                    (item) => item.id === colaborador.id
+                  );
+
+                  return (
+                    <button
+                      key={colaborador.id}
+                      type="button"
+                      onClick={() => toggleColaborador(colaborador)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                        selecionado
+                          ? "border-[#FFDE00] bg-[#FFDE00]/10"
+                          : "border-slate-200 dark:border-[#404040] hover:bg-slate-100 dark:hover:bg-[#2b2b2b]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
+                            {colaborador.nome}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {colaborador.email} · {colaborador.area || "Sem área"}
+                          </p>
+                        </div>
+                        <span
+                          className={`h-5 w-5 rounded-full border flex items-center justify-center text-[10px] font-bold ${
+                            selecionado
+                              ? "border-[#FFDE00] bg-[#FFDE00] text-slate-900"
+                              : "border-slate-300 dark:border-[#505050] text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Campo>
 

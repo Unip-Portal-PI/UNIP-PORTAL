@@ -10,8 +10,19 @@ export interface Anexo {
   url: string;
 }
 
+export interface EventoColaborador {
+  id: string;
+  nome: string;
+  apelido?: string;
+  matricula: string;
+  email: string;
+  area?: string;
+  permission: "colaborador";
+}
+
 export interface Evento {
   id: string;
+  idCriador?: string;
   banner?: string;
   nome: string;
   descricaoBreve: string;
@@ -27,6 +38,8 @@ export interface Evento {
   tipoInscricao: TipoInscricao;
   urlExterna?: string;
   visibilidade: Visibilidade;
+  modoEdicao: Visibilidade;
+  colaboradores: EventoColaborador[];
   anexos: Anexo[];
   criadoEm: string;
 }
