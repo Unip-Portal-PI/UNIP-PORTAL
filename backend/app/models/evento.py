@@ -21,6 +21,13 @@ class EventoPalestrante(Base):
     id_palestrante = Column(String(36), ForeignKey("palestrante.id_palestrante", ondelete="CASCADE"), primary_key=True)
 
 
+class EventoColaborador(Base):
+    __tablename__ = "evento_colaborador"
+
+    id_evento = Column(String(36), ForeignKey("evento.id_evento", ondelete="CASCADE"), primary_key=True)
+    id_usuario = Column(String(36), ForeignKey("usuario.id_usuario", ondelete="CASCADE"), primary_key=True)
+
+
 class EventoModel(Base):
     __tablename__ = "evento"
 
@@ -39,6 +46,7 @@ class EventoModel(Base):
     tipo_inscricao = Column(Enum(TipoInscricao, values_callable=lambda x: [e.value for e in x]), default=TipoInscricao.interna, nullable=False)
     url_externa = Column(String(500), nullable=True)
     visibilidade = Column(Enum(Visibilidade, values_callable=lambda x: [e.value for e in x]), default=Visibilidade.publica, nullable=False)
+    modo_edicao = Column(Enum(Visibilidade, values_callable=lambda x: [e.value for e in x]), default=Visibilidade.privada, nullable=False, server_default=text("'privada'"))
     cancelado = Column(Boolean, nullable=False, default=False, server_default=text("0"))
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
     data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -46,6 +54,7 @@ class EventoModel(Base):
 
     cursos = relationship("CursoModel", secondary="evento_curso", lazy="joined")
     palestrantes = relationship("PalestranteModel", secondary="evento_palestrante", lazy="joined")
+    colaboradores = relationship("UsuarioModel", secondary="evento_colaborador", lazy="joined")
     anexos = relationship("AnexoModel", back_populates="evento", lazy="joined", cascade="all, delete-orphan")
     inscricoes = relationship("InscricaoModel", back_populates="evento", lazy="noload")
     criador = relationship("UsuarioModel", foreign_keys=[id_criador], lazy="joined")

@@ -74,7 +74,7 @@ def update_event(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return evento_service.update_event(evento_id, data, db)
+    return evento_service.update_event(evento_id, data, current_user, db)
 
 
 @router.delete("/{evento_id}", response_model=EventoCancelResponse)

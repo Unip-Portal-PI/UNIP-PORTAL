@@ -17,6 +17,18 @@ class UsuarioBase(BaseModel):
     foto_url: str | None = None
 
 
+class UsuarioResumoResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    id: str
+    nome: str
+    apelido: str | None = None
+    matricula: str
+    email: str
+    area: str | None = None
+    permission: str
+
+
 class UsuarioPerfilResponse(UsuarioBase):
     telefone: str | None = None
     data_nascimento: date | None = None

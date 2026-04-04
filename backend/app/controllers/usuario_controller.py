@@ -9,6 +9,7 @@ from app.schemas.usuario import (
     UsuarioAdminResponse,
     UsuarioAdminUpdateRequest,
     UsuarioPerfilResponse,
+    UsuarioResumoResponse,
     UsuarioUpdateMeRequest,
     UsuarioUpdatePasswordRequest,
     UsuarioUpdatePhotoRequest,
@@ -23,6 +24,14 @@ allow_adm = RoleChecker(["adm"])
 @router.get("/me", response_model=UsuarioPerfilResponse)
 def get_me(current_user=Depends(get_current_user)):
     return usuario_service.get_me(current_user)
+
+
+@router.get("/collaborators", response_model=list[UsuarioResumoResponse])
+def list_active_collaborators(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return usuario_service.list_active_collaborators(db)
 
 
 @router.put("/me", response_model=UsuarioPerfilResponse)
