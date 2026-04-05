@@ -101,6 +101,7 @@ jobs:
               COMPOSE_FILE="docker-compose.yml"
             fi
             docker compose -f "$COMPOSE_FILE" pull backend frontend || docker compose -f "$COMPOSE_FILE" pull
+            docker compose -f "$COMPOSE_FILE" run --rm backend alembic upgrade head
             #docker compose -f "$COMPOSE_FILE" up -d --remove-orphans backend frontend || docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
             docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --scale frontend=5 --scale backend=5 frontend backend
             docker image prune -f
