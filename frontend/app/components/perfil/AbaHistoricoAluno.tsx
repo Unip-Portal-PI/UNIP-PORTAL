@@ -262,7 +262,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-1">
+                  <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-1 truncate max-w-[350px]" title={evento?.nome ?? "Evento removido"}>
                     {evento?.nome ?? "Evento removido"}
                   </p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">

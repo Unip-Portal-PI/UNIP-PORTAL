@@ -73,7 +73,7 @@ export function ModalListaInscritos({ evento, inscricoes, onFechar }: Props) {
                 <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
                   Lista de Inscritos
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[550px]" title={evento.nome}>
                   {evento.nome}
                 </p>
               </div>

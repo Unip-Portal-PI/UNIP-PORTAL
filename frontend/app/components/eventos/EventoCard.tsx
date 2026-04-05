@@ -199,7 +199,8 @@ export function EventoCard({
 
       <div className="flex flex-col flex-1 p-4 gap-3">
         <h3
-          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2"
+        title={evento.nome}
+          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[350px]"
           onClick={handleCardClick}
         >
           {evento.nome}

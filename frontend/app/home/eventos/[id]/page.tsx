@@ -344,7 +344,7 @@ export default function DetalheEventoPage() {
                 )}
               </div>
 
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-snug">
+              <h1 title={eventoAtual.nome} className="text-2xl font-bold text-slate-900 dark:text-white leading-snug truncate max-w-[550px]">
                 {eventoAtual.nome}
               </h1>
 
@@ -593,6 +593,7 @@ export default function DetalheEventoPage() {
           <ModalFormEvento
             evento={eventoAtual}
             onSalvar={handleSalvarEvento}
+            role={role}
             onFechar={() => setModalForm(false)}
           />
         )}

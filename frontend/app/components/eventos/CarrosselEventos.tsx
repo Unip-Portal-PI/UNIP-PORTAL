@@ -110,9 +110,9 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
 
         {evento.area && (
           <div className="absolute top-4 left-4 pointer-events-none">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/60 text-white text-xs font-semibold shadow">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/60 text-white text-xs font-semibold shadow ">
               {evento.area}
-            </span>
+            </span> 
           </div>
         )}
 
@@ -154,7 +154,7 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
             Últimos eventos
           </div>
 
-          <h2 className="text-xl sm:text-3xl font-bold leading-tight max-w-3xl line-clamp-2">
+          <h2 title={evento.nome} className="text-xl sm:text-3xl font-bold leading-tight max-w-3xl line-clamp-2 truncate max-w-[750px]">
             {evento.nome}
           </h2>
 

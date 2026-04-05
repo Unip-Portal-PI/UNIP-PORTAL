@@ -212,9 +212,14 @@ export function ModalQRReader({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030]">
           <div className="flex items-center gap-2">
             <IconQrcode size={20} className="text-[#FFDE00]" />
-            <h2 className="font-bold text-slate-900 dark:text-white text-lg">
-              Check-in — {eventoNome}
-            </h2>
+            <div className="min-w-0">
+              <h2
+                title={`Check-in — ${eventoNome}`}
+                className="font-bold text-slate-900 dark:text-white text-lg truncate max-w-[300px]"
+              >
+                Check-in — {eventoNome}
+              </h2>
+            </div>
           </div>
           <button onClick={onFechar} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
             <IconX size={20} />

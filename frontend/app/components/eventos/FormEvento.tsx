@@ -414,12 +414,12 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           label="Nome do evento"
           erro={erros.nome}
           required
-          tooltip="Título principal do evento. Seja claro e objetivo — é o primeiro texto que os participantes verão. Máximo 50 caracteres."
+          tooltip="Título principal do evento. Seja claro e objetivo — é o primeiro texto que os participantes verão."
         >
           <input
             type="text"
             value={form.nome}
-            maxLength={50}
+             maxLength={200}
             onChange={(e) => set("nome", e.target.value)}
             placeholder="Ex: Semana de Tecnologia 2025"
             className={`${inputCls} ${inputBorder(erros, "nome")}`}

@@ -230,15 +230,27 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
             /> */}
           </div>
 
-          <div>
-            <p className="font-bold text-slate-900 dark:text-white text-lg leading-tight">{nome}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">@{apelido}</p>
+          <div className="min-w-0">
+            <p
+              title={nome}
+              className="font-bold text-slate-900 dark:text-white text-lg leading-tight truncate max-w-[550px]"
+            >
+              {nome}
+            </p>
+
+            <p
+              title={`@${apelido}`}
+              className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[220px]"
+            >
+              @{apelido}
+            </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{matricula}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Campo label="Nome completo" erro={erros.nome}>
+
+          <Campo label="Nome completo">
             <InputCad
               id="nome"
               label=""
@@ -246,39 +258,25 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
               placeholder="Nome completo"
               Icon={User}
               defaultValue={nome}
-              autoComplete="name"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                return validateBlockedTermsField("O nome completo", value);
-              }}
-              onValidatedChange={(_, message, value) => {
-                setNome(value);
-                setErros((p) => ({ ...p, nome: message }));
-              }}
+              validator={(v) => !v.trim() ? "Nome é obrigatório." : validateBlockedTermsField("O nome completo", v)}
+              onValidatedChange={(_, __, value) => setNome(value)}
             />
           </Campo>
 
-          <Campo label="Nome Social" erro={erros.apelido}>
+          <Campo label="Nome Social">
             <InputCad
               id="apelido"
               label=""
               type="text"
-              placeholder="Como prefere ser chamado(a)"
+              placeholder="Nome social"
               Icon={User}
               defaultValue={apelido}
-              autoComplete="nickname"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                return validateBlockedTermsField("O nome social", value);
-              }}
-              onValidatedChange={(_, message, value) => {
-                setApelido(value);
-                setErros((p) => ({ ...p, apelido: message }));
-              }}
+              validator={(v) => !v.trim() ? "Nome social é obrigatório." : validateBlockedTermsField("O nome social", v)}
+              onValidatedChange={(_, __, value) => setApelido(value)}
             />
           </Campo>
 
-          <Campo label="E-mail" erro={erros.email}>
+          <Campo label="E-mail">
             <InputCad
               id="email"
               label=""
@@ -286,19 +284,12 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
               placeholder="email@exemplo.com"
               Icon={AtSign}
               defaultValue={email}
-              autoComplete="email"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                return validateEmail(value);
-              }}
-              onValidatedChange={(_, message, value) => {
-                setEmail(value);
-                setErros((p) => ({ ...p, email: message }));
-              }}
+              validator={(v) => !v.trim() ? "E-mail é obrigatório." : validateEmail(v)}
+              onValidatedChange={(_, __, value) => setEmail(value)}
             />
           </Campo>
 
-          <Campo label="Telefone" erro={erros.telefone}>
+          <Campo label="Telefone">
             <InputCad
               id="telefone"
               label=""
@@ -306,48 +297,35 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
               placeholder="(86) 99999-9999"
               Icon={Phone}
               defaultValue={telefone}
-              autoComplete="tel"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                return validateTelefone(value);
-              }}
-              onValidatedChange={(_, message, value) => {
-                setTelefone(value);
-                setErros((p) => ({ ...p, telefone: message }));
-              }}
+              validator={validateTelefone}
+              onValidatedChange={(_, __, value) => setTelefone(value)}
             />
           </Campo>
 
           <Campo label="Data de nascimento">
-            <div className="relative">
-              <InputCad
-                id="data_nasc"
-                label=""
-                type="date"
-                placeholder=""
-                max={`${new Date().getFullYear()}-12-31`}
-                Icon={Calendar}
-                defaultValue={dataNasc}
-                autoComplete="bday"
-                onValidatedChange={(_, __, value) => {
-                  setDataNasc(value);
-                }}
-              />
-            </div>
+            <InputCad
+              id="data_nasc"
+              placeholder="dd/mm/aaaa"
+              label=""
+              type="date"
+              Icon={Calendar}
+              defaultValue={dataNasc}
+              onValidatedChange={(_, __, value) => setDataNasc(value)}
+            />
           </Campo>
 
           <Campo label="Área / Curso">
             <SelectCad
               id="area"
               label=""
-              placeholder="Selecione sua Área"
+              placeholder="Selecione"
               options={CURSOS.filter((c) => c !== "Todos")}
               Icon={BookOpen}
-              erro={false}
               value={area}
               onChange={setArea}
             />
           </Campo>
+
         </div>
 
         {feedbackDados === "erro" && erroGeral && (

@@ -45,7 +45,7 @@ export function ModalExcluir({ evento, onConfirmar, onFechar }: ModalExcluirProp
               <IconCalendarOff size={22} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">
+              <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[350px]" title={evento.nome}>
                 {evento.nome}
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">

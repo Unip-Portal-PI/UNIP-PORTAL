@@ -95,9 +95,20 @@ export default function PerfilPage() {
             <span className="text-2xl font-black text-amber-700 dark:text-[#FFDE00]">{inicial}</span>
           )}
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{usuario.nome}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">@{usuario.apelido}</p>
+        <div className="min-w-0">
+          <h1
+            title={usuario.nome}
+            className="text-xl font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[260px]"
+          >
+            {usuario.nome}
+          </h1>
+
+          <p
+            title={`@${usuario.apelido}`}
+            className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[260px]"
+          >
+            @{usuario.apelido}
+          </p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="text-xs font-semibold text-amber-700 dark:text-[#FFDE00] bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10 px-2 py-0.5 rounded-full">
               {ROLE_LABEL[role]}
@@ -111,21 +122,19 @@ export default function PerfilPage() {
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-[#1a1a1a] rounded-xl mb-6 w-fit">
         <button
           onClick={() => setAba("dados")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            aba === "dados"
-              ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${aba === "dados"
+            ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            }`}
         >
           <IconUser size={15} /> Dados pessoais
         </button>
         <button
           onClick={() => setAba("historico")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            aba === "historico"
-              ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${aba === "historico"
+            ? "bg-white dark:bg-[#202020] text-slate-900 dark:text-white shadow-sm"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            }`}
         >
           <IconHistory size={15} /> Histórico
         </button>
