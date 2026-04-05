@@ -200,7 +200,10 @@ export default function ComunicadoDetalhePage() {
           </div>
         )}
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-snug mb-4">
+        <h1
+          className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-snug mb-4 line-clamp-2"
+          title={comunicado.titulo}
+        >
           {comunicado.titulo}
         </h1>
 

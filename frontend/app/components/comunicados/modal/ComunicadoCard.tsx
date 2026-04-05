@@ -149,7 +149,7 @@ export function ComunicadoCard({
 
       <div className="flex flex-col flex-1 p-6 gap-4">
         <h3
-          className="font-bold text-slate-900 dark:text-white text-xl leading-snug cursor-pointer hover:text-amber-600 dark:hover:text-[#FFDE00] transition-colors line-clamp-2"
+          className="font-bold text-slate-900 dark:text-white text-xl leading-snug cursor-pointer hover:text-amber-600 dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[450px]"  title={comunicado.titulo}
           onClick={handleAbrir}
         >
           {comunicado.titulo}

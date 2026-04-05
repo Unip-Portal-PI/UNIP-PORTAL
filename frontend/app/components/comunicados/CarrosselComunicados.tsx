@@ -99,7 +99,7 @@ export function CarrosselComunicados({
             </div>
           )}
 
-          <h2 className="text-white font-bold text-lg leading-snug line-clamp-2">
+          <h2 className="text-white font-bold text-lg leading-snug line-clamp-2 truncate max-w-[650px]"  title={atual.titulo}>
             {atual.titulo}
           </h2>
 

@@ -363,7 +363,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1">
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1" title={c.titulo}>
                       {c.titulo}
                     </p>
 

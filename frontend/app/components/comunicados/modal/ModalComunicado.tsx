@@ -60,7 +60,7 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
         <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030] shrink-0 gap-4">
           <div className="flex-1 min-w-0">
 
-            <h2 className="font-bold text-slate-900 dark:text-white text-lg leading-snug line-clamp-2">
+            <h2 className="font-bold text-slate-900 dark:text-white text-lg leading-snug line-clamp-2 truncate max-w-[350px]"  title={comunicado.titulo}>
               {comunicado.titulo}
             </h2>
           </div>

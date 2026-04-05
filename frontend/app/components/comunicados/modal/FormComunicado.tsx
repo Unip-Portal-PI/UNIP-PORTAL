@@ -271,11 +271,11 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Título */}
-        <Campo label="Título" tooltip="Título principal do comunicado. Seja direto e objetivo (máx. 50 caracteres)." erro={erros.titulo} required>
+        <Campo label="Título" tooltip="Título principal do comunicado. Seja direto e objetivo (máx. 200 caracteres)." erro={erros.titulo} required>
           <input
             type="text"
             value={form.titulo}
-            maxLength={50}
+            maxLength={200}
             onChange={(e) => set("titulo", e.target.value)}
             placeholder="Ex: Reunião Geral — Resultados Q1"
             className={`${inputCls} ${inputBorder(erros, "titulo")}`}
