@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import {
-  // IconCamera,
   IconCheck,
   IconAlertCircle,
   IconLock,
+  IconRotate,
 } from "@tabler/icons-react";
 import { Usuario } from "@/src/types/user";
 import { PerfilService } from "@/src/service/perfil.service";
 import { CURSOS } from "@/src/utils/cursos.helpers";
-// import { useFotoPerfil } from "@/src/context/FotoPerfilContext";
 import {
   InputCad,
   SelectCad,
@@ -20,6 +19,7 @@ import {
   validateEmail,
 } from "@/app/components/inputCad";
 import { User, AtSign, Phone, Calendar, BookOpen, Lock } from "lucide-react";
+import { ModalFeedbackPerfil } from "@/app/components/perfil/ModalFeedbackPerfil";
 
 interface Props {
   usuario: Usuario;
@@ -33,6 +33,7 @@ interface CampoProps {
   children: React.ReactNode;
 }
 
+// ─── Campo wrapper ─────────────────────────────────────────────────────────────
 function Campo({ label, erro, children }: CampoProps) {
   return (
     <div>
@@ -49,44 +50,62 @@ function Campo({ label, erro, children }: CampoProps) {
   );
 }
 
+// ─── Componente principal ──────────────────────────────────────────────────────
 export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
-  // const fotoInputRef = useRef<HTMLInputElement>(null);
-
+  // ── Estado dos dados pessoais ──
   const [nome, setNome] = useState(usuario.nome ?? "");
   const [apelido, setApelido] = useState(usuario.apelido ?? "");
   const [email, setEmail] = useState(usuario.email ?? "");
   const [telefone, setTelefone] = useState(usuario.telefone ?? "");
   const [dataNasc, setDataNasc] = useState(usuario.dataNascimento ?? "");
   const [area, setArea] = useState(usuario.area ?? "");
-  // const { atualizarFoto } = useFotoPerfil();
-  // const [foto, setFoto] = useState<string | null>(PerfilService.getFoto(matricula));
-  // const [fotoTemp, setFotoTemp] = useState<string | null>(null);
-  const [erros, setErros] = useState<Record<string, string>>({});
-  const [salvando, setSalvando] = useState(false);
-  const [feedbackDados, setFeedbackDados] = useState<"sucesso" | "erro" | null>(null);
-  const [erroGeral, setErroGeral] = useState("");
 
+  // ── Snapshot dos valores salvos (para desfazer) ──
+  const [savedSnapshot, setSavedSnapshot] = useState({
+    nome: usuario.nome ?? "",
+    apelido: usuario.apelido ?? "",
+    email: usuario.email ?? "",
+    telefone: usuario.telefone ?? "",
+    dataNasc: usuario.dataNascimento ?? "",
+    area: usuario.area ?? "",
+  });
+
+  // ── Chave de reset dos inputs (força remontagem ao desfazer) ──
+  const [resetKeyDados, setResetKeyDados] = useState(0);
+  const [resetKeySenha, setResetKeySenha] = useState(0);
+
+  // ── Detecta se há alteração nos dados pessoais ──
+  const temAlteracaoDados =
+    nome !== savedSnapshot.nome ||
+    apelido !== savedSnapshot.apelido ||
+    email !== savedSnapshot.email ||
+    telefone !== savedSnapshot.telefone ||
+    dataNasc !== savedSnapshot.dataNasc ||
+    area !== savedSnapshot.area;
+
+  // ── Estado da senha ──
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [errosSenha, setErrosSenha] = useState<Record<string, string>>({});
   const [salvandoSenha, setSalvandoSenha] = useState(false);
-  const [feedbackSenha, setFeedbackSenha] = useState<"sucesso" | "erro" | null>(null);
-  const [erroSenhaGeral, setErroSenhaGeral] = useState("");
 
-  // function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-  //
-  //   const reader = new FileReader();
-  //   reader.onload = (ev) => {
-  //     const dataURL = ev.target?.result as string;
-  //     setFoto(dataURL);
-  //     setFotoTemp(dataURL);
-  //   };
-  //   reader.readAsDataURL(file);
-  // }
+  const temAlteracaoSenha =
+    senhaAtual.trim() !== "" ||
+    novaSenha.trim() !== "" ||
+    confirmarSenha.trim() !== "";
 
+  // ── Modal ──
+  const [modal, setModal] = useState<{
+    visivel: boolean;
+    tipo: "sucesso" | "erro";
+    mensagem: string;
+    refreshAoFechar?: boolean;
+  }>({ visivel: false, tipo: "sucesso", mensagem: "" });
+
+  const [erros, setErros] = useState<Record<string, string>>({});
+  const [salvando, setSalvando] = useState(false);
+
+  // ── Validação dados ──
   function validarDados(): boolean {
     const e: Record<string, string> = {};
 
@@ -117,12 +136,11 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
     return Object.keys(e).length === 0;
   }
 
+  // ── Salvar dados ──
   async function handleSalvarDados() {
     if (!validarDados()) return;
 
     setSalvando(true);
-    setFeedbackDados(null);
-    setErroGeral("");
 
     try {
       await PerfilService.atualizarDados(matricula, {
@@ -134,64 +152,80 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
         area,
       });
 
-      // if (fotoTemp) {
-      //   await atualizarFoto(matricula, fotoTemp);
-      //   setFotoTemp(null);
-      // }
+      // Atualiza snapshot após salvar com sucesso
+      setSavedSnapshot({ nome, apelido, email, telefone, dataNasc, area });
 
-      setFeedbackDados("sucesso");
-      onAtualizado();
-      setTimeout(() => setFeedbackDados(null), 3000);
+      setModal({
+        visivel: true,
+        tipo: "sucesso",
+        mensagem: "Seus dados foram atualizados com sucesso!",
+        refreshAoFechar: true,
+      });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao salvar.";
-      setErroGeral(msg);
-      setFeedbackDados("erro");
+      const msg = err instanceof Error ? err.message : "Erro ao salvar os dados.";
+      setModal({ visivel: true, tipo: "erro", mensagem: msg });
     } finally {
       setSalvando(false);
     }
   }
 
-  function validarSenha(): boolean {
-    const e: Record<string, string> = {};
-
-    if (!senhaAtual.trim()) e.senhaAtual = "Informe a senha atual.";
-
-    if (!novaSenha.trim()) e.novaSenha = "Informe a nova senha.";
-    else {
-      const msg = validateSenha(novaSenha);
-      if (msg) e.novaSenha = msg;
-      else if (novaSenha.length < 6) e.novaSenha = "Mínimo 6 caracteres.";
-    }
-
-    if (!confirmarSenha.trim()) e.confirmarSenha = "Confirme a nova senha.";
-    else if (novaSenha !== confirmarSenha) e.confirmarSenha = "As senhas não coincidem.";
-
-    setErrosSenha(e);
-    return Object.keys(e).length === 0;
+  // ── Desfazer dados ──
+  function handleDesfazerDados() {
+    setNome(savedSnapshot.nome);
+    setApelido(savedSnapshot.apelido);
+    setEmail(savedSnapshot.email);
+    setTelefone(savedSnapshot.telefone);
+    setDataNasc(savedSnapshot.dataNasc);
+    setArea(savedSnapshot.area);
+    setErros({});
+    setResetKeyDados((k) => k + 1);
   }
 
+  // ── Desfazer senha ──
+  function handleDesfazerSenha() {
+    setSenhaAtual("");
+    setNovaSenha("");
+    setConfirmarSenha("");
+    setResetKeySenha((k) => k + 1);
+  }
+
+  // ── Validação senha ──
+  function validarSenha(): string | null {
+    if (!senhaAtual.trim()) return "Informe a senha atual.";
+    if (!novaSenha.trim()) return "Informe a nova senha.";
+    if (novaSenha.length < 6) return "A nova senha deve ter pelo menos 6 caracteres.";
+    const msgSenha = validateSenha(novaSenha);
+    if (msgSenha) return msgSenha;
+    if (!confirmarSenha.trim()) return "Confirme a nova senha.";
+    if (novaSenha !== confirmarSenha) return "As senhas não coincidem.";
+    return null;
+  }
+
+  // ── Salvar senha ──
   async function handleSalvarSenha() {
-    if (!validarSenha()) return;
+    const erroValidacao = validarSenha();
+    if (erroValidacao) {
+      setModal({ visivel: true, tipo: "erro", mensagem: erroValidacao });
+      return;
+    }
 
     setSalvandoSenha(true);
-    setFeedbackSenha(null);
-    setErroSenhaGeral("");
 
     try {
-      await PerfilService.alterarSenha(
-        matricula,
-        senhaAtual.trim(),
-        novaSenha.trim()
-      );
-      setFeedbackSenha("sucesso");
+      await PerfilService.alterarSenha(matricula, senhaAtual.trim(), novaSenha.trim());
+
       setSenhaAtual("");
       setNovaSenha("");
       setConfirmarSenha("");
-      setTimeout(() => setFeedbackSenha(null), 3000);
+
+      setModal({
+        visivel: true,
+        tipo: "sucesso",
+        mensagem: "Sua senha foi alterada com sucesso!",
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao alterar senha.";
-      setErroSenhaGeral(msg);
-      setFeedbackSenha("erro");
+      setModal({ visivel: true, tipo: "erro", mensagem: msg });
     } finally {
       setSalvandoSenha(false);
     }
@@ -200,259 +234,266 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
   const inicial = nome.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6">
-        <div className="flex items-center gap-5 mb-6 pb-6 border-b border-slate-100 dark:border-[#2a2a2a]">
-          <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-full bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 border-2 border-[#FFDE00]/40 flex items-center justify-center overflow-hidden">
-              {/* {foto ? (
-                <img src={foto} alt="Foto de perfil" className="w-full h-full object-cover" />
-              ) : ( */}
-              <span className="text-3xl font-black text-amber-700 dark:text-[#FFDE00]">
-                {inicial}
-              </span>
-              {/* )} */}
+    <>
+      {/* ── Modal de feedback ── */}
+      {modal.visivel && (
+        <ModalFeedbackPerfil
+          tipo={modal.tipo}
+          titulo={modal.tipo === "sucesso" ? "Tudo certo!" : "Algo deu errado"}
+          mensagem={modal.mensagem}
+          onFechar={() => {
+            const shouldRefresh = modal.refreshAoFechar;
+            setModal((m) => ({ ...m, visivel: false, refreshAoFechar: false }));
+            if (shouldRefresh) onAtualizado();
+          }}
+        />
+      )}
+
+      <div className="space-y-6">
+        {/* ── Card dados pessoais ── */}
+        <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6">
+          {/* Avatar + nome */}
+          <div className="flex items-center gap-5 mb-6 pb-6 border-b border-slate-100 dark:border-[#2a2a2a]">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-full bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 border-2 border-[#FFDE00]/40 flex items-center justify-center overflow-hidden">
+                <span className="text-3xl font-black text-amber-700 dark:text-[#FFDE00]">
+                  {inicial}
+                </span>
+              </div>
             </div>
 
-            {/* <button
-              onClick={() => fotoInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#FFDE00] hover:bg-[#e6c800] rounded-full flex items-center justify-center shadow transition-colors"
+            <div className="min-w-0">
+              <p
+                title={nome}
+                className="font-bold text-slate-900 dark:text-white text-lg leading-tight truncate max-w-[550px]"
+              >
+                {nome}
+              </p>
+              <p
+                title={`@${apelido}`}
+                className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[220px]"
+              >
+                @{apelido}
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{matricula}</p>
+            </div>
+          </div>
+
+          {/* Campos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Campo label="Nome completo" erro={erros.nome}>
+              <InputCad
+                key={`nome-${resetKeyDados}`}
+                id="nome"
+                label=""
+                type="text"
+                placeholder="Nome completo"
+                Icon={User}
+                defaultValue={nome}
+                validator={(v) =>
+                  !v.trim() ? "Nome é obrigatório." : validateBlockedTermsField("O nome completo", v)
+                }
+                onValidatedChange={(_, __, value) => setNome(value)}
+              />
+            </Campo>
+
+            <Campo label="Nome Social" erro={erros.apelido}>
+              <InputCad
+                key={`apelido-${resetKeyDados}`}
+                id="apelido"
+                label=""
+                type="text"
+                placeholder="Nome social"
+                Icon={User}
+                defaultValue={apelido}
+                validator={(v) =>
+                  !v.trim() ? "Nome social é obrigatório." : validateBlockedTermsField("O nome social", v)
+                }
+                onValidatedChange={(_, __, value) => setApelido(value)}
+              />
+            </Campo>
+
+            <Campo label="E-mail" erro={erros.email}>
+              <InputCad
+                key={`email-${resetKeyDados}`}
+                id="email"
+                label=""
+                type="email"
+                placeholder="email@exemplo.com"
+                Icon={AtSign}
+                defaultValue={email}
+                validator={(v) =>
+                  !v.trim() ? "E-mail é obrigatório." : validateEmail(v)
+                }
+                onValidatedChange={(_, __, value) => setEmail(value)}
+              />
+            </Campo>
+
+            <Campo label="Telefone" erro={erros.telefone}>
+              <InputCad
+                key={`telefone-${resetKeyDados}`}
+                id="telefone"
+                label=""
+                type="tel"
+                placeholder="(86) 99999-9999"
+                Icon={Phone}
+                defaultValue={telefone}
+                validator={validateTelefone}
+                onValidatedChange={(_, __, value) => setTelefone(value)}
+              />
+            </Campo>
+
+            <Campo label="Data de nascimento">
+              <InputCad
+                key={`dataNasc-${resetKeyDados}`}
+                id="data_nasc"
+                placeholder="dd/mm/aaaa"
+                label=""
+                type="date"
+                Icon={Calendar}
+                defaultValue={dataNasc}
+                onValidatedChange={(_, __, value) => setDataNasc(value)}
+              />
+            </Campo>
+
+            <Campo label="Área / Curso">
+              <SelectCad
+                key={`area-${resetKeyDados}`}
+                id="area"
+                label=""
+                placeholder="Selecione"
+                options={CURSOS.filter((c) => c !== "Todos")}
+                Icon={BookOpen}
+                value={area}
+                onChange={setArea}
+              />
+            </Campo>
+          </div>
+
+          {/* Botões */}
+          <div className="mt-5 flex items-center justify-end gap-3">
+            {/* Botão desfazer — só aparece se houver alteração */}
+            {temAlteracaoDados && (
+              <button
+                onClick={handleDesfazerDados}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-[#2a2a2a] dark:hover:bg-[#333] text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl transition-colors"
+              >
+                <IconRotate size={15} />
+                Desfazer
+              </button>
+            )}
+
+            <button
+              onClick={handleSalvarDados}
+              disabled={salvando}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-[#252525] text-sm font-bold rounded-xl transition-colors"
             >
-              <IconCamera size={14} className="text-[#252525]" />
+              {salvando ? "Salvando..." : (
+                <>
+                  <IconCheck size={16} /> Salvar alterações
+                </>
+              )}
             </button>
-
-            <input
-              ref={fotoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFoto}
-            /> */}
-          </div>
-
-          <div className="min-w-0">
-            <p
-              title={nome}
-              className="font-bold text-slate-900 dark:text-white text-lg leading-tight truncate max-w-[550px]"
-            >
-              {nome}
-            </p>
-
-            <p
-              title={`@${apelido}`}
-              className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[220px]"
-            >
-              @{apelido}
-            </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{matricula}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <Campo label="Nome completo">
-            <InputCad
-              id="nome"
-              label=""
-              type="text"
-              placeholder="Nome completo"
-              Icon={User}
-              defaultValue={nome}
-              validator={(v) => !v.trim() ? "Nome é obrigatório." : validateBlockedTermsField("O nome completo", v)}
-              onValidatedChange={(_, __, value) => setNome(value)}
-            />
-          </Campo>
-
-          <Campo label="Nome Social">
-            <InputCad
-              id="apelido"
-              label=""
-              type="text"
-              placeholder="Nome social"
-              Icon={User}
-              defaultValue={apelido}
-              validator={(v) => !v.trim() ? "Nome social é obrigatório." : validateBlockedTermsField("O nome social", v)}
-              onValidatedChange={(_, __, value) => setApelido(value)}
-            />
-          </Campo>
-
-          <Campo label="E-mail">
-            <InputCad
-              id="email"
-              label=""
-              type="email"
-              placeholder="email@exemplo.com"
-              Icon={AtSign}
-              defaultValue={email}
-              validator={(v) => !v.trim() ? "E-mail é obrigatório." : validateEmail(v)}
-              onValidatedChange={(_, __, value) => setEmail(value)}
-            />
-          </Campo>
-
-          <Campo label="Telefone">
-            <InputCad
-              id="telefone"
-              label=""
-              type="tel"
-              placeholder="(86) 99999-9999"
-              Icon={Phone}
-              defaultValue={telefone}
-              validator={validateTelefone}
-              onValidatedChange={(_, __, value) => setTelefone(value)}
-            />
-          </Campo>
-
-          <Campo label="Data de nascimento">
-            <InputCad
-              id="data_nasc"
-              placeholder="dd/mm/aaaa"
-              label=""
-              type="date"
-              Icon={Calendar}
-              defaultValue={dataNasc}
-              onValidatedChange={(_, __, value) => setDataNasc(value)}
-            />
-          </Campo>
-
-          <Campo label="Área / Curso">
-            <SelectCad
-              id="area"
-              label=""
-              placeholder="Selecione"
-              options={CURSOS.filter((c) => c !== "Todos")}
-              Icon={BookOpen}
-              value={area}
-              onChange={setArea}
-            />
-          </Campo>
-
-        </div>
-
-        {feedbackDados === "erro" && erroGeral && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl">
-            <IconAlertCircle size={16} /> {erroGeral}
+        {/* ── Card alterar senha ── */}
+        <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <IconLock size={18} className="text-slate-500 dark:text-slate-400" />
+            <h3 className="font-bold text-slate-900 dark:text-white">Alterar senha</h3>
           </div>
-        )}
 
-        {feedbackDados === "sucesso" && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 rounded-xl">
-            <IconCheck size={16} /> Dados atualizados com sucesso!
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Campo label="Senha atual">
+              <InputCad
+                key={`senhaAtual-${resetKeySenha}`}
+                id="senha_atual"
+                label=""
+                type="password"
+                placeholder="••••••••"
+                Icon={Lock}
+                defaultValue={senhaAtual}
+                autoComplete="current-password"
+                validator={(value) => {
+                  if (!value.trim()) return "";
+                  return validateSenha(value);
+                }}
+                onValidatedChange={(_, __, value) => {
+                  setSenhaAtual(value);
+                }}
+              />
+            </Campo>
+
+            <Campo label="Nova senha">
+              <InputCad
+                key={`novaSenha-${resetKeySenha}`}
+                id="senha"
+                label=""
+                type="password"
+                placeholder="••••••••"
+                Icon={Lock}
+                defaultValue={novaSenha}
+                autoComplete="new-password"
+                validator={(value) => {
+                  if (!value.trim()) return "";
+                  return validateSenha(value);
+                }}
+                onValidatedChange={(_, __, value) => {
+                  setNovaSenha(value);
+                }}
+              />
+            </Campo>
+
+            <Campo label="Confirmar nova senha">
+              <InputCad
+                key={`confirmarSenha-${resetKeySenha}`}
+                id="confirmar"
+                label=""
+                type="password"
+                placeholder="••••••••"
+                Icon={Lock}
+                defaultValue={confirmarSenha}
+                autoComplete="new-password"
+                validator={(value) => {
+                  if (!value.trim()) return "";
+                  if (novaSenha && value !== novaSenha) return "As senhas não coincidem.";
+                  return "";
+                }}
+                onValidatedChange={(_, __, value) => {
+                  setConfirmarSenha(value);
+                }}
+              />
+            </Campo>
           </div>
-        )}
 
-        <div className="mt-5 flex justify-end">
-          <button
-            onClick={handleSalvarDados}
-            disabled={salvando}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-[#252525] text-sm font-bold rounded-xl transition-colors"
-          >
-            {salvando ? "Salvando..." : (
-              <>
-                <IconCheck size={16} /> Salvar alterações
-              </>
+          {/* Botões senha */}
+          <div className="mt-5 flex items-center justify-end gap-3">
+            {/* Botão desfazer senha — só aparece se houver alteração */}
+            {temAlteracaoSenha && (
+              <button
+                onClick={handleDesfazerSenha}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-[#2a2a2a] dark:hover:bg-[#333] text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl transition-colors"
+              >
+                <IconRotate size={15} />
+                Desfazer
+              </button>
             )}
-          </button>
+
+            <button
+              onClick={handleSalvarSenha}
+              disabled={salvandoSenha}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition-colors"
+            >
+              {salvandoSenha ? "Alterando..." : (
+                <>
+                  <IconLock size={15} /> Alterar senha
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <IconLock size={18} className="text-slate-500 dark:text-slate-400" />
-          <h3 className="font-bold text-slate-900 dark:text-white">Alterar senha</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Campo label="Senha atual" erro={errosSenha.senhaAtual}>
-            <InputCad
-              id="senha_atual"
-              label=""
-              type="password"
-              placeholder="••••••••"
-              Icon={Lock}
-              defaultValue={senhaAtual}
-              autoComplete="current-password"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                return validateSenha(value);
-              }}
-              onValidatedChange={(_, message, value) => {
-                setSenhaAtual(value);
-                setErrosSenha((p) => ({ ...p, senhaAtual: message }));
-              }}
-            />
-          </Campo>
-
-          <Campo label="Nova senha" erro={errosSenha.novaSenha}>
-            <InputCad
-              id="senha"
-              label=""
-              type="password"
-              placeholder="••••••••"
-              Icon={Lock}
-              defaultValue={novaSenha}
-              autoComplete="new-password"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                const msg = validateSenha(value);
-                if (msg) return msg;
-                if (value.length < 6) return "Mínimo 6 caracteres.";
-                return "";
-              }}
-              onValidatedChange={(_, message, value) => {
-                setNovaSenha(value);
-                setErrosSenha((p) => ({ ...p, novaSenha: message }));
-              }}
-            />
-          </Campo>
-
-          <Campo label="Confirmar nova senha" erro={errosSenha.confirmarSenha}>
-            <InputCad
-              id="confirmar"
-              label=""
-              type="password"
-              placeholder="••••••••"
-              Icon={Lock}
-              defaultValue={confirmarSenha}
-              autoComplete="new-password"
-              validator={(value) => {
-                if (!value.trim()) return "";
-                if (novaSenha && value !== novaSenha) return "As senhas não coincidem.";
-                return "";
-              }}
-              onValidatedChange={(_, message, value) => {
-                setConfirmarSenha(value);
-                setErrosSenha((p) => ({ ...p, confirmarSenha: message }));
-              }}
-            />
-          </Campo>
-        </div>
-
-        {feedbackSenha === "erro" && erroSenhaGeral && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl">
-            <IconAlertCircle size={16} /> {erroSenhaGeral}
-          </div>
-        )}
-
-        {feedbackSenha === "sucesso" && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 rounded-xl">
-            <IconCheck size={16} /> Senha alterada com sucesso!
-          </div>
-        )}
-
-        <div className="mt-5 flex justify-end">
-          <button
-            onClick={handleSalvarSenha}
-            disabled={salvandoSenha}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition-colors"
-          >
-            {salvandoSenha ? "Alterando..." : (
-              <>
-                <IconLock size={15} /> Alterar senha
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

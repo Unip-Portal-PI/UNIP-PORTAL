@@ -414,7 +414,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
           label="Nome do evento"
           erro={erros.nome}
           required
-          tooltip="Título principal do evento. Seja claro e objetivo — é o primeiro texto que os participantes verão."
+          tooltip="Título principal do evento. Seja claro e objetivo — é o primeiro texto que os participantes verão. Máximo de 200 caracteres."
         >
           <input
             type="text"

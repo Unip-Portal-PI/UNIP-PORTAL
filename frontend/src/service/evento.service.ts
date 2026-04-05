@@ -145,22 +145,9 @@ export const EventoService = {
 
   async getById(id: string): Promise<Evento | null> {
     const { data, ok, status } = await api.get<ApiEvento>(`/events/${id}`);
-
-    console.log('🔍 getById chamado:', { id });
-    console.log('📡 Resposta da API:', { status, ok, data });
-
-    if (status === 404) {
-      console.warn('⚠️ Evento não encontrado (404):', id);
-      return null;
-    }
-    if (!ok || !data) {
-      console.error('❌ Erro na requisição:', { ok, status, data });
-      return null;
-    }
-
-    const evento = mapEvento(data);
-    console.log('✅ Evento mapeado:', evento);
-    return evento;
+    if (status === 404) return null;
+    if (!ok || !data) return null;
+    return mapEvento(data);
   },
 
   async criar(dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">): Promise<Evento> {
