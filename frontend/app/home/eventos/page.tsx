@@ -24,6 +24,7 @@ import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancel
 import { CarrosselEventos } from "@/app/components/eventos/CarrosselEventos";
 import { FilterInput } from "@/app/components/filters/FilterInput";
 import { FilterSelect } from "@/app/components/filters/FilterSelect";
+import { FilterDate } from "@/app/components/filters/FilterDate";
 import AuthGuard from "@/src/guard/AuthGuard";
 
 type UsuarioEventos = {
@@ -42,8 +43,6 @@ function isEventoExpirado(evento: Evento) {
   const [ano, mes, dia] = evento.data.split("-").map(Number);
   if (!ano || !mes || !dia) return false;
 
-  // Cria a data limite como sendo o final do dia do evento (23:59:59.999)
-  // Usando a data local para evitar problemas de fuso horário na comparação com Date.now()
   const limiteVisibilidade = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
 
   return Date.now() > limiteVisibilidade.getTime();
@@ -77,6 +76,7 @@ export default function EventosPage() {
   const [search, setSearch] = useState("");
   const [curso, setCurso] = useState(CURSOS[0]);
   const [turno, setTurno] = useState(TURNOS[0]);
+  const [data, setData] = useState("");
 
   const [modalInscricao, setModalInscricao] = useState<Evento | null>(null);
   const [modalExcluir, setModalExcluir] = useState<Evento | null>(null);
@@ -86,23 +86,19 @@ export default function EventosPage() {
     useState<Evento | null>(null);
   const [mensagemEventoCancelado, setMensagemEventoCancelado] = useState("");
 
-  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>(
-    []
-  );
-  const [minhasInscricoes, setMinhasInscricoes] = useState<
-    Record<string, Inscricao>
-  >({});
+  const [presencasConfirmadas, setPresencasConfirmadas] = useState<Inscricao[]>([]);
+  const [minhasInscricoes, setMinhasInscricoes] = useState<Record<string, Inscricao>>({});
 
   async function carregarEventos(currentRole: UserRole) {
     setLoading(true);
     setErroCarga(false);
 
     try {
-      const data = await EventoService.getAll();
-      setEventos(data);
+      const resultado = await EventoService.getAll();
+      setEventos(resultado);
 
       if (currentRole === "aluno") {
-        const eventosVisiveis = data.filter((evento) =>
+        const eventosVisiveis = resultado.filter((evento) =>
           podeVerEvento(currentRole, evento)
         );
 
@@ -187,9 +183,11 @@ export default function EventosPage() {
 
       const matchTurno = turno === "Todos" || e.turno === turno;
 
-      return matchSearch && matchCurso && matchTurno;
+      const matchData = data === "" || e.data === data;
+
+      return matchSearch && matchCurso && matchTurno && matchData;
     });
-  }, [eventosDisponiveis, search, curso, turno]);
+  }, [eventosDisponiveis, search, curso, turno, data]);
 
   function isInscrito(eventoId: string) {
     return !!minhasInscricoes[eventoId];
@@ -307,7 +305,7 @@ export default function EventosPage() {
         )}
 
         <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <FilterInput
               label="Procurar"
               placeholder="Nome do evento..."
@@ -325,6 +323,11 @@ export default function EventosPage() {
               value={turno}
               onChange={setTurno}
               options={TURNOS}
+            />
+            <FilterDate
+              label="Data"
+              value={data}
+              onChange={setData}
             />
           </div>
         </div>
@@ -409,24 +412,26 @@ export default function EventosPage() {
 
         {modalInscricao && (
           <ModalInscricao
-            evento={modalInscricao}
+            evento={modalInscricao!}
             user={user}
-            onConfirmar={() => handleConfirmarInscricao(modalInscricao)}
+            onConfirmar={() => handleConfirmarInscricao(modalInscricao!)}
             onFechar={() => setModalInscricao(null)}
           />
         )}
 
         {modalExcluir && (
           <ModalExcluir
-            evento={modalExcluir}
-            onConfirmar={() => handleExcluir(modalExcluir)}
+            evento={modalExcluir!}
+            onConfirmar={() => handleExcluir(modalExcluir!)}
             onFechar={() => setModalExcluir(null)}
           />
         )}
 
         {modalForm !== null && (
+          // ✅ role passado para o modal controlar campos visíveis no formulário
           <ModalFormEvento
             evento={modalForm === "novo" ? null : modalForm}
+            role={role}
             onSalvar={handleSalvarEvento}
             onFechar={() => setModalForm(null)}
           />
@@ -434,7 +439,7 @@ export default function EventosPage() {
 
         {modalQR && (
           <ModalQRReader
-            eventoNome={modalQR.nome}
+            eventoNome={modalQR!.nome}
             onLer={handleQRConfirmar}
             onFechar={() => setModalQR(null)}
             presencasConfirmadas={presencasConfirmadas}
@@ -443,7 +448,7 @@ export default function EventosPage() {
 
         {modalDesinscricaoSucesso && (
           <ModalDesinscricaoSucesso
-            eventoNome={modalDesinscricaoSucesso.nome}
+            eventoNome={modalDesinscricaoSucesso!.nome}
             onFechar={() => setModalDesinscricaoSucesso(null)}
           />
         )}

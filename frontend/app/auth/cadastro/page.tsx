@@ -7,7 +7,7 @@ import {
   InputCad,
   SelectCad,
   validateSenha,
-  validateMatricula,
+  validateMatriculaCadastro,
   validateTelefone,
   validateBlockedTermsField,
   validateEmail,
@@ -107,7 +107,7 @@ export default function Cadastro() {
     const missingRequiredFields = !matricula || !nome || !nomeSocial || !area || !email || !senha;
 
     const nextErrors = {
-      matricula: validateMatricula(matricula),
+      matricula: validateMatriculaCadastro(matricula),
       nome: validateBlockedTermsField("O nome completo", nome),
       nome_social: validateBlockedTermsField("O nome social", nomeSocial),
       telefone: validateTelefone(telefone),
@@ -194,7 +194,7 @@ export default function Cadastro() {
                 defaultValue={matricula}
                 validator={(value) => {
                   if (!value.trim()) return "";
-                  return validateMatricula(value);
+                  return validateMatriculaCadastro(value);
                 }}
                 onValidatedChange={(_isValid, message, value) => {
                   setFieldValidation("matricula", !_isValid, message);

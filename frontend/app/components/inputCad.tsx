@@ -17,6 +17,9 @@ interface InputProps {
   autoComplete?: string;
   validator?: (value: string) => string;
   onValidatedChange?: (isValid: boolean, message: string, value: string) => void;
+
+  // ✅ NOVO
+  max?: string;
 }
 
 interface SelectProps {
@@ -93,6 +96,34 @@ export function validateMatricula(value: string): string {
   return "";
 }
 
+// ✅ Validação exclusiva para a tela de cadastro — aceita apenas PI, UP e UG
+export function validateMatriculaCadastro(value: string): string {
+  if (!value.trim()) return "";
+
+  const cleaned = value.trim().toUpperCase();
+
+  if (cleaned.length > 10) {
+    return "A matrícula deve ter no máximo 10 caracteres.";
+  }
+
+  const PREFIXOS_VALIDOS_CADASTRO = ["PI", "UP", "UG"];
+  const prefixo = cleaned.slice(0, 2);
+
+  if (prefixo.length === 2 && !/^[A-Z]{2}$/.test(prefixo)) {
+    return "A matrícula deve começar com letras maiúsculas.";
+  }
+
+  if (prefixo.length === 2 && !PREFIXOS_VALIDOS_CADASTRO.includes(prefixo)) {
+    return "A matrícula deve começar com: PI, UP ou UG.";
+  }
+
+  if (!/^[A-Z]{2}[0-9]{8}$/.test(cleaned)) {
+    return "A matrícula deve ter 2 letras maiúsculas iniciais e 8 números.";
+  }
+
+  return "";
+}
+
 export function validateTelefone(value: string): string {
   const nums = onlyNumbers(value);
 
@@ -139,6 +170,7 @@ export function InputCad({
   autoComplete,
   validator,
   onValidatedChange,
+   max,
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [telValue, setTelValue] = useState(defaultValue ?? "");
@@ -171,7 +203,18 @@ export function InputCad({
     const message = validator ? validator(currentValue) : "";
     setValidationMessage(message);
   }, [currentValue, validator]);
+const computedMax = useMemo(() => {
+  // se vier max externo → usa ele
+  if (max) return max;
 
+  // se for date → aplica padrão (ano atual)
+  if (type === "date") {
+    const anoAtual = new Date().getFullYear();
+    return `${anoAtual}-12-31`;
+  }
+
+  return undefined;
+}, [max, type]);
   function emitValidation(nextValue: string) {
     const message = validator ? validator(nextValue) : "";
     setValidationMessage(message);
@@ -184,7 +227,6 @@ export function InputCad({
       const anoDigitado = parseInt(nextValue.split('-')[0], 10);
 
       if (anoDigitado > anoLimite) {
-        // Substitui o ano pelo limite, mantendo o restante da string (-MM-DD)
         const dataAjustada = nextValue.replace(/^\d{4,}/, String(anoLimite));
         setValue(dataAjustada);
         emitValidation(dataAjustada);
@@ -252,6 +294,7 @@ export function InputCad({
           onBlur={handleBlur}
           inputMode={isTel ? "numeric" : undefined}
           maxLength={isPassword ? 48 : undefined}
+          max={computedMax}
           className={`w-full border rounded-md p-2 text-sm outline-none transition-colors
             ${Icon ? "pl-9" : "pl-3"}
             ${isPassword ? "pr-10" : "pr-3"}

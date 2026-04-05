@@ -325,6 +325,7 @@ export function AbaDadosPessoais({ usuario, matricula, onAtualizado }: Props) {
                 label=""
                 type="date"
                 placeholder=""
+                max={`${new Date().getFullYear()}-12-31`}
                 Icon={Calendar}
                 defaultValue={dataNasc}
                 autoComplete="bday"

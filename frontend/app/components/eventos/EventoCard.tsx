@@ -17,6 +17,9 @@ import {
   canEditEvent,
   canDelete,
 } from "@/src/utils/evento.helpers";
+import { isAcontecendoAgora } from "@/src/utils/evento.helpers";
+import { BadgeAcontecendoAgora } from "@/app/components/eventos/BadgeAcontecendoAgora";
+
 
 
 interface EventoCardProps {
@@ -92,6 +95,7 @@ export function EventoCard({
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
   const [mostrarModalCancelamento, setMostrarModalCancelamento] = useState(false);
+  const acontecendoAgora = isAcontecendoAgora(evento);
   const status =
     porcento >= 100
       ? "esgotado"
@@ -214,6 +218,7 @@ export function EventoCard({
             <IconClock size={13} />
             {evento.turno} · {evento.horario}
           </span>
+          {acontecendoAgora && <BadgeAcontecendoAgora />}
         </div>
 
         <div className="space-y-1">

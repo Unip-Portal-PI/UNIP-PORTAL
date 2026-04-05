@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useRef } from "react";
 import { User, AtSign, Lock, Hash, BookOpen } from "lucide-react";
 import { UsuarioGestor, StatusUsuario } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
 import { CURSOS } from "@/src/utils/cursos.helpers";
+import { Tooltip } from "@/app/components/Tooltip";
 import {
   InputCad,
   SelectCad,
@@ -44,15 +45,22 @@ interface CampoProps {
   children: React.ReactNode;
   required?: boolean;
   span2?: boolean;
+  tooltip?: string;
 }
 
-function Campo({ label, erro, children, required, span2 }: CampoProps) {
+
+
+function Campo({ label, erro, children, required, span2, tooltip }: CampoProps) {
   return (
     <div className={span2 ? "sm:col-span-2" : ""}>
-      <label className="text-sm font-bold text-slate-700 dark:text-slate-200 block mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1 mb-1">
+        {label}
+        {tooltip && <Tooltip text={tooltip} />}
+        {required && <span className="text-red-500">*</span>}
       </label>
+
       {children}
+
       {erro && <p className="mt-1 text-xs text-red-500">{erro}</p>}
     </div>
   );
@@ -162,11 +170,12 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
-        <Campo label="Nome completo" required span2>
+        <Campo label="Nome completo" required span2 tooltip="Nome completo do usuário. Evite abreviações e apelidos aqui.">
           <InputCad
             id="nome"
             label=""
             type="text"
+            
             placeholder="Nome completo"
             Icon={User}
             erro={!!erros.nome}
@@ -184,7 +193,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
-        <Campo label="Apelido" required>
+        <Campo label="Apelido" tooltip="Nome curto que será exibido no sistema." required>
           <InputCad
             id="apelido"
             label=""
@@ -206,7 +215,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
-        <Campo label="Matrícula" required>
+        <Campo label="Matrícula" tooltip="Identificador único do aluno/colaborador. Ex: CC20230456." required>
           <div >
             <InputCad
               id="matricula"
@@ -228,7 +237,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           
         </Campo>
 
-        <Campo label="E-mail" required span2>
+        <Campo label="E-mail" tooltip="E-mail institucional ou válido para login e comunicação." required span2>
           <InputCad
             id="email"
             label=""
@@ -248,12 +257,12 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
         </Campo>
 
         {!isEdicao && (
-          <Campo label="Senha" required span2>
+          <Campo label="Senha" tooltip="Mínimo de 48 caracteres. Evite senhas fracas como 123456." required span2>
             <InputCad
               id="senha"
               label=""
               type="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 48 caracteres"
               Icon={Lock}
               erro={!!erros.senha}
               defaultValue={form.senha}
@@ -268,7 +277,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           </Campo>
         )}
 
-        <Campo label="Área" erro={erros.area} required>
+        <Campo label="Área" tooltip="Curso ou área do usuário dentro da instituição." erro={erros.area} required>
           <SelectCad
             id="area"
             label=""
@@ -281,7 +290,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
-        <Campo label="Perfil de acesso" required>
+        <Campo label="Perfil de acesso" tooltip="Define o nível de acesso no sistema: aluno, colaborador ou administrador." required>
           <div className="flex gap-2">
             {(["aluno", "colaborador", "adm"] as UserRole[]).map((p) => (
               <button
@@ -300,7 +309,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
         </Campo>
 
         {isEdicao && (
-          <Campo label="Status" required>
+          <Campo label="Status" tooltip="Usuário ativo pode acessar o sistema. Inativo fica bloqueado." required>
             <div className="flex gap-2">
               {(["ativo", "inativo"] as StatusUsuario[]).map((s) => (
                 <button

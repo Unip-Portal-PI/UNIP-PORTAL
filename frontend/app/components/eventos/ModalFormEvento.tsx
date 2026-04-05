@@ -4,15 +4,18 @@
 import { useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
 import { Evento, Visibilidade } from "@/src/types/evento";
+import { UserRole } from "@/src/types/user";
 import { FormEvento, FormEventoRef } from "./FormEvento";
 
 interface ModalFormEventoProps {
   evento?: Evento | null;
+  // ✅ role recebido da page para controlar visibilidade de campos
+  role: UserRole;
   onSalvar: (dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">) => Promise<void>;
   onFechar: () => void;
 }
 
-export function ModalFormEvento({ evento, onSalvar, onFechar }: ModalFormEventoProps) {
+export function ModalFormEvento({ evento, role, onSalvar, onFechar }: ModalFormEventoProps) {
   const isEdicao = !!evento?.id;
   const formRef = useRef<FormEventoRef>(null);
   const [loading, setLoading] = useState(false);
@@ -45,31 +48,6 @@ export function ModalFormEvento({ evento, onSalvar, onFechar }: ModalFormEventoP
 
           <div className="flex items-start gap-3">
             <button
-              type="button"
-              onClick={() => setModoEdicao(isPublica ? "privada" : "publica")}
-              className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-[#404040] bg-slate-50 dark:bg-[#2a2a2a] px-3 py-1.5 transition-colors"
-              title={isPublica ? "Qualquer colaborador pode editar" : "Somente o criador pode editar"}
-            >
-              <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Privada
-              </span>
-              <span
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ease-out ${
-                  isPublica ? "bg-[#FFDE00]" : "bg-slate-300 dark:bg-[#4a4a4a]"
-                }`}
-              >
-                <span
-                  className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transform-gpu transition-transform duration-200 ease-out ${
-                    isPublica ? "translate-x-[20px]" : "translate-x-0"
-                  }`}
-                />
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Publica
-              </span>
-            </button>
-
-            <button
               onClick={onFechar}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
             >
@@ -84,6 +62,7 @@ export function ModalFormEvento({ evento, onSalvar, onFechar }: ModalFormEventoP
             ref={formRef}
             inicial={evento ?? undefined}
             modoEdicao={modoEdicao}
+            role={role}
             onSalvar={onSalvar}
             onLoadingChange={setLoading}
           />

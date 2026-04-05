@@ -18,7 +18,7 @@ import { FileService } from "@/src/service/file.service";
 import { Comunicado, ComunicadoAnexo } from "@/src/types/comunicado";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 import { normalizeAssuntos, parseAssuntos } from "@/src/utils/comunicado.helpers";
-
+import { Tooltip } from "@/app/components/Tooltip";
 const MAX_ANEXO_MB = 10;
 const TIPOS_ACEITOS = ["application/pdf", "image/jpeg", "image/png"];
 const EXTENSOES_ACEITAS = ".pdf,.jpg,.jpeg,.png";
@@ -40,15 +40,21 @@ interface CampoProps {
   erro?: string;
   children: React.ReactNode;
   required?: boolean;
+  tooltip?: string;
 }
 
-function Campo({ label, erro, children, required }: CampoProps) {
+
+function Campo({ label, erro, children, required, tooltip }: CampoProps) {
   return (
     <div className="space-y-1">
-      <label className="text-sm font-bold text-slate-700 dark:text-slate-200">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+        {label}
+        {tooltip && <Tooltip text={tooltip} />}
+        {required && <span className="text-red-500">*</span>}
       </label>
+
       {children}
+
       {erro && <p className="text-xs text-red-500">{erro}</p>}
     </div>
   );
@@ -223,7 +229,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
       <div className="flex flex-col gap-5 pb-2">
 
         {/* Banner */}
-        <Campo label="Banner do comunicado" erro={erros.banner}>
+        <Campo label="Banner do comunicado" tooltip="Imagem de destaque do comunicado. Recomendado 1200x400px em PNG ou JPG." erro={erros.banner}>
           <div
             className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl h-36 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors relative overflow-hidden"
             onClick={() => !uploadingBanner && bannerInputRef.current?.click()}
@@ -265,7 +271,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Título */}
-        <Campo label="Título" erro={erros.titulo} required>
+        <Campo label="Título" tooltip="Título principal do comunicado. Seja direto e objetivo (máx. 50 caracteres)." erro={erros.titulo} required>
           <input
             type="text"
             value={form.titulo}
@@ -277,7 +283,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Assunto */}
-        <Campo label="Assunto">
+        <Campo label="Assunto" tooltip="Palavras-chave para categorizar o comunicado. Use vírgula para separar. Máximo de 5 tags.">
           <input
             type="text"
             value={assuntoInput}
@@ -344,7 +350,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Conteúdo */}
-        <Campo label="Conteúdo" erro={erros.conteudo} required>
+        <Campo label="Conteúdo" tooltip="Texto completo do comunicado. Use *texto* para negrito e @link para URLs." erro={erros.conteudo} required>
           <textarea
             rows={6}
             value={form.conteudo}
@@ -356,7 +362,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Visibilidade */}
-        <Campo label="Visibilidade (cursos que podem ver)" required>
+        <Campo label="Visibilidade (cursos que podem ver)" tooltip="Define quais cursos terão acesso ao comunicado. 'Todos' libera para todos os usuários." required>
           <div className="flex flex-wrap gap-2 mt-1">
             {CURSOS.map((curso) => {
               const ativo =
@@ -381,7 +387,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Data de validade */}
-        <Campo label="Data de validade" erro={erros.dataValidade} required>
+        <Campo label="Data de validade" tooltip="Após essa data, o comunicado será considerado expirado e pode ser ocultado." erro={erros.dataValidade} required>
           <input
             type="date"
             value={form.dataValidade}
@@ -403,7 +409,7 @@ export const FormComunicado = forwardRef<FormComunicadoRef, FormComunicadoProps>
         </Campo>
 
         {/* Anexos */}
-        <Campo label={`Anexos (PDF, JPG, PNG — máx. ${MAX_ANEXO_MB}MB cada)`}>
+        <Campo label={`Anexos (PDF, JPG, PNG — máx. ${MAX_ANEXO_MB}MB cada)`} tooltip="Arquivos complementares como documentos, imagens ou materiais de apoio.">
           <div
             className="border-2 border-dashed border-slate-300 dark:border-[#505050] rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-[#FFDE00] transition-colors"
             onClick={() => !uploadingAnexo && anexoInputRef.current?.click()}

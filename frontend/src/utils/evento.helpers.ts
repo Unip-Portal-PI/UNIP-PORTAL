@@ -108,8 +108,8 @@ function buildEnrollmentDeadline(evento: Evento): Date | null {
   const eventStart = buildEventStartDateTime(evento);
   if (!eventStart) return null;
 
-  // Regra padrão: 1 hora antes do início
-  const defaultDeadline = new Date(eventStart.getTime() - 60 * 60 * 1000);
+  // Regra padrão: 30 minutos DEPOIS do início
+  const defaultDeadline = new Date(eventStart.getTime() + 30 * 60 * 1000);
 
   const limiteDate = parseDateOnly(evento.dataLimiteInscricao);
   if (!limiteDate) return defaultDeadline;
@@ -169,4 +169,27 @@ export function canDelete(role: UserRole): boolean {
 
 export function canInscricao(role: UserRole): boolean {
   return role === "aluno";
+}
+
+
+export function isAcontecendoAgora(evento: Evento): boolean {
+  const eventDate = parseDateOnly(evento.data);
+  if (!eventDate) return false;
+
+  const time = parseTime(evento.horario);
+  const agora = new Date();
+
+  const inicio = new Date(
+    eventDate.getFullYear(),
+    eventDate.getMonth(),
+    eventDate.getDate(),
+    time?.hours ?? 0,
+    time?.minutes ?? 0,
+    0,
+    0
+  );
+
+  const fim = new Date(inicio.getTime() + 30 * 60 * 1000); // +30min após início
+
+  return agora >= inicio && agora <= fim;
 }
