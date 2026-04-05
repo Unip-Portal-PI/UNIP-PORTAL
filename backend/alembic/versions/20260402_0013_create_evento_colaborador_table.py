@@ -28,7 +28,7 @@ def upgrade() -> None:
             sa.PrimaryKeyConstraint("id_evento", "id_usuario"),
             mysql_engine="InnoDB",
             mysql_charset="utf8mb4",
-            mysql_collate="utf8mb4_uca1400_ai_ci",
+            mysql_collate="utf8mb4_general_ci",
         )
 
 
