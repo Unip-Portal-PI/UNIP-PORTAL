@@ -30,7 +30,7 @@ class EventoResponse(BaseModel):
     nome: str
     descricao_breve: str | None = None
     descricao_completa: str | None = None
-    area: str | None = None
+    area: list[str] = []
     data: date
     horario: time | None = None
     turno: Turno | None = None
@@ -42,6 +42,7 @@ class EventoResponse(BaseModel):
     url_externa: str | None = None
     visibilidade: Visibilidade = Visibilidade.publica
     modo_edicao: Visibilidade = Visibilidade.privada
+    responsavel: str | None = None
     colaboradores: list[UsuarioResumoResponse] = []
     anexos: list[AnexoResponse] = []
     criado_em: datetime | None = None
@@ -52,7 +53,7 @@ class EventoCreate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     nome: str
-    area: str | None = None
+    area: list[str] | None = None
     descricao: str | None = None
     descricao_breve: str | None = None
     banner_url: str | None = None
@@ -66,6 +67,7 @@ class EventoCreate(BaseModel):
     url_externa: str | None = None
     visibilidade: Visibilidade = Visibilidade.publica
     modo_edicao: Visibilidade = Visibilidade.privada
+    responsavel: str | None = None
     colaboradores_ids: list[str] = []
     anexos: list[AnexoRequest] = []
     cursos_ids: list[str] = []
@@ -76,7 +78,7 @@ class EventoUpdate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     nome: str | None = None
-    area: str | None = None
+    area: list[str] | None = None
     descricao: str | None = None
     descricao_breve: str | None = None
     banner_url: str | None = None
@@ -90,6 +92,7 @@ class EventoUpdate(BaseModel):
     url_externa: str | None = None
     visibilidade: Visibilidade | None = None
     modo_edicao: Visibilidade | None = None
+    responsavel: str | None = None
     colaboradores_ids: list[str] | None = None
     anexos: list[AnexoRequest] | None = None
     cursos_ids: list[str] | None = None

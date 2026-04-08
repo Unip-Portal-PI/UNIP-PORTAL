@@ -96,7 +96,7 @@ const INITIAL: FormState = {
   idCriador: undefined,
   nome: "",
   descricaoCompleta: "",
-  area: "Todos",
+  area: ["Todos"],
   data: "",
   horario: "08:00",
   turno: "Manhã",
@@ -107,6 +107,7 @@ const INITIAL: FormState = {
   urlExterna: "",
   visibilidade: "publica",
   modoEdicao: "privada",
+  responsavel: "",
   colaboradores: [],
   banner: "",
   anexos: [],
@@ -148,7 +149,7 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
     const [form, setForm] = useState<FormState>({
       ...INITIAL,
       ...inicial,
-      area: inicial?.area?.trim() ? inicial.area : "Todos",
+      area: inicial?.area?.length ? inicial.area : ["Todos"],
       horario: initialHorario,
       turno: turnoInicial,
       tipoInscricao: inicial?.tipoInscricao ?? "interna",
@@ -197,6 +198,20 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
 
     function setVisibilidade(value: Visibilidade) {
       set("visibilidade", value);
+    }
+
+    function toggleArea(curso: string) {
+      if (curso === "Todos") {
+        set("area", ["Todos"]);
+        return;
+      }
+      const semTodos = form.area.filter((v) => v !== "Todos");
+      if (semTodos.includes(curso)) {
+        const novo = semTodos.filter((v) => v !== curso);
+        set("area", novo.length === 0 ? ["Todos"] : novo);
+      } else {
+        set("area", [...semTodos, curso]);
+      }
     }
 
     function toggleColaborador(colaborador: EventoColaborador) {
@@ -449,19 +464,46 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         </Campo>
 
         <Campo
-          label="Área vinculada"
-          required
-          tooltip='Define qual curso ou área do conhecimento este evento pertence. Selecione "Todos" para que qualquer aluno possa ver e se inscrever.'
+          label="Responsável"
+          erro={erros.responsavel}
+          tooltip="Nome da pessoa ou equipe responsável pela organização e execução do evento. Esse nome será exibido para os participantes."
         >
-          <select
-            value={form.area}
-            onChange={(e) => set("area", e.target.value)}
-            className={`${inputCls} ${inputBorder(erros, "area")}`}
-          >
-            {[...CURSOS.slice(1), "Todos"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
+          <input
+            type="text"
+            value={form.responsavel}
+            maxLength={200}
+            onChange={(e) => set("responsavel", e.target.value)}
+            placeholder="Ex: Coordenação de Extensão"
+            className={`${inputCls} ${inputBorder(erros, "responsavel")}`}
+          />
+        </Campo>
+
+        <Campo
+          label="Área vinculada"
+          tooltip='Define quais cursos este evento pertence. Selecione "Todos" para que qualquer aluno possa ver e se inscrever.'
+        >
+          <div className="flex flex-wrap gap-2 mt-1">
+            {CURSOS.map((curso) => {
+              const ativo =
+                curso === "Todos"
+                  ? form.area.includes("Todos")
+                  : form.area.includes(curso) && !form.area.includes("Todos");
+              return (
+                <button
+                  key={curso}
+                  type="button"
+                  onClick={() => toggleArea(curso)}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                    ativo
+                      ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
+                      : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
+                  }`}
+                >
+                  {curso}
+                </button>
+              );
+            })}
+          </div>
         </Campo>
 
         <Campo

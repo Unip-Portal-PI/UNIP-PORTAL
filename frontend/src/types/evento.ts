@@ -27,7 +27,7 @@ export interface Evento {
   nome: string;
   descricaoBreve: string;
   descricaoCompleta: string;
-  area: string;
+  area: string[];
   data: string; // ISO date
   horario: string;
   turno: string;
@@ -39,6 +39,7 @@ export interface Evento {
   urlExterna?: string;
   visibilidade: Visibilidade;
   modoEdicao: Visibilidade;
+  responsavel: string;
   colaboradores: EventoColaborador[];
   anexos: Anexo[];
   criadoEm: string;

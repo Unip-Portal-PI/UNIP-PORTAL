@@ -10,7 +10,7 @@ type ApiEvento = {
   nome: string;
   descricaoBreve?: string | null;
   descricaoCompleta?: string | null;
-  area?: string | null;
+  area?: string[] | null;
   data: string;
   horario?: string | null;
   turno?: string | null;
@@ -22,6 +22,7 @@ type ApiEvento = {
   urlExterna?: string | null;
   visibilidade: Evento["visibilidade"];
   modoEdicao: Evento["modoEdicao"];
+  responsavel?: string | null;
   colaboradores?: EventoColaborador[];
   anexos?: Evento["anexos"];
   criadoEm?: string | null;
@@ -97,7 +98,7 @@ function mapEvento(evento: ApiEvento): Evento {
     nome: evento.nome,
     descricaoBreve: evento.descricaoBreve ?? "",
     descricaoCompleta: evento.descricaoCompleta ?? "",
-    area: evento.area ?? "",
+    area: evento.area ?? [],
     data: evento.data,
     horario: evento.horario ? evento.horario.slice(0, 5) : "",
     turno: mapTurnoFromApi(evento.turno),
@@ -109,6 +110,7 @@ function mapEvento(evento: ApiEvento): Evento {
     urlExterna: evento.urlExterna ?? undefined,
     visibilidade: evento.visibilidade,
     modoEdicao: evento.modoEdicao,
+    responsavel: evento.responsavel ?? "",
     colaboradores: evento.colaboradores ?? [],
     anexos: (evento.anexos ?? []).map((anexo) => ({
       ...anexo,
@@ -161,10 +163,11 @@ export const EventoService = {
       turno: mapTurnoToApi(dados.turno),
       local: dados.local || null,
       vagas: dados.vagas,
-      area: dados.area || null,
+      area: dados.area?.length ? dados.area : null,
       dataLimiteInscricao: dados.dataLimiteInscricao || null,
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,
+      responsavel: dados.responsavel || null,
       visibilidade: dados.visibilidade,
       modoEdicao: dados.modoEdicao,
       colaboradoresIds: (dados.colaboradores ?? []).map((colaborador) => colaborador.id),
@@ -193,10 +196,11 @@ export const EventoService = {
       turno: mapTurnoToApi(dados.turno),
       local: dados.local || null,
       vagas: dados.vagas,
-      area: dados.area,
+      area: dados.area?.length ? dados.area : null,
       dataLimiteInscricao: dados.dataLimiteInscricao || null,
       tipoInscricao: dados.tipoInscricao,
       urlExterna: dados.urlExterna || null,
+      responsavel: dados.responsavel || null,
       visibilidade: dados.visibilidade,
       modoEdicao: dados.modoEdicao,
       colaboradoresIds: dados.colaboradores?.map((colaborador) => colaborador.id),

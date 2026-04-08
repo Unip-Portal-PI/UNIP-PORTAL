@@ -27,17 +27,13 @@ def _normalize_anexos(anexos):
 
 
 def _serialize_evento(evento: EventoModel, vagas_ocupadas: int = 0) -> EventoResponse:
-    area = evento.area
-    if not area and evento.cursos:
-        area = ", ".join(c.nome_curso for c in evento.cursos)
-
     return EventoResponse(
         id=evento.id_evento,
         banner=build_file_url(evento.banner_url),
         nome=evento.nome,
         descricao_breve=evento.descricao_breve,
         descricao_completa=evento.descricao,
-        area=area,
+        area=evento.area or [],
         data=evento.data,
         horario=evento.horario,
         turno=evento.turno,
@@ -66,6 +62,7 @@ def _serialize_evento(evento: EventoModel, vagas_ocupadas: int = 0) -> EventoRes
             AnexoResponse(id=a.id_anexo, nome=a.nome, url=build_file_url(a.url) or a.url)
             for a in evento.anexos
         ],
+        responsavel=evento.responsavel,
         criado_em=evento.data_criacao,
         id_criador=evento.id_criador,
     )
@@ -152,6 +149,7 @@ def create_event(data: EventoCreate, criador_id: str, db: Session) -> EventoResp
         url_externa=data.url_externa,
         visibilidade=data.visibilidade,
         modo_edicao=data.modo_edicao,
+        responsavel=data.responsavel,
         id_criador=criador_id,
     )
 
