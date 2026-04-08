@@ -9,7 +9,10 @@ import {
   IconCalendarOff,
   IconCircleCheck,
   IconExternalLink,
+  IconFileSpreadsheet,
+  IconFileTypePdf,
 } from "@tabler/icons-react";
+import { AuditExportService } from "@/src/service/auditExport.service";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { Comunicado } from "@/src/types/comunicado";
 import { EventoService } from "@/src/service/evento.service";
@@ -31,22 +34,27 @@ function SectionHeader({
   icone,
   titulo,
   contagem,
+  acoes,
 }: {
   icone: React.ReactNode;
   titulo: string;
   contagem: number;
+  acoes?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-3">
-      <div className="w-8 h-8 bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 rounded-xl flex items-center justify-center">
-        {icone}
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 rounded-xl flex items-center justify-center">
+          {icone}
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+            {titulo}
+          </h3>
+          <p className="text-xs text-slate-400">{contagem} item(s)</p>
+        </div>
       </div>
-      <div>
-        <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-          {titulo}
-        </h3>
-        <p className="text-xs text-slate-400">{contagem} item(s)</p>
-      </div>
+      {acoes && <div className="flex items-center gap-2">{acoes}</div>}
     </div>
   );
 }
@@ -58,6 +66,31 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
   const [expandidoEventoId, setExpandidoEventoId] = useState<string | null>(null);
+  const [exportandoEventos, setExportandoEventos] = useState(false);
+  const [exportandoComunicados, setExportandoComunicados] = useState(false);
+
+  const isAdmin = (Auth.getUser()?.permission ?? "aluno") === "adm";
+
+  async function handleExportarEventos(tipo: "pdf" | "excel") {
+    setExportandoEventos(true);
+    try {
+      await AuditExportService.exportarEventos({
+        eventos: eventos.map((e) => e.evento),
+        tipoArquivo: tipo,
+      });
+    } finally {
+      setExportandoEventos(false);
+    }
+  }
+
+  async function handleExportarComunicados(tipo: "pdf" | "excel") {
+    setExportandoComunicados(true);
+    try {
+      await AuditExportService.exportarComunicados({ comunicados, tipoArquivo: tipo });
+    } finally {
+      setExportandoComunicados(false);
+    }
+  }
 
   useEffect(() => {
     async function carregar() {
@@ -159,6 +192,26 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           }
           titulo="Eventos"
           contagem={eventos.length}
+          acoes={
+            isAdmin ? (
+              <>
+                <button
+                  onClick={() => handleExportarEventos("excel")}
+                  disabled={exportandoEventos || loading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                >
+                  <IconFileSpreadsheet size={13} /> Excel
+                </button>
+                <button
+                  onClick={() => handleExportarEventos("pdf")}
+                  disabled={exportandoEventos || loading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                >
+                  <IconFileTypePdf size={13} /> PDF
+                </button>
+              </>
+            ) : undefined
+          }
         />
 
         {eventos.length === 0 ? (
@@ -326,6 +379,26 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           }
           titulo="Comunicados publicados"
           contagem={comunicados.length}
+          acoes={
+            isAdmin ? (
+              <>
+                <button
+                  onClick={() => handleExportarComunicados("excel")}
+                  disabled={exportandoComunicados || loading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                >
+                  <IconFileSpreadsheet size={13} /> Excel
+                </button>
+                <button
+                  onClick={() => handleExportarComunicados("pdf")}
+                  disabled={exportandoComunicados || loading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                >
+                  <IconFileTypePdf size={13} /> PDF
+                </button>
+              </>
+            ) : undefined
+          }
         />
 
         {comunicados.length === 0 ? (
