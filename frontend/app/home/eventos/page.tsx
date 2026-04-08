@@ -179,7 +179,7 @@ export default function EventosPage() {
         descricaoBreve.includes(termoBusca);
 
       const matchCurso =
-        curso === "Todos" || e.area === curso || e.area === "Todos";
+        curso === "Todos" || e.area.includes(curso) || e.area.includes("Todos");
 
       const matchTurno = turno === "Todos" || e.turno === turno;
 

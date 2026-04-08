@@ -108,11 +108,11 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
         </div>
 
-        {evento.area && (
+        {!evento.area.includes("Todos") && evento.area.length > 0 && (
           <div className="absolute top-4 left-4 pointer-events-none">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/60 text-white text-xs font-semibold shadow ">
-              {evento.area}
-            </span> 
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/60 text-white text-xs font-semibold shadow">
+              {evento.area[evento.area.length - 1]}
+            </span>
           </div>
         )}
 

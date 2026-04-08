@@ -363,6 +363,21 @@ export default function DetalheEventoPage() {
               </div>
             </div>
 
+            {eventoAtual.area.filter((a) => a !== "Todos").length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {eventoAtual.area
+                  .filter((a) => a !== "Todos")
+                  .map((a) => (
+                    <span
+                      key={a}
+                      className="text-xs font-semibold text-slate-400 dark:text-slate-500"
+                    >
+                      #{a.replace(/\s+/g, "")}
+                    </span>
+                  ))}
+              </div>
+            )}
+
             {eventoAtual.anexos.length > 0 && (
               <div className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-5">
                 <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wide">

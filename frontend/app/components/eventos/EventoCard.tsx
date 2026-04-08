@@ -183,9 +183,9 @@ export function EventoCard({
           </span>
         )}
 
-        {evento.area && (
+        {!evento.area.includes("Todos") && evento.area.length > 0 && (
           <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
-            {evento.area}
+            {evento.area[evento.area.length - 1]}
           </span>
         )}
 
