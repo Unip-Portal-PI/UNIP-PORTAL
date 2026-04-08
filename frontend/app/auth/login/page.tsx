@@ -80,9 +80,9 @@ export default function Login() {
 
             {/* Logos */}
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Image src={isDark ? "/img/logo_avp_dark.png" : "/img/logo_avp.png"} alt="AVP Conecta" width={130} height={80} className="object-contain" />
-              <div className="w-10" />
-              <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={130} height={80} className="object-contain" />
+              <Image src={isDark ? "/img/smn-avp.png" : "/img/banner_semana_academica_ligth.png"} alt="AVP Conecta" width={420} height={260} className="object-contain" />
+              {/* <div className="w-10" /> */}
+              {/* <Image src={isDark ? "/img/logo_unip_dark.png" : "/img/logo_unip.png"} alt="UNIP" width={130} height={80} className="object-contain" /> */}
             </div>
 
             {/* <h2 className="text-2xl font-bold text-[#202020] dark:text-white text-center mb-6">Login</h2> */}
