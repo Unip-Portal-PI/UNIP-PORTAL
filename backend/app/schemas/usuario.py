@@ -83,6 +83,7 @@ class UsuarioAdminUpdateRequest(BaseModel):
     area: str | None = None
     permission: str | None = None
     ativo: bool | None = None
+    nova_senha: str | None = None
 
 
 class UsuarioAdminResponse(UsuarioBase):

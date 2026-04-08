@@ -204,6 +204,8 @@ def update_user(user_id: str, data: UsuarioAdminUpdateRequest, db: Session) -> U
         user.id_nivel = nivel.id_nivel
     if data.ativo is not None:
         user.ativo = data.ativo
+    if data.nova_senha:
+        user.password = hash_password(data.nova_senha)
 
     repo.update(user)
     return _serialize_admin(repo.get_by_id(user.id_usuario))

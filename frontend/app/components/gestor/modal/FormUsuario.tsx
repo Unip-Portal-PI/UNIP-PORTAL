@@ -138,6 +138,10 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           if (senhaErro) e.senha = senhaErro;
           else if (form.senha.length < 6) e.senha = "Mínimo 6 caracteres.";
         }
+      } else if (form.senha.trim()) {
+        const senhaErro = validateSenha(form.senha);
+        if (senhaErro) e.senha = senhaErro;
+        else if (form.senha.length < 6) e.senha = "Mínimo 6 caracteres.";
       }
 
       setErros(e);
@@ -256,26 +260,36 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
-        {!isEdicao && (
-          <Campo label="Senha" tooltip="Mínimo de 48 caracteres. Evite senhas fracas como 123456." required span2>
-            <InputCad
-              id="senha"
-              label=""
-              type="password"
-              placeholder="Mínimo 48 caracteres"
-              Icon={Lock}
-              erro={!!erros.senha}
-              defaultValue={form.senha}
-              validator={validateSenha}
-              onValidatedChange={(_, message, value) => {
-                set("senha", value);
-                if (message) {
-                  setErros((prev) => ({ ...prev, senha: message }));
-                }
-              }}
-            />
-          </Campo>
-        )}
+        <Campo
+          label={isEdicao ? "Nova senha" : "Senha"}
+          tooltip={isEdicao ? "Preencha apenas se quiser redefinir a senha deste usuário." : "Mínimo de 6 caracteres. Evite senhas fracas como 123456."}
+          required={!isEdicao}
+          span2
+          erro={erros.senha}
+        >
+          <InputCad
+            id="senha"
+            label=""
+            type="password"
+            placeholder={isEdicao ? "Deixe em branco para não alterar" : "Mínimo 6 caracteres"}
+            Icon={Lock}
+            erro={!!erros.senha}
+            defaultValue={form.senha}
+            validator={(value) => {
+              if (isEdicao && !value.trim()) return "";
+              return validateSenha(value);
+            }}
+            onValidatedChange={(_, message, value) => {
+              set("senha", value);
+              if (message) {
+                setErros((prev) => ({ ...prev, senha: message }));
+              }
+            }}
+          />
+          {isEdicao && (
+            <p className="mt-1 text-xs text-slate-400">Opcional — deixe em branco para não alterar.</p>
+          )}
+        </Campo>
 
         <Campo label="Área" tooltip="Curso ou área do usuário dentro da instituição." erro={erros.area} required>
           <SelectCad

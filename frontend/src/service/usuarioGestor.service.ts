@@ -77,6 +77,7 @@ export const UsuarioGestorService = {
       area: dados.area,
       permission: dados.permission,
       ativo: dados.ativo,
+      novaSenha: dados.senha || undefined,
     };
 
     const { ok, error } = await api.put(`/users/${id}`, payload);
