@@ -1,3 +1,4 @@
+// /src/utils/certificado.helpers.ts
 import { Inscricao, Evento } from "@/src/types/evento";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -299,34 +300,43 @@ export async function downloadCertificado(
     30
   );
 
+  // ── Assinatura (sempre /img/assinatura.png, independente do template) ──────
+  const assinatura = await carregarImagem("/img/assinatura.png");
+  const assH = 65;                                                  // altura fixa
+  const assW = Math.round((assinatura.width / assinatura.height) * assH); // largura proporcional
+  const assX = Math.round((W - assW) / 2);                         // centralizado
+  const assY = 500;                                                 // logo acima de COORDENAÇÃO GERAL
+  ctx.drawImage(assinatura, assX, assY, assW, assH);
+
   // ── "COORDENAÇÃO GERAL" ───────────────────────────────────────────────────
   ctx.textAlign = "center";
   ctx.font = `14px ${FONTE}`;
   ctx.fillStyle = "#4a4a4a";
   ctx.fillText("COORDENAÇÃO GERAL", W / 2, 595);
 
-//   // Linha tracejada da assinatura (como no original)
-//   ctx.strokeStyle = "#2e2e2e";
-//   ctx.lineWidth = 1;
-//   ctx.setLineDash([4, 3]);
-//   const linhaAssinaturaX1 = W * 0.30;
-//   const linhaAssinaturaX2 = W * 0.70;
-//   ctx.beginPath();
-//   ctx.moveTo(linhaAssinaturaX1, 560);
+  //   // Linha tracejada da assinatura (como no original)
+  //   ctx.strokeStyle = "#2e2e2e";
+  //   ctx.lineWidth = 1;
+  //   ctx.setLineDash([4, 3]);
+  //   const linhaAssinaturaX1 = W * 0.30;
+  //   const linhaAssinaturaX2 = W * 0.70;
+  //   ctx.beginPath();
+  //   ctx.moveTo(linhaAssinaturaX1, 560);
 
-//   // pequenas setas nas pontas (como no layout)
-//   ctx.moveTo(linhaAssinaturaX1 - 6, 560);
-//   ctx.lineTo(linhaAssinaturaX2 + 6, 560);
-//   ctx.stroke();
-//   ctx.setLineDash([]);
+  //   // pequenas setas nas pontas (como no layout)
+  //   ctx.moveTo(linhaAssinaturaX1 - 6, 560);
+  //   ctx.lineTo(linhaAssinaturaX2 + 6, 560);
+  //   ctx.stroke();
+  //   ctx.setLineDash([]);
 
-//   // Marcadores de ponta
-//   ctx.font = `10px ${FONTE}`;
-//   ctx.fillStyle = "#2e2e2e";
-//   ctx.textAlign = "left";
-//   ctx.fillText("✦", linhaAssinaturaX1 - 10, 563);
-//   ctx.textAlign = "right";
-//   ctx.fillText("✦", linhaAssinaturaX2 + 10, 563);
+  //   // Marcadores de ponta
+  //   // Marcadores de ponta
+  //   ctx.font = `10px ${FONTE}`;
+  //   ctx.fillStyle = "#2e2e2e";
+  //   ctx.textAlign = "left";
+  //   ctx.fillText("✦", linhaAssinaturaX1 - 10, 563);
+  //   ctx.textAlign = "right";
+  //   ctx.fillText("✦", linhaAssinaturaX2 + 10, 563);
 
   // ── Rodapé: data de emissão ────────────────────────────────────────────────
   ctx.textAlign = "center";

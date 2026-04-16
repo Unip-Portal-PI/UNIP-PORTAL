@@ -141,8 +141,8 @@ export default function Login() {
                 )}
 
                 {erro && (
-                  <span className="text-xs text-red-500 mt-1">
-                    Matrícula ou senha inválidos
+                  <span className="text-xs text-red-500 mt-1 text-center">
+                    Dados incorretos. Verifique seu cadastro.
                   </span>
                 )}
               </div>
