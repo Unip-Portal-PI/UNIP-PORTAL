@@ -265,7 +265,6 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
           />
         </Campo>
 
-<<<<<<< HEAD
         <Campo
           label={isEdicao ? "Nova senha" : "Senha"}
           tooltip={isEdicao ? "Preencha apenas se quiser redefinir a senha deste usuário." : "Mínimo de 6 caracteres. Evite senhas fracas como 123456."}
@@ -296,26 +295,6 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             <p className="mt-1 text-xs text-slate-400">Opcional — deixe em branco para não alterar.</p>
           )}
         </Campo>
-=======
-        {!isEdicao && (
-          <Campo label="Senha" tooltip="Mínimo de 48 caracteres. Evite senhas fracas como 123456." required span2>
-            <InputCad
-              id="senha"
-              label=""
-              type="password"
-              placeholder="Mínimo 48 caracteres"
-              Icon={Lock}
-              erro={!!erros.senha}
-              defaultValue={form.senha}
-              validator={validateSenha}
-              onValidatedChange={(_, message, value) => {
-                set("senha", value);
-                if (message) setErros((prev) => ({ ...prev, senha: message }));
-              }}
-            />
-          </Campo>
-        )}
->>>>>>> alexkz
 
         <Campo label="Perfil de acesso" tooltip="Define o nível de acesso no sistema: aluno, colaborador ou administrador." required>
           <div className="flex gap-2">
