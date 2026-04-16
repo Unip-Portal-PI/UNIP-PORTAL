@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef, useRef } from "react";
+import { useState, useImperativeHandle, forwardRef } from "react";
 import { User, AtSign, Lock, Hash, BookOpen } from "lucide-react";
 import { UsuarioGestor, StatusUsuario } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
@@ -48,8 +48,6 @@ interface CampoProps {
   tooltip?: string;
 }
 
-
-
 function Campo({ label, erro, children, required, span2, tooltip }: CampoProps) {
   return (
     <div className={span2 ? "sm:col-span-2" : ""}>
@@ -58,9 +56,7 @@ function Campo({ label, erro, children, required, span2, tooltip }: CampoProps) 
         {tooltip && <Tooltip text={tooltip} />}
         {required && <span className="text-red-500">*</span>}
       </label>
-
       {children}
-
       {erro && <p className="mt-1 text-xs text-red-500">{erro}</p>}
     </div>
   );
@@ -97,9 +93,28 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
 
     const [erros, setErros] = useState<Record<string, string>>({});
 
+    // Atalho para saber se o perfil atual é aluno
+    const isAluno = form.permission === "aluno";
+
     function set<K extends keyof FormData>(key: K, value: FormData[K]) {
       setForm((prev) => ({ ...prev, [key]: value }));
       setErros((prev) => ({ ...prev, [key]: "" }));
+    }
+
+    function handlePermissionChange(p: UserRole) {
+      set("permission", p);
+      // Se não for aluno, limpa a área para string vazia
+      if (p !== "aluno") {
+        setForm((prev) => ({ ...prev, permission: p, area: "Todos" }));
+      } else {
+        // Ao voltar para aluno, restaura o valor padrão se estiver vazio
+        setForm((prev) => ({
+          ...prev,
+          permission: p,
+          area: prev.area || CURSOS[1],
+        }));
+      }
+      setErros((prev) => ({ ...prev, permission: "", area: "" }));
     }
 
     function validar(): boolean {
@@ -129,7 +144,8 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
         if (matriculaErro) e.matricula = matriculaErro;
       }
 
-      if (!form.area.trim()) e.area = "Área é obrigatória.";
+      // Área só é obrigatória se for aluno
+      if (isAluno && !form.area.trim()) e.area = "Área é obrigatória.";
 
       if (!isEdicao) {
         if (!form.senha.trim()) e.senha = "Senha é obrigatória.";
@@ -155,7 +171,8 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             nome: form.nome.trim(),
             apelido: form.apelido.trim(),
             email: form.email.trim(),
-            area: form.area,
+            // Se não for aluno, garante string vazia
+            area: isAluno ? form.area : "Todos",
             permission: form.permission,
             status: form.status,
             ativo: form.status === "ativo",
@@ -175,7 +192,6 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             id="nome"
             label=""
             type="text"
-            
             placeholder="Nome completo"
             Icon={User}
             erro={!!erros.nome}
@@ -186,9 +202,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             }}
             onValidatedChange={(_, message, value) => {
               set("nome", value);
-              if (message) {
-                setErros((prev) => ({ ...prev, nome: message }));
-              }
+              if (message) setErros((prev) => ({ ...prev, nome: message }));
             }}
           />
         </Campo>
@@ -208,33 +222,26 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             }}
             onValidatedChange={(_, message, value) => {
               set("apelido", value);
-              if (message) {
-                setErros((prev) => ({ ...prev, apelido: message }));
-              }
+              if (message) setErros((prev) => ({ ...prev, apelido: message }));
             }}
           />
         </Campo>
 
         <Campo label="Matrícula" tooltip="Identificador único do aluno/colaborador. Ex: CC20230456." required>
-          <div >
-            <InputCad
-              id="matricula"
-              label=""
-              type="text"
-              placeholder="Ex: CC20230456"
-              Icon={Hash}
-              erro={!!erros.matricula}
-              defaultValue={form.matricula}
-              validator={validateMatricula}
-              onValidatedChange={(_, message, value) => {
-                set("matricula", value);
-                if (message) {
-                  setErros((prev) => ({ ...prev, matricula: message }));
-                }
-              }}
-            />
-          </div>
-          
+          <InputCad
+            id="matricula"
+            label=""
+            type="text"
+            placeholder="Ex: CC20230456"
+            Icon={Hash}
+            erro={!!erros.matricula}
+            defaultValue={form.matricula}
+            validator={validateMatricula}
+            onValidatedChange={(_, message, value) => {
+              set("matricula", value);
+              if (message) setErros((prev) => ({ ...prev, matricula: message }));
+            }}
+          />
         </Campo>
 
         <Campo label="E-mail" tooltip="E-mail institucional ou válido para login e comunicação." required span2>
@@ -249,9 +256,7 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
             validator={validateEmail}
             onValidatedChange={(_, message, value) => {
               set("email", value);
-              if (message) {
-                setErros((prev) => ({ ...prev, email: message }));
-              }
+              if (message) setErros((prev) => ({ ...prev, email: message }));
             }}
           />
         </Campo>
@@ -269,26 +274,11 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
               validator={validateSenha}
               onValidatedChange={(_, message, value) => {
                 set("senha", value);
-                if (message) {
-                  setErros((prev) => ({ ...prev, senha: message }));
-                }
+                if (message) setErros((prev) => ({ ...prev, senha: message }));
               }}
             />
           </Campo>
         )}
-
-        <Campo label="Área" tooltip="Curso ou área do usuário dentro da instituição." erro={erros.area} required>
-          <SelectCad
-            id="area"
-            label=""
-            placeholder="Selecione a área"
-            options={CURSOS.filter((curso) => curso !== "Todos")}
-            Icon={BookOpen}
-            erro={!!erros.area}
-            value={form.area}
-            onChange={(value) => set("area", value)}
-          />
-        </Campo>
 
         <Campo label="Perfil de acesso" tooltip="Define o nível de acesso no sistema: aluno, colaborador ou administrador." required>
           <div className="flex gap-2">
@@ -296,17 +286,34 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
               <button
                 key={p}
                 type="button"
-                onClick={() => set("permission", p)}
-                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.permission === p
+                onClick={() => handlePermissionChange(p)}
+                className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
+                  form.permission === p
                     ? "border-[#FFDE00] bg-[#FFDE00]/15 text-amber-700 dark:text-[#FFDE00]"
                     : "border-slate-200 dark:border-[#404040] text-slate-500 dark:text-slate-400 hover:border-[#FFDE00]/50"
-                  }`}
+                }`}
               >
                 {p === "adm" ? "Admin" : p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
             ))}
           </div>
         </Campo>
+
+        {/* Área: só exibe se for aluno */}
+        {isAluno && (
+          <Campo label="Área" tooltip="Curso ou área do usuário dentro da instituição." erro={erros.area} required>
+            <SelectCad
+              id="area"
+              label=""
+              placeholder="Selecione a área"
+              options={CURSOS.filter((curso) => curso !== "Todos")}
+              Icon={BookOpen}
+              erro={!!erros.area}
+              value={form.area}
+              onChange={(value) => set("area", value)}
+            />
+          </Campo>
+        )}
 
         {isEdicao && (
           <Campo label="Status" tooltip="Usuário ativo pode acessar o sistema. Inativo fica bloqueado." required>
@@ -319,12 +326,13 @@ export const FormUsuario = forwardRef<FormUsuarioRef, FormUsuarioProps>(
                     set("status", s);
                     set("ativo", s === "ativo");
                   }}
-                  className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${form.status === s
+                  className={`flex-1 py-2 rounded-md border text-xs font-bold transition-colors capitalize ${
+                    form.status === s
                       ? s === "ativo"
                         ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
                         : "border-slate-400 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                       : "border-slate-200 dark:border-[#404040] text-slate-400 hover:border-slate-300"
-                    }`}
+                  }`}
                 >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
