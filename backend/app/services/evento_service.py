@@ -110,9 +110,9 @@ def list_events(db: Session) -> list[EventoResponse]:
     return result
 
 
-def list_events_by_creator(creator_id: str, db: Session) -> list[EventoResponse]:
+def list_events_by_creator_or_colaborador(user_id: str, db: Session) -> list[EventoResponse]:
     repo = EventoRepository(db)
-    eventos = repo.list_by_creator(creator_id)
+    eventos = repo.list_by_creator_or_colaborador(user_id)
     result = []
     for evento in eventos:
         count = repo.count_inscricoes(evento.id_evento)

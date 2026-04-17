@@ -38,8 +38,7 @@ def list_my_created_events(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return evento_service.list_events_by_creator(current_user.id_usuario, db)
-
+    return evento_service.list_events_by_creator_or_colaborador(current_user.id_usuario, db)
 
 @router.get("/mine/enrollments", response_model=list[InscricaoResponse])
 def list_my_enrollments(

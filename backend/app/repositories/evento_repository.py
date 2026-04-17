@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from sqlalchemy import func
 from app.models.evento import EventoModel, EventoColaborador, EventoCurso, EventoPalestrante
 from app.models.anexo import AnexoModel
 from app.models.inscricao import InscricaoModel
 from app.models.presenca import PresencaModel
+from app.models.usuario import UsuarioModel
 
 
 class EventoRepository:
@@ -21,11 +23,14 @@ class EventoRepository:
     def list_all(self) -> list[EventoModel]:
         return self._base_query().filter(EventoModel.cancelado.is_(False)).all()
 
-    def list_by_creator(self, creator_id: str) -> list[EventoModel]:
+    def list_by_creator_or_colaborador(self, user_id: str) -> list[EventoModel]:
         return self._base_query().filter(
-            EventoModel.id_criador == creator_id,
+            or_(
+                EventoModel.id_criador == user_id,
+                EventoModel.colaboradores.any(UsuarioModel.id_usuario == user_id)
+            ),
             EventoModel.cancelado.is_(False),
-        ).all()
+        ).distinct().all()
 
     def get_by_id(self, evento_id: str, include_cancelled: bool = False) -> EventoModel | None:
         query = self._base_query().filter(EventoModel.id_evento == evento_id)
