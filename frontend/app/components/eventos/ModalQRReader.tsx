@@ -50,9 +50,16 @@ export function ModalQRReader({
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
   const [suportaCamera] = useState(browserSuportaCamera);
+  const [scanFeedback, setScanFeedback] = useState<{
+    type: "success" | "error";
+    insc?: Inscricao;
+    msg?: string;
+  } | null>(null);
 
   const scannerRef = useRef<unknown>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isProcessingRef = useRef(false);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerDivId = "qr-reader-camera";
 
   const pararCamera = useCallback(async () => {
@@ -96,8 +103,24 @@ export function ModalQRReader({
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 260, height: 260 } },
         async (decodedText) => {
-          await pararCamera();
-          await handleLer(decodedText);
+          if (isProcessingRef.current) return;
+          isProcessingRef.current = true;
+
+          try {
+            const insc = await onLer(decodedText.trim());
+            setScanFeedback({ type: "success", insc });
+          } catch (e: unknown) {
+            setScanFeedback({
+              type: "error",
+              msg: e instanceof Error ? e.message : "QR Code inválido.",
+            });
+          }
+
+          if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+          feedbackTimerRef.current = setTimeout(() => {
+            setScanFeedback(null);
+            isProcessingRef.current = false;
+          }, 1500);
         },
         () => { }
       );
@@ -161,7 +184,7 @@ export function ModalQRReader({
 
       console.error("[ModalQRReader] Erro ao iniciar câmera:", msg);
     }
-  }, [pararCamera]);
+  }, [pararCamera, onLer]);
 
   useEffect(() => {
     if (modo !== "camera") return;
@@ -170,7 +193,10 @@ export function ModalQRReader({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    return () => { pararCamera(); };
+    return () => {
+      pararCamera();
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
   }, [pararCamera]);
 
   const handleLer = useCallback(async (codigo: string) => {
@@ -309,7 +335,7 @@ export function ModalQRReader({
                 )}
 
                 {/* Mira de scan */}
-                {cameraStatus === "ativa" && (
+                {cameraStatus === "ativa" && !scanFeedback && (
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                     <div className="w-64 h-64 relative">
                       <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-[#FFDE00] rounded-tl-sm" />
@@ -326,9 +352,46 @@ export function ModalQRReader({
                     </p>
                   </div>
                 )}
+
+                {/* Overlay de feedback após leitura (1.5s) */}
+                {scanFeedback && cameraStatus === "ativa" && (
+                  <div
+                    className={`absolute inset-0 flex flex-col items-center justify-center gap-3 z-20 ${
+                      scanFeedback.type === "success"
+                        ? "bg-emerald-900/80"
+                        : "bg-red-900/80"
+                    }`}
+                  >
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                        scanFeedback.type === "success"
+                          ? "bg-emerald-500"
+                          : "bg-red-500"
+                      }`}
+                    >
+                      {scanFeedback.type === "success" ? (
+                        <IconCheck size={36} className="text-white" />
+                      ) : (
+                        <IconAlertCircle size={36} className="text-white" />
+                      )}
+                    </div>
+                    {scanFeedback.type === "success" && scanFeedback.insc ? (
+                      <div className="text-center px-4">
+                        <p className="font-bold text-white text-base">Presença confirmada!</p>
+                        <p className="text-emerald-200 text-sm mt-1">
+                          {scanFeedback.insc.alunoNome}
+                        </p>
+                        <p className="text-emerald-300 text-xs mt-0.5">
+                          {scanFeedback.insc.alunoArea} — {scanFeedback.insc.alunoMatricula}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-white text-sm text-center px-4">{scanFeedback.msg}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {resultado && <FeedbackSucesso resultado={resultado} />}
               {erro && !["negada", "erro", "sem-suporte"].includes(cameraStatus) && (
                 <FeedbackErro mensagem={erro} />
               )}
