@@ -19,6 +19,32 @@ type ApiUsuarioGestor = {
   criadoPor?: string | null;
 };
 
+export interface PaginatedParams {
+  pagina: number;
+  porPagina: number;
+  search?: string;
+  permission?: string;
+  status?: string;
+  sortBy?: string | null;
+  sortDir?: string;
+}
+
+export interface PaginatedUsuarios {
+  items: UsuarioGestor[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+  totalPaginas: number;
+}
+
+type ApiPaginatedResponse = {
+  items: ApiUsuarioGestor[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+  totalPaginas: number;
+};
+
 function mapUsuario(data: ApiUsuarioGestor): UsuarioGestor {
   return {
     id: data.id,
@@ -42,6 +68,27 @@ export const UsuarioGestorService = {
     const { data, ok, error } = await api.get<ApiUsuarioGestor[]>("/users/");
     if (!ok || !data) throw new Error(error || "Falha ao buscar usuários");
     return data.map(mapUsuario);
+  },
+
+  async getPaginated(params: PaginatedParams): Promise<PaginatedUsuarios> {
+    const qp = new URLSearchParams();
+    qp.set("pagina", String(params.pagina));
+    qp.set("por_pagina", String(params.porPagina));
+    if (params.search) qp.set("search", params.search);
+    if (params.permission) qp.set("permission", params.permission);
+    if (params.status) qp.set("status", params.status);
+    if (params.sortBy) qp.set("sort_by", params.sortBy);
+    if (params.sortDir) qp.set("sort_dir", params.sortDir);
+
+    const { data, ok, error } = await api.get<ApiPaginatedResponse>(`/users/?${qp}`);
+    if (!ok || !data) throw new Error(error || "Falha ao buscar usuários");
+    return {
+      items: data.items.map(mapUsuario),
+      total: data.total,
+      pagina: data.pagina,
+      porPagina: data.porPagina,
+      totalPaginas: data.totalPaginas,
+    };
   },
 
   async getById(id: string): Promise<UsuarioGestor | null> {

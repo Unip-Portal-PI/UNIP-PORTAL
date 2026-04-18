@@ -94,6 +94,16 @@ class UsuarioAdminResponse(UsuarioBase):
     criado_por: str | None = None
 
 
+class PaginatedUsuarioResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    items: list[UsuarioAdminResponse]
+    total: int
+    pagina: int
+    por_pagina: int
+    total_paginas: int
+
+
 class MensagemResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 

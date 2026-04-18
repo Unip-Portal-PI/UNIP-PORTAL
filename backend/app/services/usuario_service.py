@@ -8,8 +8,11 @@ from app.models.nivel_acesso import NivelAcessoModel
 from app.models.usuario import UsuarioModel
 from app.repositories.curso_repository import CursoRepository
 from app.repositories.usuario_repository import UsuarioRepository
+import math
+
 from app.schemas.usuario import (
     MensagemResponse,
+    PaginatedUsuarioResponse,
     UsuarioAdminCreateRequest,
     UsuarioAdminResponse,
     UsuarioAdminUpdateRequest,
@@ -138,6 +141,35 @@ def update_my_photo(foto_url: str | None, current_user: UsuarioModel, db: Sessio
 def list_users(db: Session) -> list[UsuarioAdminResponse]:
     users = UsuarioRepository(db).list_all()
     return [_serialize_admin(user) for user in users]
+
+
+def list_users_paginated(
+    pagina: int,
+    por_pagina: int,
+    search: str | None,
+    permission: str | None,
+    status: str | None,
+    sort_by: str | None,
+    sort_dir: str,
+    db: Session,
+) -> PaginatedUsuarioResponse:
+    items, total = UsuarioRepository(db).list_paginated(
+        pagina=pagina,
+        por_pagina=por_pagina,
+        search=search or None,
+        permission=permission or None,
+        status=status or None,
+        sort_by=sort_by or None,
+        sort_dir=sort_dir,
+    )
+    total_paginas = math.ceil(total / por_pagina) if por_pagina > 0 else 1
+    return PaginatedUsuarioResponse(
+        items=[_serialize_admin(u) for u in items],
+        total=total,
+        pagina=pagina,
+        por_pagina=por_pagina,
+        total_paginas=max(total_paginas, 1),
+    )
 
 
 def get_user(user_id: str, db: Session) -> UsuarioAdminResponse:

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import RoleChecker, get_current_user
 from app.schemas.usuario import (
     MensagemResponse,
+    PaginatedUsuarioResponse,
     UsuarioAdminCreateRequest,
     UsuarioAdminResponse,
     UsuarioAdminUpdateRequest,
@@ -66,12 +67,28 @@ def update_my_photo(
     return usuario_service.update_my_photo(data.foto_url, current_user, db)
 
 
-@router.get("/", response_model=list[UsuarioAdminResponse])
+@router.get("/", response_model=PaginatedUsuarioResponse)
 def list_users(
+    pagina: int = Query(1, ge=1),
+    por_pagina: int = Query(10, ge=1, le=100),
+    search: str | None = Query(None),
+    permission: str | None = Query(None),
+    status: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     current_user=Depends(allow_adm),
 ):
-    return usuario_service.list_users(db)
+    return usuario_service.list_users_paginated(
+        pagina=pagina,
+        por_pagina=por_pagina,
+        search=search,
+        permission=permission,
+        status=status,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        db=db,
+    )
 
 
 @router.get("/{user_id}", response_model=UsuarioAdminResponse)
