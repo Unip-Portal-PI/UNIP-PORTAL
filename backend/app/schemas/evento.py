@@ -99,6 +99,14 @@ class EventoUpdate(BaseModel):
     palestrantes_ids: list[str] | None = None
 
 
+class ScrollEventoResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    items: list[EventoResponse]
+    total: int
+    tem_mais: bool
+
+
 class EventoCancelResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 

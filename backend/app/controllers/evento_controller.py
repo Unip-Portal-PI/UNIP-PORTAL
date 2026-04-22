@@ -1,14 +1,16 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
 from app.schemas.evento import (
-    EventoResponse,
-    EventoCreate,
-    EventoUpdate,
     EventoCancelResponse,
+    EventoCreate,
+    EventoResponse,
+    EventoUpdate,
+    ScrollEventoResponse,
 )
 from app.schemas.inscricao import (
     InscricaoResponse,
@@ -25,12 +27,30 @@ allow_adm = RoleChecker(["adm"])
 allow_aluno = RoleChecker(["aluno"])
 
 
-@router.get("/", response_model=list[EventoResponse])
+@router.get("/", response_model=ScrollEventoResponse)
 def list_events(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(12, ge=1, le=500),
+    search: str | None = Query(None),
+    area: str | None = Query(None),
+    turno: str | None = Query(None),
+    data: date | None = Query(None),
+    sort: str = Query("proximos"),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return evento_service.list_events(db)
+    role = current_user.nivel_acesso.nome_perfil
+    return evento_service.list_events_scroll(
+        skip=skip,
+        limit=limit,
+        search=search,
+        area=area,
+        turno=turno,
+        data_filtro=data,
+        sort=sort,
+        role=role,
+        db=db,
+    )
 
 
 @router.get("/mine/created", response_model=list[EventoResponse])
@@ -38,8 +58,7 @@ def list_my_created_events(
     db: Session = Depends(get_db),
     current_user=Depends(allow_colaborador_adm),
 ):
-    return evento_service.list_events_by_creator(current_user.id_usuario, db)
-
+    return evento_service.list_events_by_creator_or_colaborador(current_user.id_usuario, db)
 
 @router.get("/mine/enrollments", response_model=list[InscricaoResponse])
 def list_my_enrollments(

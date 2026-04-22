@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   IconPlus,
   IconAlertCircle,
@@ -15,11 +15,14 @@ import {
   IconCircleX,
   IconClock,
   IconDownload,
-  IconSelector,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsLeft,
+  IconChevronsRight,
 } from "@tabler/icons-react";
 import { UsuarioGestor, PERMISSION_LABEL, PERMISSION_COR } from "@/src/types/usuarioGestor";
 import { UserRole } from "@/src/types/user";
-import { UsuarioGestorService } from "@/src/service/usuarioGestor.service";
+import { UsuarioGestorService, PaginatedUsuarios } from "@/src/service/usuarioGestor.service";
 import { UsuarioGestorExportService } from "@/src/service/usuarioGestorExport.service";
 import { Auth } from "@/src/service/auth.service";
 import { BadgeUsuario } from "./modal/BadgeUsuario";
@@ -32,8 +35,8 @@ import { FilterSelect } from "@/app/components/filters/FilterSelect";
 
 const FILTRO_PERFIS = ["Todos", "Aluno", "Colaborador", "Administrador"];
 const FILTRO_STATUS = ["Todos", "Ativos", "Inativos", "Excluídos"];
+const OPCOES_POR_PAGINA = [10, 25, 50];
 
-// ─── Tipos de ordenação ───────────────────────────────────────────────────────
 type ColunasOrdenavel = "nome" | "email" | "matricula" | "permission" | "status";
 type DirecaoOrdenacao = "asc" | "desc";
 
@@ -42,7 +45,6 @@ interface OrdenacaoState {
   direcao: DirecaoOrdenacao;
 }
 
-// ─── Ícone de triângulo para o cabeçalho ─────────────────────────────────────
 function IconeOrdenacao({
   coluna,
   ordenacao,
@@ -53,7 +55,6 @@ function IconeOrdenacao({
   const ativa = ordenacao.coluna === coluna;
 
   if (!ativa) {
-    // Triângulos cinzas (neutros) quando a coluna não está ativa
     return (
       <span className="inline-flex flex-col items-center justify-center ml-1.5 opacity-30 group-hover:opacity-60 transition-opacity">
         <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
@@ -67,7 +68,6 @@ function IconeOrdenacao({
   }
 
   if (ordenacao.direcao === "asc") {
-    // Triângulo para cima (crescente) — ativo amarelo
     return (
       <span className="inline-flex flex-col items-center justify-center ml-1.5">
         <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="text-[#FFDE00]">
@@ -80,7 +80,6 @@ function IconeOrdenacao({
     );
   }
 
-  // Triângulo para baixo (decrescente) — ativo amarelo
   return (
     <span className="inline-flex flex-col items-center justify-center ml-1.5">
       <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className="opacity-20">
@@ -93,7 +92,6 @@ function IconeOrdenacao({
   );
 }
 
-// ─── Componente do cabeçalho clicável ────────────────────────────────────────
 function CabecalhoOrdenavel({
   coluna,
   ordenacao,
@@ -131,63 +129,263 @@ function CabecalhoOrdenavel({
   );
 }
 
-// ─── Função para obter o valor de status (para ordenar) ──────────────────────
-function getStatusValor(u: UsuarioGestor): number {
-  if (u.deletedAt) return 2; // excluído
-  if (u.ativo) return 0;     // ativo
-  return 1;                  // inativo
+// ─── Paginação ───────────────────────────────────────────────────────────────
+function Paginacao({
+  pagina,
+  totalPaginas,
+  total,
+  porPagina,
+  loading,
+  onMudarPagina,
+  onMudarPorPagina,
+}: {
+  pagina: number;
+  totalPaginas: number;
+  total: number;
+  porPagina: number;
+  loading: boolean;
+  onMudarPagina: (p: number) => void;
+  onMudarPorPagina: (n: number) => void;
+}) {
+  const inicio = total === 0 ? 0 : (pagina - 1) * porPagina + 1;
+  const fim = Math.min(pagina * porPagina, total);
+
+  // Gera array de números de página com reticências
+  function paginas(): (number | "...")[] {
+    if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    const delta = 1;
+    const range: number[] = [];
+    for (let i = Math.max(2, pagina - delta); i <= Math.min(totalPaginas - 1, pagina + delta); i++) {
+      range.push(i);
+    }
+    const result: (number | "...")[] = [1];
+    if (range[0] > 2) result.push("...");
+    result.push(...range);
+    if (range[range.length - 1] < totalPaginas - 1) result.push("...");
+    result.push(totalPaginas);
+    return result;
+  }
+
+  const btnBase =
+    "flex items-center justify-center w-8 h-8 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 border-t border-slate-100 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a]">
+      {/* Esquerda: linhas por página + contagem */}
+      <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+        <span className="hidden sm:inline">Linhas por página:</span>
+        <select
+          value={porPagina}
+          onChange={(e) => onMudarPorPagina(Number(e.target.value))}
+          disabled={loading}
+          className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-[#252525] border border-slate-200 dark:border-[#333] text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFDE00]/50 disabled:opacity-50 cursor-pointer"
+        >
+          {OPCOES_POR_PAGINA.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <span>
+          {inicio}–{fim} de {total}
+        </span>
+      </div>
+
+      {/* Direita: botões de página */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onMudarPagina(1)}
+          disabled={pagina === 1 || loading}
+          className={`${btnBase} text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#252525] hover:text-slate-700 dark:hover:text-slate-200`}
+          title="Primeira página"
+        >
+          <IconChevronsLeft size={16} />
+        </button>
+        <button
+          onClick={() => onMudarPagina(pagina - 1)}
+          disabled={pagina === 1 || loading}
+          className={`${btnBase} text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#252525] hover:text-slate-700 dark:hover:text-slate-200`}
+          title="Página anterior"
+        >
+          <IconChevronLeft size={16} />
+        </button>
+
+        {paginas().map((p, i) =>
+          p === "..." ? (
+            <span
+              key={`dots-${i}`}
+              className="w-8 h-8 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500"
+            >
+              ···
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onMudarPagina(p as number)}
+              disabled={loading}
+              className={[
+                btnBase,
+                p === pagina
+                  ? "bg-[#FFDE00] text-[#252525] font-bold hover:bg-[#e6c800]"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#252525]",
+              ].join(" ")}
+            >
+              {p}
+            </button>
+          )
+        )}
+
+        <button
+          onClick={() => onMudarPagina(pagina + 1)}
+          disabled={pagina === totalPaginas || loading}
+          className={`${btnBase} text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#252525] hover:text-slate-700 dark:hover:text-slate-200`}
+          title="Próxima página"
+        >
+          <IconChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => onMudarPagina(totalPaginas)}
+          disabled={pagina === totalPaginas || loading}
+          className={`${btnBase} text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#252525] hover:text-slate-700 dark:hover:text-slate-200`}
+          title="Última página"
+        >
+          <IconChevronsRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
 }
+
+// ─── Mapeamento de filtros frontend → backend ─────────────────────────────────
+const PERFIL_PARAM: Record<string, string> = {
+  Aluno: "aluno",
+  Colaborador: "colaborador",
+  Administrador: "adm",
+};
+const STATUS_PARAM: Record<string, string> = {
+  Ativos: "ativos",
+  Inativos: "inativos",
+  Excluídos: "excluidos",
+};
 
 export function TabelaUsuarios() {
   const sessao = Auth.getUser();
   const adminMatricula = sessao?.matricula ?? "";
 
   const [usuarios, setUsuarios] = useState<UsuarioGestor[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(1);
   const [loading, setLoading] = useState(true);
   const [erroCarga, setErroCarga] = useState(false);
 
+  // ── Filtros e ordenação ───────────────────────────────────────────────────
   const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // debounced
   const [filtroPerfil, setFiltroPerfil] = useState(FILTRO_PERFIS[0]);
   const [filtroStatus, setFiltroStatus] = useState(FILTRO_STATUS[0]);
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoState>({ coluna: null, direcao: "asc" });
 
-  // ── Estado de ordenação ──────────────────────────────────────────────────
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoState>({
-    coluna: null,
-    direcao: "asc",
-  });
+  // ── Paginação ─────────────────────────────────────────────────────────────
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
 
+  // ── Cache de páginas (ref para não causar re-render) ──────────────────────
+  const cacheRef = useRef<Map<string, PaginatedUsuarios>>(new Map());
+
+  // ── Modais ────────────────────────────────────────────────────────────────
   const [modalForm, setModalForm] = useState<UsuarioGestor | null | "novo">(null);
   const [modalDetalhes, setModalDetalhes] = useState<UsuarioGestor | null>(null);
   const [modalExcluir, setModalExcluir] = useState<UsuarioGestor | null>(null);
   const [modalExportar, setModalExportar] = useState(false);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [loadingExcluir, setLoadingExcluir] = useState(false);
   const [loadingExportar, setLoadingExportar] = useState(false);
 
   const [sucesso, setSucesso] = useState("");
   const [erro, setErro] = useState("");
-  const [porPagina, setPorPagina] = useState(10);
-  const [pagina, setPagina] = useState(1);
 
-  async function carregar() {
+  // ── Debounce search ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => {
+      cacheRef.current.clear();
+      setPagina(1);
+      setSearchQuery(search);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // ── Fetch paginado ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const cacheKey = JSON.stringify({
+      pagina,
+      porPagina,
+      searchQuery,
+      filtroPerfil,
+      filtroStatus,
+      sortBy: ordenacao.coluna,
+      sortDir: ordenacao.direcao,
+    });
+
+    if (cacheRef.current.has(cacheKey)) {
+      const cached = cacheRef.current.get(cacheKey)!;
+      setUsuarios(cached.items);
+      setTotal(cached.total);
+      setTotalPaginas(cached.totalPaginas);
+      return;
+    }
+
+    let cancelled = false;
     setLoading(true);
     setErroCarga(false);
-    try {
-      const data = await UsuarioGestorService.getAll();
-      setUsuarios(data);
-    } catch {
-      setErroCarga(true);
-    } finally {
-      setLoading(false);
-    }
+
+    UsuarioGestorService.getPaginated({
+      pagina,
+      porPagina,
+      search: searchQuery || undefined,
+      permission: PERFIL_PARAM[filtroPerfil] || undefined,
+      status: STATUS_PARAM[filtroStatus] || undefined,
+      sortBy: ordenacao.coluna,
+      sortDir: ordenacao.direcao,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        cacheRef.current.set(cacheKey, data);
+        setUsuarios(data.items);
+        setTotal(data.total);
+        setTotalPaginas(data.totalPaginas);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setErroCarga(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pagina, porPagina, searchQuery, filtroPerfil, filtroStatus, ordenacao.coluna, ordenacao.direcao, refreshKey]);
+
+  // ── Handlers de filtro (limpa cache + volta à pág 1) ─────────────────────
+  function handlePerfil(value: string) {
+    cacheRef.current.clear();
+    setPagina(1);
+    setFiltroPerfil(value);
   }
 
-  useEffect(() => {
-    carregar();
-  }, []);
+  function handleStatus(value: string) {
+    cacheRef.current.clear();
+    setPagina(1);
+    setFiltroStatus(value);
+  }
 
-  // ── Alterna a ordenação: mesma coluna inverte direção, nova coluna começa asc
   function handleOrdenar(coluna: ColunasOrdenavel) {
+    cacheRef.current.clear();
+    setPagina(1);
     setOrdenacao((prev) => {
       if (prev.coluna === coluna) {
         return { coluna, direcao: prev.direcao === "asc" ? "desc" : "asc" };
@@ -196,72 +394,20 @@ export function TabelaUsuarios() {
     });
   }
 
-  const usuariosFiltrados = useMemo(() => {
-    const filtrados = usuarios.filter((u) => {
-      if (filtroStatus === "Ativos" && (u.deletedAt || !u.ativo)) return false;
-      if (filtroStatus === "Inativos" && (u.deletedAt || u.ativo)) return false;
-      if (filtroStatus === "Excluídos" && !u.deletedAt) return false;
+  function handlePorPagina(n: number) {
+    cacheRef.current.clear();
+    setPagina(1);
+    setPorPagina(n);
+  }
 
-      const perfilMap: Record<string, UserRole> = {
-        Aluno: "aluno",
-        Colaborador: "colaborador",
-        Administrador: "adm",
-      };
+  // ── Recarregar (limpa cache e força re-fetch) ─────────────────────────────
+  async function carregar() {
+    cacheRef.current.clear();
+    setPagina(1);
+    setRefreshKey((k) => k + 1);
+  }
 
-      if (filtroPerfil !== "Todos" && u.permission !== perfilMap[filtroPerfil]) return false;
-
-      const q = search.toLowerCase();
-      return (
-        !q ||
-        u.nome.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.matricula.toLowerCase().includes(q) ||
-        u.area.toLowerCase().includes(q)
-      );
-    });
-
-    // ── Ordenação ──────────────────────────────────────────────────────────
-    if (!ordenacao.coluna) return filtrados;
-
-    return [...filtrados].sort((a, b) => {
-      let valA: string | number = "";
-      let valB: string | number = "";
-
-      switch (ordenacao.coluna) {
-        case "nome":
-          valA = a.nome.toLowerCase();
-          valB = b.nome.toLowerCase();
-          break;
-        case "email":
-          valA = a.email.toLowerCase();
-          valB = b.email.toLowerCase();
-          break;
-        case "matricula":
-          valA = a.matricula.toLowerCase();
-          valB = b.matricula.toLowerCase();
-          break;
-        case "permission": {
-          const ordemPerfil: Record<string, number> = { adm: 0, colaborador: 1, aluno: 2 };
-          valA = ordemPerfil[a.permission] ?? 99;
-          valB = ordemPerfil[b.permission] ?? 99;
-          break;
-        }
-        case "status":
-          valA = getStatusValor(a);
-          valB = getStatusValor(b);
-          break;
-      }
-
-      if (valA < valB) return ordenacao.direcao === "asc" ? -1 : 1;
-      if (valA > valB) return ordenacao.direcao === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [usuarios, search, filtroPerfil, filtroStatus, ordenacao]);
-
-  const totalAtivos = usuariosFiltrados.filter((u) => !u.deletedAt && u.ativo).length;
-  const totalInativos = usuariosFiltrados.filter((u) => !u.deletedAt && !u.ativo).length;
-  const totalExcluidos = usuariosFiltrados.filter((u) => !!u.deletedAt).length;
-
+  // ── CRUD handlers ─────────────────────────────────────────────────────────
   async function handleSalvar(dados: Omit<UsuarioGestor, "id" | "criadoEm" | "atualizadoEm">) {
     try {
       if (modalForm === "novo") {
@@ -271,8 +417,8 @@ export function TabelaUsuarios() {
         await UsuarioGestorService.editar(modalForm.id, dados);
         setSucesso("Usuário atualizado com sucesso!");
       }
-      await carregar();
       setModalForm(null);
+      await carregar();
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Falha ao salvar usuário.");
     }
@@ -288,8 +434,8 @@ export function TabelaUsuarios() {
         return;
       }
       setSucesso("Usuário excluído com sucesso.");
-      await carregar();
       setModalExcluir(null);
+      await carregar();
     } finally {
       setLoadingExcluir(false);
     }
@@ -308,13 +454,14 @@ export function TabelaUsuarios() {
   }) {
     setLoadingExportar(true);
     try {
+      // Busca todos os usuários sem paginação para exportar
+      const todos = await UsuarioGestorService.getAll();
       await UsuarioGestorExportService.exportar({
-        usuarios,
+        usuarios: todos,
         perfis: payload.perfis,
         status: payload.status,
         tipoArquivo: payload.tipoArquivo,
       });
-
       setModalExportar(false);
       setSucesso(
         payload.tipoArquivo === "excel"
@@ -334,7 +481,7 @@ export function TabelaUsuarios() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestão de Usuários</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {usuariosFiltrados.length} usuário(s) encontrado(s)
+            {total} usuário(s) encontrado(s)
           </p>
         </div>
 
@@ -368,13 +515,13 @@ export function TabelaUsuarios() {
           <FilterSelect
             label="Perfil"
             value={filtroPerfil}
-            onChange={setFiltroPerfil}
+            onChange={handlePerfil}
             options={FILTRO_PERFIS}
           />
           <FilterSelect
             label="Status"
             value={filtroStatus}
-            onChange={setFiltroStatus}
+            onChange={handleStatus}
             options={FILTRO_STATUS}
           />
         </div>
@@ -404,63 +551,22 @@ export function TabelaUsuarios() {
               <div className="p-2 bg-[#FFDE00]/20 dark:bg-[#FFDE00]/10 rounded-lg flex items-center justify-center">
                 <IconUsers size={30} className="text-[#3A3726] dark:text-[#FFDE00]" />
               </div>
-
               <div>
                 <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
                   Usuários
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  {usuariosFiltrados.length} no total
+                  {total} no total
                 </p>
               </div>
             </div>
-
-            <div className="hidden sm:flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mr-2">
-              <span>
-                <strong className="text-emerald-600 dark:text-emerald-400">{totalAtivos}</strong>{" "}
-                ativos
-              </span>
-               {totalInativos > 0 && (
-                <span>
-                  <strong className="text-amber-500">{totalInativos}</strong> inativos
-                </span>
-              )}
-              {totalExcluidos > 0 && (
-                <span>
-                  <strong className="text-red-500">{totalExcluidos}</strong> excluídos
-                </span>
-              )}
-             
-            </div>
-          </div>
-
-          <div className="sm:hidden flex items-center gap-4 px-5 py-2 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1e1e1e] shrink-0">
-            <span>
-              <strong className="text-emerald-600 dark:text-emerald-400">{totalAtivos}</strong>{" "}
-              ativos
-            </span>
-             {totalInativos > 0 && (
-                <span>
-                  <strong className="text-amber-500">{totalInativos}</strong> inativos
-                </span>
-              )}
-            {totalExcluidos > 0 && (
-              <span>
-                <strong className="text-red-500">{totalExcluidos}</strong> excluídos
-              </span>
-            )}
           </div>
 
           <div className="overflow-auto flex-1 relative z-0">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 dark:bg-[#1e1e1e] sticky top-0 z-[1]">
                 <tr>
-                  {/* ── Cabeçalhos clicáveis ── */}
-                  <CabecalhoOrdenavel
-                    coluna="nome"
-                    ordenacao={ordenacao}
-                    onOrdenar={handleOrdenar}
-                  >
+                  <CabecalhoOrdenavel coluna="nome" ordenacao={ordenacao} onOrdenar={handleOrdenar}>
                     Usuário
                   </CabecalhoOrdenavel>
 
@@ -508,7 +614,7 @@ export function TabelaUsuarios() {
               </thead>
               <tbody>
                 {loading &&
-                  Array.from({ length: 5 }).map((_, i) => (
+                  Array.from({ length: porPagina > 5 ? 5 : porPagina }).map((_, i) => (
                     <tr
                       key={i}
                       className="border-b border-slate-100 dark:border-[#2a2a2a] animate-pulse"
@@ -539,7 +645,7 @@ export function TabelaUsuarios() {
                     </tr>
                   ))}
 
-                {!loading && usuariosFiltrados.length === 0 && (
+                {!loading && usuarios.length === 0 && (
                   <tr>
                     <td colSpan={7} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
@@ -555,7 +661,7 @@ export function TabelaUsuarios() {
                 )}
 
                 {!loading &&
-                  usuariosFiltrados.map((u) => (
+                  usuarios.map((u) => (
                     <LinhaUsuario
                       key={u.id}
                       usuario={u}
@@ -569,6 +675,18 @@ export function TabelaUsuarios() {
               </tbody>
             </table>
           </div>
+
+          {!loading && total > 0 && (
+            <Paginacao
+              pagina={pagina}
+              totalPaginas={totalPaginas}
+              total={total}
+              porPagina={porPagina}
+              loading={loading}
+              onMudarPagina={setPagina}
+              onMudarPorPagina={handlePorPagina}
+            />
+          )}
         </div>
       )}
 

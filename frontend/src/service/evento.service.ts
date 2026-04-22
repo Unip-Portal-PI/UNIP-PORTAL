@@ -135,14 +135,59 @@ function mapInscricao(inscricao: ApiInscricao): Inscricao {
 }
 
 // ---------------------------------------------------------------------------
+// Tipos de scroll
+// ---------------------------------------------------------------------------
+
+export interface ScrollParams {
+  skip: number;
+  limit?: number;
+  search?: string;
+  area?: string;
+  turno?: string;
+  data?: string;
+  sort?: string;
+}
+
+export interface ScrollEventos {
+  items: Evento[];
+  total: number;
+  temMais: boolean;
+}
+
+type ApiScrollResponse = {
+  items: ApiEvento[];
+  total: number;
+  temMais: boolean;
+};
+
+// ---------------------------------------------------------------------------
 // Serviço de Eventos
 // ---------------------------------------------------------------------------
 
 export const EventoService = {
-  async getAll(): Promise<Evento[]> {
-    const { data, ok, error } = await api.get<ApiEvento[]>("/events/");
+  async getScroll(params: ScrollParams): Promise<ScrollEventos> {
+    const qp = new URLSearchParams();
+    qp.set("skip", String(params.skip));
+    qp.set("limit", String(params.limit ?? 12));
+    if (params.search) qp.set("search", params.search);
+    if (params.area) qp.set("area", params.area);
+    if (params.turno) qp.set("turno", params.turno);
+    if (params.data) qp.set("data", params.data);
+    if (params.sort) qp.set("sort", params.sort);
+
+    const { data, ok, error } = await api.get<ApiScrollResponse>(`/events/?${qp}`);
     if (!ok || !data) throw new Error(error || "Falha ao buscar eventos");
-    return data.map(mapEvento);
+    return {
+      items: data.items.map(mapEvento),
+      total: data.total,
+      temMais: data.temMais,
+    };
+  },
+
+  async getAll(): Promise<Evento[]> {
+    const { data, ok, error } = await api.get<ApiScrollResponse>("/events/?skip=0&limit=500");
+    if (!ok || !data) throw new Error(error || "Falha ao buscar eventos");
+    return data.items.map(mapEvento);
   },
 
   async getById(id: string): Promise<Evento | null> {

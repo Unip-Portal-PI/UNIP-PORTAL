@@ -8,11 +8,12 @@ from app.models.evento_cancelamento_aviso import EventoCancelamentoAvisoModel
 from app.models.usuario import UsuarioModel
 from app.repositories.evento_repository import EventoRepository
 from app.schemas.evento import (
-    EventoResponse,
-    EventoCreate,
-    EventoUpdate,
-    EventoCancelResponse,
     AnexoResponse,
+    EventoCancelResponse,
+    EventoCreate,
+    EventoResponse,
+    EventoUpdate,
+    ScrollEventoResponse,
 )
 from app.schemas.usuario import UsuarioResumoResponse
 
@@ -110,9 +111,39 @@ def list_events(db: Session) -> list[EventoResponse]:
     return result
 
 
-def list_events_by_creator(creator_id: str, db: Session) -> list[EventoResponse]:
+def list_events_scroll(
+    skip: int,
+    limit: int,
+    search: str | None,
+    area: str | None,
+    turno: str | None,
+    data_filtro: date | None,
+    sort: str,
+    role: str,
+    db: Session,
+) -> ScrollEventoResponse:
     repo = EventoRepository(db)
-    eventos = repo.list_by_creator(creator_id)
+    items, total = repo.list_scroll(
+        skip=skip,
+        limit=limit,
+        search=search or None,
+        area=area or None,
+        turno=turno or None,
+        data_filtro=data_filtro,
+        sort=sort,
+        role=role,
+    )
+    serialized = [_serialize_evento(e, repo.count_inscricoes(e.id_evento)) for e in items]
+    return ScrollEventoResponse(
+        items=serialized,
+        total=total,
+        tem_mais=(skip + len(items)) < total,
+    )
+
+
+def list_events_by_creator_or_colaborador(user_id: str, db: Session) -> list[EventoResponse]:
+    repo = EventoRepository(db)
+    eventos = repo.list_by_creator_or_colaborador(user_id)
     result = []
     for evento in eventos:
         count = repo.count_inscricoes(evento.id_evento)

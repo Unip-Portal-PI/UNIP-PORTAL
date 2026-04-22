@@ -1,9 +1,13 @@
+import json
+from datetime import date as date_type
+
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
 from app.models.evento import EventoModel, EventoColaborador, EventoCurso, EventoPalestrante
 from app.models.anexo import AnexoModel
 from app.models.inscricao import InscricaoModel
 from app.models.presenca import PresencaModel
+from app.models.usuario import UsuarioModel
 
 
 class EventoRepository:
@@ -21,11 +25,81 @@ class EventoRepository:
     def list_all(self) -> list[EventoModel]:
         return self._base_query().filter(EventoModel.cancelado.is_(False)).all()
 
-    def list_by_creator(self, creator_id: str) -> list[EventoModel]:
-        return self._base_query().filter(
-            EventoModel.id_criador == creator_id,
+    def list_scroll(
+        self,
+        skip: int = 0,
+        limit: int = 12,
+        search: str | None = None,
+        area: str | None = None,
+        turno: str | None = None,
+        data_filtro: date_type | None = None,
+        sort: str = "proximos",
+        role: str = "aluno",
+    ) -> tuple[list[EventoModel], int]:
+        hoje = date_type.today()
+
+        filters = [
             EventoModel.cancelado.is_(False),
-        ).all()
+            EventoModel.data >= hoje,
+        ]
+
+        if role == "aluno":
+            filters.append(EventoModel.visibilidade == "publica")
+
+        if search:
+            s = f"%{search}%"
+            filters.append(or_(
+                EventoModel.nome.ilike(s),
+                EventoModel.descricao_breve.ilike(s),
+                EventoModel.descricao.ilike(s),
+            ))
+
+        if area:
+            filters.append(or_(
+                func.json_contains(EventoModel.area, json.dumps(area)),
+                func.json_contains(EventoModel.area, json.dumps("Todos")),
+            ))
+
+        if turno:
+            filters.append(EventoModel.turno == turno)
+
+        if data_filtro:
+            filters.append(EventoModel.data == data_filtro)
+
+        # Count without relationships to avoid duplicates
+        total = (
+            self.db.query(EventoModel.id_evento)
+            .filter(*filters)
+            .distinct()
+            .count()
+        )
+
+        # IDs query with correct pagination (no joins from relationships)
+        id_q = self.db.query(EventoModel.id_evento).filter(*filters)
+        if sort == "recentes":
+            id_q = id_q.order_by(EventoModel.data_criacao.desc())
+        else:
+            id_q = id_q.order_by(EventoModel.data.asc(), EventoModel.data_criacao.desc())
+
+        ids = [row[0] for row in id_q.offset(skip).limit(limit)]
+        if not ids:
+            return [], total
+
+        # Fetch full objects by IDs (relationships loaded safely without LIMIT)
+        items = self._base_query().filter(EventoModel.id_evento.in_(ids)).all()
+
+        order = {id_: i for i, id_ in enumerate(ids)}
+        items.sort(key=lambda e: order.get(e.id_evento, 9999))
+        return items, total
+
+    def list_by_creator_or_colaborador(self, user_id: str) -> list[EventoModel]:
+        return self._base_query().filter(
+            or_(
+                EventoModel.id_criador == user_id,
+                EventoModel.colaboradores.any(UsuarioModel.id_usuario == user_id)
+            ),
+            EventoModel.cancelado.is_(False),
+        ).distinct().all()
 
     def get_by_id(self, evento_id: str, include_cancelled: bool = False) -> EventoModel | None:
         query = self._base_query().filter(EventoModel.id_evento == evento_id)
