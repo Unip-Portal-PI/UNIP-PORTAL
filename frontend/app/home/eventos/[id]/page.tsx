@@ -25,6 +25,7 @@ import {
   getStatusVaga,
   isInscricaoEncerrada,
   canDelete,
+  getAreaGradient,
 } from "@/src/utils/evento.helpers";
 import { Auth } from "@/src/service/auth.service";
 import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
@@ -310,13 +311,36 @@ export default function DetalheEventoPage() {
             className="w-full h-64 object-cover rounded-2xl mb-6 shadow-sm"
           />
         ) : (
-          <div className="w-full h-64 rounded-2xl mb-6 bg-gradient-to-br from-[#FFDE00] to-[#e6c800] flex items-center justify-center shadow-sm">
-            <span className="text-[#252525] text-7xl font-black opacity-20 text-center">
-              Evento
-              <br />
-              AVP
-            </span>
-          </div>
+          (() => {
+            const { bg, blobs } = getAreaGradient(evento.area);
+            return (
+              <div
+                className="w-full h-64 relative overflow-hidden rounded-2xl mb-6"
+                style={{ background: bg }}
+              >
+                {blobs.map((color, i) => (
+                  <div
+                    key={i}
+                    className={`absolute rounded-full blur-[28px] ${["animate-blob1", "animate-blob2", "animate-blob3"][i]}`}
+                    style={{
+                      background: color,
+                      opacity: 0.55 - i * 0.1,
+                      width: `${[200, 150, 120][i]}px`,
+                      height: `${[200, 150, 120][i]}px`,
+                      top: `${[-50, 80, 30][i]}px`,
+                      left: `${[-30, 120, 300][i]}px`,
+                    }}
+                  />
+                ))}
+                <span
+                  className="absolute inset-0 flex items-center justify-center text-7xl font-black text-center leading-tight select-none"
+                  style={{ color: "rgba(255,255,255,0.12)" }}
+                >
+                  Evento<br />AVP
+                </span>
+              </div>
+            );
+          })()
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -411,7 +435,7 @@ export default function DetalheEventoPage() {
             {role === "aluno" && (
               <>
                 {eventoAtual.tipoInscricao === "externa" &&
-                eventoAtual.urlExterna ? (
+                  eventoAtual.urlExterna ? (
                   <a
                     href={eventoAtual.urlExterna}
                     target="_blank"
@@ -435,13 +459,12 @@ export default function DetalheEventoPage() {
                             : setModalInscricao(true)
                         }
                         disabled={!isInscrito && (status === "esgotado" || encerrado)}
-                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${
-                          isInscrito
-                            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
-                            : status === "esgotado" || encerrado
-                              ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                              : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                        }`}
+                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
+                          ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                          : status === "esgotado" || encerrado
+                            ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                            : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                          }`}
                       >
                         {isInscrito
                           ? "Cancelar minha inscricao"

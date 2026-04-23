@@ -16,6 +16,7 @@ import {
   isInscricaoEncerrada,
   canEditEvent,
   canDelete,
+  getAreaGradient,
 } from "@/src/utils/evento.helpers";
 import { isAcontecendoAgora } from "@/src/utils/evento.helpers";
 import { BadgeAcontecendoAgora } from "@/app/components/eventos/BadgeAcontecendoAgora";
@@ -120,7 +121,6 @@ export function EventoCard({
       year: "numeric",
     }
   );
-
   const descricaoResumo =
     (evento.descricaoCompleta ?? "").trim() ||
     (evento.descricaoBreve ?? "").trim() ||
@@ -147,13 +147,26 @@ export function EventoCard({
             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-40 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
-            <span className="text-[#252525] text-4xl font-black opacity-20 select-none text-center">
-              Evento
-              <br />
-              AVP
-            </span>
-          </div>
+          (() => {
+            const { bg, blobs } = getAreaGradient(evento.area);
+            return (
+              <div className="w-full h-40 relative overflow-hidden" style={{ background: bg }}>
+                {blobs.map((color, i) => (
+                  <div key={i} className={`absolute rounded-full blur-[28px] ${["animate-blob1", "animate-blob2", "animate-blob3"][i]}`}
+                    style={{
+                      background: color, opacity: 0.55 - i * 0.1,
+                      width: `${[140, 100, 80][i]}px`, height: `${[140, 100, 80][i]}px`,
+                      top: `${[-30, 60, 20][i]}px`, left: `${[-20, 90, 110][i]}px`
+                    }}
+                  />
+                ))}
+                <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-center leading-tight select-none"
+                  style={{ color: "rgba(255,255,255,0.12)" }}>
+                  Evento<br />AVP
+                </span>
+              </div>
+            );
+          })()
         )}
 
         {!isInscrito && status === "disponivel" && (
@@ -199,8 +212,8 @@ export function EventoCard({
 
       <div className="flex flex-col flex-1 p-4 gap-3">
         <h3
-       
-          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[350px]"  title={evento.nome}
+
+          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[350px]" title={evento.nome}
           onClick={handleCardClick}
         >
           {evento.nome}

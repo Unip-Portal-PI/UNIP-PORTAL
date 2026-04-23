@@ -92,6 +92,14 @@
   }
 }
 
+@keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.08)} 66%{transform:translate(-20px,25px) scale(0.95)} }
+@keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-25px,30px) scale(1.05)} 66%{transform:translate(35px,-15px) scale(0.97)} }
+@keyframes blob3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,20px) scale(1.1)} }
+
+.animate-blob1 { animation: blob1 7s ease-in-out infinite; }
+.animate-blob2 { animation: blob2 9s ease-in-out infinite; }
+.animate-blob3 { animation: blob3 11s ease-in-out infinite; }
+
 body {
   font-family: var(--font);
 }

@@ -7,6 +7,29 @@ import { UserRole } from "@/src/types/user";
 
 export const TURNOS = ["Todos", "Manhã", "Tarde", "Noite"];
 
+export const AREA_GRADIENTS: Record<string, { bg: string; blobs: [string, string, string] }> = {
+  "administração": { bg: "linear-gradient(135deg,#1a1a1a,#2d2d2d)", blobs: ["#FFDE00", "#e6c800", "#aaaaaa"] },
+  "biomedicina": { bg: "linear-gradient(135deg,#002b1f,#003d2b)", blobs: ["#00897b", "#43a047", "#0097a7"] },
+  "ciência da computação": { bg: "linear-gradient(135deg,#040d1a,#0a1e3c)", blobs: ["#00e5ff", "#1565c0", "#7c4dff"] },
+  "ciências contábeis": { bg: "linear-gradient(135deg,#0d1f0d,#1a3320)", blobs: ["#2e7d32", "#558b2f", "#f9a825"] },
+  "direito": { bg: "linear-gradient(135deg,#180830,#2a1050)", blobs: ["#6a1b9a", "#4527a0", "#880e4f"] },
+  "educação física": { bg: "linear-gradient(135deg,#FFDE00,#f59e0b)", blobs: ["#fbbf24", "#f97316", "#ef4444"] },
+  "enfermagem": { bg: "linear-gradient(135deg,#0a2540,#0d3b6e)", blobs: ["#1565c0", "#0288d1", "#00897b"] },
+  "engenharia civil": { bg: "linear-gradient(135deg,#1c1108,#2e1e0a)", blobs: ["#795548", "#f57f17", "#4e342e"] },
+  "farmácia": { bg: "linear-gradient(135deg,#003820,#004d29)", blobs: ["#00c853", "#1b5e20", "#76ff03"] },
+  "fisioterapia": { bg: "linear-gradient(135deg,#001f3d,#003366)", blobs: ["#0277bd", "#26c6da", "#80deea"] },
+  "pedagogia": { bg: "linear-gradient(135deg,#1a0020,#2d0035)", blobs: ["#e91e8c", "#f06292", "#ffca28"] },
+  "psicologia": { bg: "linear-gradient(135deg,#0e0020,#1a0038)", blobs: ["#7b1fa2", "#00bcd4", "#e040fb"] },
+  "recursos humanos": { bg: "linear-gradient(135deg,#1a0a00,#2d1500)", blobs: ["#e64a19", "#ff7043", "#ffb300"] },
+  "tecnologia da informação": { bg: "linear-gradient(135deg,#000d1a,#001429)", blobs: ["#00e5ff", "#1de9b6", "#7c4dff"] },
+  "default": { bg: "linear-gradient(135deg,#251a00,#3d2b00)", blobs: ["#FFDE00", "#f59e0b", "#fde68a"] },
+};
+
+export function getAreaGradient(areas: string[]) {
+  const area = areas[areas.length - 1]?.toLowerCase() ?? "";
+  return AREA_GRADIENTS[area] ?? AREA_GRADIENTS.default;
+}
+
 export function getStatusVaga(
   evento: Evento
 ): "disponivel" | "quase_esgotado" | "esgotado" {
@@ -115,7 +138,7 @@ function buildEnrollmentDeadline(evento: Evento): Date | null {
   if (!limiteDate) return defaultDeadline;
 
   const eventDate = parseDateOnly(evento.data);
-  
+
   // Se a data limite for o próprio dia do evento ou posterior, usa a regra de 1h antes
   if (eventDate && limiteDate.getTime() >= eventDate.getTime()) {
     return defaultDeadline;
@@ -148,7 +171,7 @@ export function isInscricaoEncerrada(evento: Evento): boolean {
 }
 
 export function canEdit(role: UserRole): boolean {
-  return  role === "adm";
+  return role === "adm";
 }
 
 export function canEditEvent(
