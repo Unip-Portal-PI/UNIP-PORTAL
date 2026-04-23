@@ -190,6 +190,7 @@ function ExpandableRow({
   onRemover?: (alunoId: string) => Promise<void>;
 }) {
   const [expandida, setExpandida] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [removendo, setRemovendo] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
@@ -199,14 +200,19 @@ function ExpandableRow({
     }
   }, []);
 
-  async function handleRemover(e: React.MouseEvent) {
+  function abrirConfirmacao(e: React.MouseEvent) {
     e.stopPropagation();
+    setConfirmando(true);
+  }
+
+  async function confirmarRemocao() {
     if (!onRemover) return;
     setRemovendo(true);
     try {
       await onRemover(insc.alunoId);
     } finally {
       setRemovendo(false);
+      setConfirmando(false);
     }
   }
 
@@ -261,7 +267,7 @@ function ExpandableRow({
           <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
             {!insc.presencaConfirmada && (
               <button
-                onClick={handleRemover}
+                onClick={abrirConfirmacao}
                 disabled={removendo}
                 title="Remover aluno"
                 className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
@@ -330,6 +336,57 @@ function ExpandableRow({
                 </dd>
               </div>
             </dl>
+          </td>
+        </tr>
+      )}
+
+      {confirmando && (
+        <tr>
+          <td colSpan={99}>
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+              onClick={() => setConfirmando(false)}
+            >
+              <div
+                className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                    <IconUserMinus size={18} className="text-red-500 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white text-sm">
+                      Desinscrever aluno
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {insc.alunoNome}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Tem certeza que deseja desinscrever este aluno? Ele receberá uma notificação no próximo login.
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmando(false)}
+                    disabled={removendo}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmarRemocao}
+                    disabled={removendo}
+                    className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                  >
+                    {removendo ? "Removendo..." : "Sim, desinscrever"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       )}
