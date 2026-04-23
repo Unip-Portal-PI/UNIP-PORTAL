@@ -16,15 +16,16 @@ class ApiClient {
 
   private getToken(): string | null {
     if (typeof window === "undefined") return null;
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY);
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     if (response.status === 401) {
       if (typeof window !== "undefined") {
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem("avp_user");
-        window.location.href = "/auth/login?expired=true";
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem("avp_user");
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/login?expired=true&redirect=${redirect}`;
       }
     }
 
