@@ -141,9 +141,7 @@ export function ModalExportarUsuarios({
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) onFechar();
-      }}
+
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030] shrink-0">

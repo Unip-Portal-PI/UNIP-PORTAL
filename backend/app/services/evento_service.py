@@ -317,3 +317,61 @@ def admin_remove_enrollment(evento_id: str, aluno_id: str, current_user: Usuario
     )
 
     insc_repo.delete(inscricao)
+
+
+def admin_remove_all_enrollments(evento_id: str, current_user: UsuarioModel, db: Session) -> int:
+    repo = EventoRepository(db)
+    evento = repo.get_by_id(evento_id)
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento nao encontrado.")
+
+    role = current_user.nivel_acesso.nome_perfil
+    if role != "adm":
+        is_colaborador_responsavel = any(
+            u.id_usuario == current_user.id_usuario for u in evento.colaboradores
+        )
+        if not is_colaborador_responsavel:
+            raise HTTPException(
+                status_code=403,
+                detail="Sem permissao para remover inscritos deste evento.",
+            )
+
+    inscricoes_ativas = repo.list_event_enrollments(evento_id)
+    # Apenas inscricoes sem presenca confirmada podem ser removidas
+    inscricoes_para_remover = [i for i in inscricoes_ativas if i.presenca is None]
+
+    if not inscricoes_para_remover:
+        return 0
+
+    for inscricao in inscricoes_para_remover:
+        db.add(
+            EventoCancelamentoAvisoModel(
+                id_usuario=inscricao.id_usuario,
+                id_evento=evento_id,
+                evento_nome=evento.nome,
+                evento_data=evento.data,
+                tipo="desincricao",
+            )
+        )
+
+    # Remover as inscricoes que nao tem presenca
+    count = 0
+    for inscricao in inscricoes_para_remover:
+        # Nota: clear_event_enrollments deletaria todas, inclusive com presenca.
+        # Aqui fazemos um a um para garantir que apenas as sem presenca sejam removidas.
+        # E tambem para lidar com a limpeza de presenca se necessário (embora aqui tenhamos filtrado).
+        
+        # Como o clear_event_enrollments do repo lida com a deleção de presenças, 
+        # mas queremos filtrar, vamos usar uma abordagem similar.
+        from app.models.presenca import PresencaModel
+        self_db = db
+        self_db.query(PresencaModel).filter(
+            PresencaModel.id_inscricao == inscricao.id_inscricao
+        ).delete(synchronize_session=False)
+        inscricao.qr_code_usuario = None
+        self_db.flush()
+        self_db.delete(inscricao)
+        count += 1
+    
+    db.commit()
+    return count

@@ -142,6 +142,16 @@ def admin_remove_enrollment(
     evento_service.admin_remove_enrollment(evento_id, aluno_id, current_user, db)
 
 
+@router.delete("/{evento_id}/enrollments", status_code=200)
+def admin_remove_all_enrollments(
+    evento_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_colaborador_adm),
+):
+    count = evento_service.admin_remove_all_enrollments(evento_id, current_user, db)
+    return {"sucesso": True, "mensagem": f"{count} inscricoes removidas com sucesso."}
+
+
 @router.get("/{evento_id}/my-enrollment", response_model=InscricaoResponse | None)
 def my_enrollment(
     evento_id: str,

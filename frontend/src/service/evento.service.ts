@@ -301,6 +301,12 @@ export const EventoService = {
     if (!ok) throw new Error(error || "Falha ao remover inscrição do aluno");
   },
 
+  async removerTodasInscricoes(eventoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    const { data, ok, error } = await api.delete<{ sucesso: boolean; mensagem: string }>(`/events/${eventoId}/enrollments`);
+    if (!ok || !data) throw new Error(error || "Falha ao remover todos os inscritos");
+    return data;
+  },
+
   async getMeusEventosCriados(): Promise<Evento[]> {
     const { data, ok, error } = await api.get<ApiEvento[]>("/events/mine/created");
     if (!ok || !data) throw new Error(error || "Falha ao buscar meus eventos");

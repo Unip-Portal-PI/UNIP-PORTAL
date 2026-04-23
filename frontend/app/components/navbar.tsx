@@ -256,26 +256,19 @@ export default function Navbar() {
             )}
           </button>
 
-          <div className="flex items-center gap-3 px-3 py-2 mt-1">
+          <div 
+            className="flex items-center gap-3 px-3 py-2 mt-1 cursor-pointer group"
+            onClick={() => {
+              setProfileOpen(false);
+              setMenuOpen(false);
+              router.push("/home/perfil");
+            }}
+          >
             <AvatarImg size={36} />
             <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                setProfileOpen(false);
-                setMenuOpen(false);
-                router.push("/home/perfil");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setProfileOpen(false);
-                  setMenuOpen(false);
-                  router.push("/home/perfil");
-                }
-              }}
-              className="flex flex-col leading-tight min-w-0 flex-1 cursor-pointer"
+              className="flex flex-col leading-tight min-w-0 flex-1"
             >
-              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-[#FFDE00] transition-colors">
                 {apelido}
               </span>
               <span className="text-xs text-slate-400 dark:text-slate-500">
@@ -283,7 +276,8 @@ export default function Navbar() {
               </span>
             </div>
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation(); // Evita levar ao perfil ao clicar no logout
                 setMenuOpen(false);
                 setLogoutModal(true);
               }}

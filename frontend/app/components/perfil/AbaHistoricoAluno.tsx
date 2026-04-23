@@ -241,7 +241,7 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   : "border-slate-100 dark:border-[#303030]"
               }`}
             >
-              <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
+              <div className="flex items-start gap-4 flex-wrap md:flex-nowrap">
                 {/* Ícone */}
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
@@ -262,15 +262,15 @@ export function AbaHistoricoAluno({ matricula }: Props) {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-1 truncate max-w-[350px]" title={evento?.nome ?? "Evento removido"}>
+                  <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 sm:line-clamp-1" title={evento?.nome ?? "Evento removido"}>
                     {evento?.nome ?? "Evento removido"}
                   </p>
-                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                  <div className="flex items-center gap-x-3 gap-y-1 mt-1 flex-wrap">
                     <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <IconCalendar size={11} /> {dataEvento}
                     </span>
                     {evento?.local && (
-                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[160px]">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[200px]">
                         {evento.local}
                       </span>
                     )}
@@ -278,48 +278,53 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                 </div>
 
                 {/* Status + ações */}
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0 w-full md:w-auto mt-3 md:mt-0">
                   {/* Badge presença */}
-                  {confirmado ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-1 rounded-full">
-                      <IconCircleCheck size={13} /> Presença confirmada
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#2a2a2a] px-2.5 py-1 rounded-full">
-                      <IconClock size={13} /> Aguardando
-                    </span>
-                  )}
+                  <div className="w-full sm:w-auto flex justify-start sm:justify-end">
+                    {confirmado ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
+                        <IconCircleCheck size={12} className="sm:w-[13px] sm:h-[13px]" /> Presença confirmada
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#2a2a2a] px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
+                        <IconClock size={12} className="sm:w-[13px] sm:h-[13px]" /> Aguardando
+                      </span>
+                    )}
+                  </div>
 
-                  {/* QR Code */}
-                  <button
-                    onClick={() => setQrAberto(inscricao)}
-                    className="flex items-center cursor-pointer gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-                    title="Ver QR Code"
-                  >
-                    <IconQrcode size={14} /> QR
-                  </button>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    {/* QR Code */}
+                    <button
+                      onClick={() => setQrAberto(inscricao)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                      title="Ver QR Code"
+                    >
+                      <IconQrcode size={14} /> QR
+                    </button>
 
-                  {/* Certificado */}
-                  <button
-                    onClick={() =>
-                      evento && downloadCertificado(inscricao, evento)
-                    }
-                    disabled={!certificadoDisponivel || !evento}
-                    title={
-                      certificadoDisponivel
-                        ? "Baixar certificado"
-                        : !confirmado
-                        ? "Disponível após confirmação de presença"
-                        : "Disponível após o dia do evento"
-                    }
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      certificadoDisponivel && evento
-                        ? "border border-emerald-200 cursor-pointer dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                        : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                    }`}
-                  >
-                    <IconDownload size={14} /> Certificado
-                  </button>
+                    {/* Certificado */}
+                    <button
+                      onClick={() =>
+                        evento && downloadCertificado(inscricao, evento)
+                      }
+                      disabled={!certificadoDisponivel || !evento}
+                      title={
+                        certificadoDisponivel
+                          ? "Baixar certificado"
+                          : !confirmado
+                          ? "Disponível após confirmação de presença"
+                          : "Disponível após o dia do evento"
+                      }
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        certificadoDisponivel && evento
+                          ? "border border-emerald-200 cursor-pointer dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                          : "border border-slate-200 dark:border-[#404040] text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      <IconDownload size={14} /> <span className="sm:hidden lg:inline">Certificado</span>
+                      <span className="hidden sm:inline lg:hidden">Cert.</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

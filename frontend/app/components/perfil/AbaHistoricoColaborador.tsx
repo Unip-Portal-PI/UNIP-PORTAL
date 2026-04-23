@@ -11,6 +11,8 @@ import {
   IconExternalLink,
   IconFileSpreadsheet,
   IconFileTypePdf,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { AuditExportService } from "@/src/service/auditExport.service";
 import { Evento, Inscricao } from "@/src/types/evento";
@@ -68,6 +70,10 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
   const [expandidoEventoId, setExpandidoEventoId] = useState<string | null>(null);
   const [exportandoEventos, setExportandoEventos] = useState(false);
   const [exportandoComunicados, setExportandoComunicados] = useState(false);
+
+  // Paginação Eventos
+  const [paginaEventos, setPaginaEventos] = useState(1);
+  const itensPorPagina = 5;
 
   const isAdmin = (Auth.getUser()?.permission ?? "aluno") === "adm";
 
@@ -146,6 +152,12 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
     carregar();
   }, [matricula]);
 
+  const totalPaginasEventos = Math.ceil(eventos.length / itensPorPagina);
+  const eventosExibidos = eventos.slice(
+    (paginaEventos - 1) * itensPorPagina,
+    paginaEventos * itensPorPagina
+  );
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -194,7 +206,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           contagem={eventos.length}
           acoes={
             isAdmin ? (
-              <>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => handleExportarEventos("excel")}
                   disabled={exportandoEventos || loading}
@@ -209,7 +221,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                 >
                   <IconFileTypePdf size={13} /> PDF
                 </button>
-              </>
+              </div>
             ) : undefined
           }
         />
@@ -224,7 +236,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {eventos.map(({ evento, inscricoes }) => {
+            {eventosExibidos.map(({ evento, inscricoes }) => {
               const confirmados = inscricoes.filter(
                 (i) => i.presencaConfirmada
               ).length;
@@ -246,7 +258,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                   key={evento.id}
                   className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm overflow-hidden"
                 >
-                  <div className="flex items-start gap-4 p-4 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-start gap-4 p-4 flex-wrap md:flex-nowrap">
                     <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-[#FFDE00]/60 to-amber-400">
                       {evento.banner && (
                         <img
@@ -258,11 +270,11 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1 truncate max-w-[550px]" title={evento.nome}>
+                      <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 sm:line-clamp-1" title={evento.nome}>
                         {evento.nome}
                       </p>
 
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      <div className="flex items-center gap-x-3 gap-y-1 mt-1 flex-wrap">
                         <span className="text-xs text-slate-500 flex items-center gap-1">
                           <IconCalendar size={11} /> {dataFormatada}
                         </span>
@@ -293,10 +305,10 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 w-full md:w-auto mt-2 md:mt-0 justify-end">
                       <button
                         onClick={() => router.push(`/home/eventos/${evento.id}`)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
                       >
                         <IconExternalLink size={13} /> Ver
                       </button>
@@ -306,7 +318,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                           onClick={() =>
                             setExpandidoEventoId(expandido ? null : evento.id)
                           }
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                          className="flex-1 md:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
                         >
                           <IconUsers size={13} />{" "}
                           {expandido ? "Ocultar" : "Inscritos"}
@@ -365,6 +377,65 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                 </div>
               );
             })}
+
+            {/* Controles de Paginação */}
+            {totalPaginasEventos > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6 select-none">
+                <button
+                  onClick={() => setPaginaEventos((p) => Math.max(1, p - 1))}
+                  disabled={paginaEventos === 1}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  title="Anterior"
+                >
+                  <IconChevronLeft size={16} className="sm:hidden" />
+                  <span className="hidden sm:inline">Anterior</span>
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPaginasEventos }).map((_, i) => {
+                    const n = i + 1;
+                    // Lógica para mostrar apenas páginas próximas à atual
+                    const isVisible = 
+                      totalPaginasEventos <= 5 || 
+                      n === 1 || 
+                      n === totalPaginasEventos || 
+                      (n >= paginaEventos - 1 && n <= paginaEventos + 1);
+
+                    if (!isVisible) {
+                      // Mostrar "..." apenas uma vez entre os intervalos
+                      if (n === 2 || n === totalPaginasEventos - 1) {
+                        return <span key={n} className="px-1 text-slate-400 text-xs">...</span>;
+                      }
+                      return null;
+                    }
+
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => setPaginaEventos(n)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                          paginaEventos === n
+                            ? "bg-amber-500 text-white shadow-sm shadow-amber-500/20"
+                            : "text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setPaginaEventos((p) => Math.min(totalPaginasEventos, p + 1))}
+                  disabled={paginaEventos === totalPaginasEventos}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  title="Próxima"
+                >
+                  <IconChevronRight size={16} className="sm:hidden" />
+                  <span className="hidden sm:inline">Próxima</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -381,7 +452,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           contagem={comunicados.length}
           acoes={
             isAdmin ? (
-              <>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => handleExportarComunicados("excel")}
                   disabled={exportandoComunicados || loading}
@@ -396,7 +467,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                 >
                   <IconFileTypePdf size={13} /> PDF
                 </button>
-              </>
+              </div>
             ) : undefined
           }
         />
@@ -426,7 +497,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
               return (
                 <div
                   key={c.id}
-                  className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 flex items-start gap-4 flex-wrap sm:flex-nowrap"
+                  className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] shadow-sm p-4 flex items-start gap-4 flex-wrap md:flex-nowrap"
                 >
                   <div className="w-11 h-11 rounded-xl bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10 flex items-center justify-center shrink-0">
                     <IconSpeakerphone
@@ -436,7 +507,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1" title={c.titulo}>
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 sm:line-clamp-1" title={c.titulo}>
                       {c.titulo}
                     </p>
 
@@ -451,14 +522,14 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 sm:line-clamp-1">
                       {c.resumo}
                     </p>
                   </div>
 
                   <button
                     onClick={() => router.push(`/home/comunicado/${c.id}`)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors shrink-0"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#404040] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors shrink-0"
                   >
                     <IconExternalLink size={13} /> Ver
                   </button>

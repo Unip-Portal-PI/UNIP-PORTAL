@@ -231,7 +231,7 @@ export function ModalQRReader({
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}
+
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
