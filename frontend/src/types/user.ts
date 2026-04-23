@@ -35,6 +35,7 @@ export interface EventoCanceladoNotificacao {
   eventoId: string;
   nome: string;
   data: string;
+  tipo?: "cancelamento" | "desincricao";
 }
 
 export interface PayloadToken {

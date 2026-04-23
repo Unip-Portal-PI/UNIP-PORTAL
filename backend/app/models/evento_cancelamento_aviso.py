@@ -14,6 +14,7 @@ class EventoCancelamentoAvisoModel(Base):
     id_evento = Column(String(36), ForeignKey("evento.id_evento", ondelete="CASCADE"), nullable=False)
     evento_nome = Column(String(200), nullable=False)
     evento_data = Column(Date, nullable=False)
+    tipo = Column(String(20), nullable=False, default="cancelamento", server_default=text("'cancelamento'"))
     criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     visualizado_em = Column(DateTime, nullable=True)
 

@@ -17,7 +17,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  if (!verificado) return null; // Não renderiza nada enquanto verifica
+  if (!verificado) return null;
 
   return <>{children}</>;
 }

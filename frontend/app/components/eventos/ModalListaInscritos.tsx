@@ -10,14 +10,19 @@ import {
   IconClock,
   IconFileSpreadsheet,
   IconFileTypePdf,
+  IconUserMinus,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
+import { UserRole } from "@/src/types/user";
 import { EventoInscricoesExportService } from "@/src/service/eventoInscricoesExport.service";
 
 interface Props {
   evento: Evento;
   inscricoes: Inscricao[];
+  role?: UserRole;
+  currentUserId?: string;
   onFechar: () => void;
+  onRemoverAluno?: (alunoId: string) => Promise<void>;
 }
 
 function formatarData(iso: string) {
@@ -28,10 +33,16 @@ function formatarData(iso: string) {
   });
 }
 
-export function ModalListaInscritos({ evento, inscricoes, onFechar }: Props) {
+export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno }: Props) {
   const total = inscricoes.length;
   const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
   const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
+
+  const podeRemover =
+    role === "adm" ||
+    (role === "colaborador" &&
+      !!currentUserId &&
+      evento.colaboradores.some((c) => c.id === currentUserId));
 
   async function handleExportar(tipoArquivo: "excel" | "pdf") {
     if (inscricoes.length === 0) return;
@@ -147,12 +158,18 @@ export function ModalListaInscritos({ evento, inscricoes, onFechar }: Props) {
                   <th className="hidden lg:table-cell px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Presença
                   </th>
+                  {podeRemover && <th className="px-3 py-3 w-12" />}
                   <th className="lg:hidden px-3 py-3 w-10" />
                 </tr>
               </thead>
               <tbody>
                 {inscricoes.map((insc) => (
-                  <ExpandableRow key={insc.id} insc={insc} />
+                  <ExpandableRow
+                    key={insc.id}
+                    insc={insc}
+                    podeRemover={podeRemover}
+                    onRemover={onRemoverAluno}
+                  />
                 ))}
               </tbody>
             </table>
@@ -163,8 +180,17 @@ export function ModalListaInscritos({ evento, inscricoes, onFechar }: Props) {
   );
 }
 
-function ExpandableRow({ insc }: { insc: Inscricao }) {
+function ExpandableRow({
+  insc,
+  podeRemover,
+  onRemover,
+}: {
+  insc: Inscricao;
+  podeRemover?: boolean;
+  onRemover?: (alunoId: string) => Promise<void>;
+}) {
   const [expandida, setExpandida] = useState(false);
+  const [removendo, setRemovendo] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
   const handleRowClick = useCallback(() => {
@@ -172,6 +198,17 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
       setExpandida((v) => !v);
     }
   }, []);
+
+  async function handleRemover(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!onRemover) return;
+    setRemovendo(true);
+    try {
+      await onRemover(insc.alunoId);
+    } finally {
+      setRemovendo(false);
+    }
+  }
 
   return (
     <>
@@ -219,6 +256,21 @@ function ExpandableRow({ insc }: { insc: Inscricao }) {
             </span>
           )}
         </td>
+
+        {podeRemover && (
+          <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+            {!insc.presencaConfirmada && (
+              <button
+                onClick={handleRemover}
+                disabled={removendo}
+                title="Remover aluno"
+                className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+              >
+                <IconUserMinus size={15} />
+              </button>
+            )}
+          </td>
+        )}
 
         <td className="lg:hidden px-3 py-3 text-right">
           <span

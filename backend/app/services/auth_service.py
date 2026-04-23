@@ -70,6 +70,7 @@ def _consume_cancelled_events(user_id: str, db: Session) -> list[EventoCancelado
                 evento_id=aviso.id_evento,
                 nome=aviso.evento_nome,
                 data=aviso.evento_data,
+                tipo=aviso.tipo,
             )
         )
 
