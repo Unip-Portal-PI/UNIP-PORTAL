@@ -148,7 +148,7 @@ export function isInscricaoEncerrada(evento: Evento): boolean {
 }
 
 export function canEdit(role: UserRole): boolean {
-  return role === "colaborador" || role === "adm";
+  return  role === "adm";
 }
 
 export function canEditEvent(
