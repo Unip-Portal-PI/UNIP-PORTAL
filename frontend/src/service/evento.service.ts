@@ -296,6 +296,11 @@ export const EventoService = {
     return data.map(mapInscricao);
   },
 
+  async removerInscricaoAluno(eventoId: string, alunoId: string): Promise<void> {
+    const { ok, error } = await api.delete(`/events/${eventoId}/enrollments/${alunoId}`);
+    if (!ok) throw new Error(error || "Falha ao remover inscrição do aluno");
+  },
+
   async getMeusEventosCriados(): Promise<Evento[]> {
     const { data, ok, error } = await api.get<ApiEvento[]>("/events/mine/created");
     if (!ok || !data) throw new Error(error || "Falha ao buscar meus eventos");

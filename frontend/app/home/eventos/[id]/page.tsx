@@ -287,6 +287,11 @@ export default function DetalheEventoPage() {
     setModalQR(true);
   }
 
+  async function handleRemoverAluno(alunoId: string) {
+    await EventoService.removerInscricaoAluno(eventoAtual.id, alunoId);
+    setInscritosDoEvento((prev) => prev.filter((i) => i.alunoId !== alunoId));
+  }
+
   return (
     <AuthGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -626,7 +631,10 @@ export default function DetalheEventoPage() {
           <ModalListaInscritos
             evento={eventoAtual}
             inscricoes={inscritosDoEvento}
+            role={role}
+            currentUserId={user.id}
             onFechar={() => setModalInscritos(false)}
+            onRemoverAluno={handleRemoverAluno}
           />
         )}
 
