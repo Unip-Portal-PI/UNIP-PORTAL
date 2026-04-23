@@ -86,6 +86,11 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
+      - name: Debug SSH key
+        run: |
+          echo "${{ secrets.SSH_KEY }}" | head -1
+          echo "${{ secrets.SSH_KEY }}" | wc -l
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
