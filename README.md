@@ -3,8 +3,3 @@
 - Versão estática: 
 
 - PORTAL AVP v1.0
-
-- nova modificação
-
-- teste 3
-- teste 4
