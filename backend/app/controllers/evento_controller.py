@@ -132,6 +132,16 @@ def list_enrollments(
     return inscricao_service.list_enrollments(evento_id, db)
 
 
+@router.delete("/{evento_id}/enrollments/{aluno_id}", status_code=204)
+def admin_remove_enrollment(
+    evento_id: str,
+    aluno_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_colaborador_adm),
+):
+    evento_service.admin_remove_enrollment(evento_id, aluno_id, current_user, db)
+
+
 @router.get("/{evento_id}/my-enrollment", response_model=InscricaoResponse | None)
 def my_enrollment(
     evento_id: str,

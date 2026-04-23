@@ -21,7 +21,7 @@ export function canEditComunicado(role: UserRole): boolean {
 }
 
 export function canDeleteAllComunicados(role: UserRole): boolean {
-  return role === "colaborador" || role === "adm";
+  return role === "adm";
 }
 
 export function isAutor(comunicado: Comunicado, matricula: string): boolean {

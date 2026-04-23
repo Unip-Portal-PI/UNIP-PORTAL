@@ -261,6 +261,7 @@ def cancel_event(evento_id: str, db: Session) -> EventoCancelResponse:
                 id_evento=evento_id,
                 evento_nome=evento.nome,
                 evento_data=evento.data,
+                tipo="cancelamento",
             )
         )
 
@@ -274,3 +275,45 @@ def cancel_event(evento_id: str, db: Session) -> EventoCancelResponse:
         evento_id=evento_id,
         inscricoes_canceladas=inscricoes_canceladas,
     )
+
+
+def admin_remove_enrollment(evento_id: str, aluno_id: str, current_user: UsuarioModel, db: Session) -> None:
+    repo = EventoRepository(db)
+    evento = repo.get_by_id(evento_id)
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento nao encontrado.")
+
+    role = current_user.nivel_acesso.nome_perfil
+    if role != "adm":
+        is_colaborador_responsavel = any(
+            u.id_usuario == current_user.id_usuario for u in evento.colaboradores
+        )
+        if not is_colaborador_responsavel:
+            raise HTTPException(
+                status_code=403,
+                detail="Sem permissao para remover inscritos deste evento.",
+            )
+
+    from app.repositories.inscricao_repository import InscricaoRepository
+    insc_repo = InscricaoRepository(db)
+    inscricao = insc_repo.get_by_user_and_event(aluno_id, evento_id)
+    if not inscricao:
+        raise HTTPException(status_code=404, detail="Inscricao nao encontrada.")
+
+    if inscricao.presenca is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Nao e possivel remover uma inscricao com presenca confirmada.",
+        )
+
+    db.add(
+        EventoCancelamentoAvisoModel(
+            id_usuario=aluno_id,
+            id_evento=evento_id,
+            evento_nome=evento.nome,
+            evento_data=evento.data,
+            tipo="desincricao",
+        )
+    )
+
+    insc_repo.delete(inscricao)

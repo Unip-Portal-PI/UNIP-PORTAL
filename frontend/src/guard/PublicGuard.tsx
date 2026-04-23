@@ -12,7 +12,9 @@ export default function PublicGuard({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (Auth.isAuthenticated()) {
-      router.replace("/home");
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      router.replace(redirect ? decodeURIComponent(redirect) : "/home");
     } else {
       setVerificado(true);
     }

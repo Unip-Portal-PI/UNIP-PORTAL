@@ -1,6 +1,6 @@
 "use client";
 
-import { IconCalendarOff, IconX } from "@tabler/icons-react";
+import { IconCalendarOff, IconUserMinus, IconX } from "@tabler/icons-react";
 import { EventoCanceladoNotificacao } from "@/src/types/user";
 
 interface ModalAvisosEventosCanceladosProps {
@@ -12,6 +12,21 @@ export function ModalAvisosEventosCancelados({
   eventos,
   onFechar,
 }: ModalAvisosEventosCanceladosProps) {
+  const temCancelamentos = eventos.some((e) => !e.tipo || e.tipo === "cancelamento");
+  const temDesincricoes = eventos.some((e) => e.tipo === "desincricao");
+
+  let descricao: string;
+  if (temCancelamentos && temDesincricoes) {
+    descricao =
+      "Você tem atualizações sobre os eventos abaixo. Sua vaga foi removida e o QR Code correspondente foi invalidado.";
+  } else if (temDesincricoes) {
+    descricao =
+      "Você foi removido dos eventos abaixo por um administrador ou responsável. Sua vaga foi removida e o QR Code correspondente foi invalidado.";
+  } else {
+    descricao =
+      "Os eventos abaixo foram cancelados após a sua inscrição. Sua vaga foi removida e o QR Code correspondente foi invalidado.";
+  }
+
   return (
     <div
       className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 p-4"
@@ -22,7 +37,7 @@ export function ModalAvisosEventosCancelados({
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#303030]">
           <h2 className="font-bold text-slate-900 dark:text-white text-lg">
-            Eventos cancelados
+            Avisos de eventos
           </h2>
           <button
             onClick={onFechar}
@@ -37,9 +52,7 @@ export function ModalAvisosEventosCancelados({
             <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
               <IconCalendarOff size={22} className="text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Os eventos abaixo foram cancelados após a sua inscrição. Sua vaga foi removida e o QR Code correspondente foi invalidado.
-            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{descricao}</p>
           </div>
 
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -48,9 +61,21 @@ export function ModalAvisosEventosCancelados({
                 key={`${evento.eventoId}-${evento.data}`}
                 className="rounded-xl border border-slate-200 dark:border-[#404040] bg-slate-50 dark:bg-[#2a2a2a] px-4 py-3"
               >
-                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  {evento.nome}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {evento.nome}
+                  </p>
+                  {evento.tipo === "desincricao" ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                      <IconUserMinus size={10} />
+                      Removido
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                      Cancelado
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {new Date(`${evento.data}T00:00:00`).toLocaleDateString("pt-BR")}
                 </p>

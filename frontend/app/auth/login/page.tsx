@@ -50,7 +50,9 @@ export default function Login() {
       if (resultado.sucesso) {
         setErro(false);
         showLoading();
-        router.push("/home/eventos");
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        router.push(redirect ? decodeURIComponent(redirect) : "/home/eventos");
       } else {
         setErro(true);
       }

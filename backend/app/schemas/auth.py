@@ -29,6 +29,7 @@ class EventoCanceladoResumo(BaseModel):
     evento_id: str
     nome: str
     data: date
+    tipo: str = "cancelamento"
 
 
 class LoginResponse(BaseModel):

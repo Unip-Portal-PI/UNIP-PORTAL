@@ -19,6 +19,7 @@ import {
 } from "@/src/utils/evento.helpers";
 import { isAcontecendoAgora } from "@/src/utils/evento.helpers";
 import { BadgeAcontecendoAgora } from "@/app/components/eventos/BadgeAcontecendoAgora";
+import { EventoBannerFallback } from "./BannerEventoFallback";
 
 
 
@@ -120,7 +121,6 @@ export function EventoCard({
       year: "numeric",
     }
   );
-
   const descricaoResumo =
     (evento.descricaoCompleta ?? "").trim() ||
     (evento.descricaoBreve ?? "").trim() ||
@@ -147,13 +147,7 @@ export function EventoCard({
             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-40 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
-            <span className="text-[#252525] text-4xl font-black opacity-20 select-none text-center">
-              Evento
-              <br />
-              AVP
-            </span>
-          </div>
+          <EventoBannerFallback areas={evento.area} className="w-full h-40" />
         )}
 
         {!isInscrito && status === "disponivel" && (
@@ -199,8 +193,8 @@ export function EventoCard({
 
       <div className="flex flex-col flex-1 p-4 gap-3">
         <h3
-       
-          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[350px]"  title={evento.nome}
+
+          className="font-bold text-slate-900 dark:text-white text-base leading-snug cursor-pointer hover:text-[#FFDE00] dark:hover:text-[#FFDE00] transition-colors line-clamp-2 truncate max-w-[350px]" title={evento.nome}
           onClick={handleCardClick}
         >
           {evento.nome}

@@ -17,28 +17,28 @@ const RECENT_LOGIN_KEY = "avp_recent_login";
 // ---------------------------------------------------------------------------
 
 function salvarToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 function salvarUsuario(usuario: UsuarioSessao): void {
-  sessionStorage.setItem(USER_KEY, JSON.stringify(usuario));
+  localStorage.setItem(USER_KEY, JSON.stringify(usuario));
 }
 
 function removerSessao(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
   sessionStorage.removeItem(CANCELLED_EVENTS_KEY);
   sessionStorage.removeItem(RECENT_LOGIN_KEY);
 }
 
 function obterToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 function obterUsuario(): UsuarioSessao | null {
   if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(USER_KEY);
+  const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as UsuarioSessao;
