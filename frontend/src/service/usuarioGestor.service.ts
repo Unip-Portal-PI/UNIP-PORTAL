@@ -65,9 +65,9 @@ function mapUsuario(data: ApiUsuarioGestor): UsuarioGestor {
 
 export const UsuarioGestorService = {
   async getAll(): Promise<UsuarioGestor[]> {
-    const { data, ok, error } = await api.get<ApiUsuarioGestor[]>("/users/");
+    const { data, ok, error } = await api.get<ApiPaginatedResponse>("/users/?pagina=1&por_pagina=9999");
     if (!ok || !data) throw new Error(error || "Falha ao buscar usuários");
-    return data.map(mapUsuario);
+    return data.items.map(mapUsuario);
   },
 
   async getPaginated(params: PaginatedParams): Promise<PaginatedUsuarios> {

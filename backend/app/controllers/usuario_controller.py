@@ -70,7 +70,7 @@ def update_my_photo(
 @router.get("/", response_model=PaginatedUsuarioResponse)
 def list_users(
     pagina: int = Query(1, ge=1),
-    por_pagina: int = Query(10, ge=1, le=100),
+    por_pagina: int = Query(10, ge=1, le=10000),
     search: str | None = Query(None),
     permission: str | None = Query(None),
     status: str | None = Query(None),

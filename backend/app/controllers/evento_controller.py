@@ -30,7 +30,7 @@ allow_aluno = RoleChecker(["aluno"])
 @router.get("/", response_model=ScrollEventoResponse)
 def list_events(
     skip: int = Query(0, ge=0),
-    limit: int = Query(12, ge=1, le=500),
+    limit: int = Query(12, ge=1, le=10000),
     search: str | None = Query(None),
     area: str | None = Query(None),
     turno: str | None = Query(None),
