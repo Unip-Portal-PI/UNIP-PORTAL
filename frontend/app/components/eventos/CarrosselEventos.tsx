@@ -10,6 +10,8 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { Evento } from "@/src/types/evento";
+import { getAreaGradient } from "@/src/utils/evento.helpers";
+import { EventoBannerFallback } from "./BannerEventoFallback";
 
 interface CarrosselEventosProps {
   eventos: Evento[];
@@ -96,13 +98,7 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#FFDE00] via-amber-400 to-amber-600 flex items-center justify-center">
-              <span className="text-[#252525] text-4xl sm:text-6xl font-black opacity-20 select-none text-center">
-                Evento
-                <br />
-                AVP
-              </span>
-            </div>
+           <EventoBannerFallback areas={evento.area} className="w-full h-full" />
           )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
@@ -188,8 +184,8 @@ export function CarrosselEventos({ eventos }: CarrosselEventosProps) {
                   setIndexAtual(i);
                 }}
                 className={`rounded-full transition-all ${i === indexAtual
-                    ? "w-5 h-2 bg-white"
-                    : "w-2 h-2 bg-white/45 hover:bg-white/70"
+                  ? "w-5 h-2 bg-white"
+                  : "w-2 h-2 bg-white/45 hover:bg-white/70"
                   }`}
                 aria-label={`Ir para slide ${i + 1}`}
               />

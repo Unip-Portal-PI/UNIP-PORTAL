@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { Comunicado } from "@/src/types/comunicado";
 import { isComunicadoExpirado } from "@/src/utils/comunicado.helpers";
+import { BannerComunicadosFallback } from "./BannerComunicadosFallback";
 
 interface CarrosselComunicadosProps {
   comunicados: Comunicado[];
@@ -74,13 +75,7 @@ export function CarrosselComunicados({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
-            <span className="text-[#252525] text-8xl font-black opacity-10 select-none text-center">
-              Comunicado
-              <br />
-              AVP
-            </span>
-          </div>
+          <BannerComunicadosFallback areas={atual.visibilidade} className="w-full h-full" />
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

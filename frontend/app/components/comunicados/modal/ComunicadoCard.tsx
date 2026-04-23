@@ -17,6 +17,7 @@ import {
   canDeleteAllComunicados,
   parseAssuntos,
 } from "@/src/utils/comunicado.helpers";
+import { BannerComunicadosFallback } from "../BannerComunicadosFallback";
 
 interface ComunicadoCardProps {
   comunicado: Comunicado;
@@ -107,7 +108,7 @@ export function ComunicadoCard({
   }, [comunicado.conteudo]);
 
   function handleAbrir() {
-    onVerConteudo(comunicado);
+    //onVerConteudo(comunicado);
     router.push(`/home/comunicado/${comunicado.id}`);
   }
 
@@ -124,13 +125,7 @@ export function ComunicadoCard({
             className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-72 bg-gradient-to-br from-[#FFDE00] to-amber-500 flex items-center justify-center">
-            <span className="text-[#252525] text-5xl font-black opacity-40 select-none text-center">
-              Comunicado
-              <br />
-              AVP
-            </span>
-          </div>
+          <BannerComunicadosFallback areas={comunicado.visibilidade} className="w-full h-72" />
         )}
 
         {parseAssuntos(comunicado.assunto).length > 0 && (

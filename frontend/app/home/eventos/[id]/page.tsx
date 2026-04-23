@@ -35,6 +35,7 @@ import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscrito
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
 import AuthGuard from "@/src/guard/AuthGuard";
+import { EventoBannerFallback } from "@/app/components/eventos/BannerEventoFallback";
 
 function formatarLink(valor: string) {
   if (/^https?:\/\//i.test(valor)) return valor;
@@ -310,13 +311,7 @@ export default function DetalheEventoPage() {
             className="w-full h-64 object-cover rounded-2xl mb-6 shadow-sm"
           />
         ) : (
-          <div className="w-full h-64 rounded-2xl mb-6 bg-gradient-to-br from-[#FFDE00] to-[#e6c800] flex items-center justify-center shadow-sm">
-            <span className="text-[#252525] text-7xl font-black opacity-20 text-center">
-              Evento
-              <br />
-              AVP
-            </span>
-          </div>
+          <EventoBannerFallback areas={evento.area} className="w-full h-64 rounded-2xl mb-6" />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -411,7 +406,7 @@ export default function DetalheEventoPage() {
             {role === "aluno" && (
               <>
                 {eventoAtual.tipoInscricao === "externa" &&
-                eventoAtual.urlExterna ? (
+                  eventoAtual.urlExterna ? (
                   <a
                     href={eventoAtual.urlExterna}
                     target="_blank"
@@ -435,13 +430,12 @@ export default function DetalheEventoPage() {
                             : setModalInscricao(true)
                         }
                         disabled={!isInscrito && (status === "esgotado" || encerrado)}
-                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${
-                          isInscrito
-                            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
-                            : status === "esgotado" || encerrado
-                              ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                              : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
-                        }`}
+                        className={`w-full cursor-pointer py-3 rounded-md text-sm font-bold transition-colors ${isInscrito
+                          ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/30"
+                          : status === "esgotado" || encerrado
+                            ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                            : "bg-[#FFDE00] hover:bg-[#e6c800] text-[#252525]"
+                          }`}
                       >
                         {isInscrito
                           ? "Cancelar minha inscricao"
