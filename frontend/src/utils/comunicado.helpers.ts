@@ -17,7 +17,7 @@ export function isComunicadoExpirado(comunicado: Comunicado): boolean {
 }
 
 export function canEditComunicado(role: UserRole): boolean {
-  return  role === "adm";
+  return role === "colaborador" || role === "adm";
 }
 
 export function canDeleteAllComunicados(role: UserRole): boolean {

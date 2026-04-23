@@ -11,7 +11,7 @@ import {
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
 import { EventoService } from "@/src/service/evento.service";
-import { TURNOS, canEdit } from "@/src/utils/evento.helpers";
+import { TURNOS, canCreate, canEdit } from "@/src/utils/evento.helpers";
 import { CURSOS } from "@/src/utils/cursos.helpers";
 import { Auth } from "@/src/service/auth.service";
 import { EventoCard } from "@/app/components/eventos/EventoCard";
@@ -338,7 +338,7 @@ export default function EventosPage() {
             </p>
           </div>
 
-          {mounted && canEdit(role) && (
+          {mounted && canCreate(role) && (
             <button
               onClick={() => setModalForm("novo")}
               className="flex items-center gap-2 px-4 py-2.5 bg-[#FFDE00] dark:bg-yellow-400 hover:bg-[#e6c800] dark:hover:bg-yellow-300 text-[#252525] text-sm font-bold rounded-[4] transition-colors shadow-sm"

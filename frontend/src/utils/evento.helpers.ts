@@ -170,8 +170,12 @@ export function isInscricaoEncerrada(evento: Evento): boolean {
   return new Date().getTime() > deadline.getTime();
 }
 
-export function canEdit(role: UserRole): boolean {
+export function canCreate(role: UserRole): boolean {
   return role === "adm";
+}
+
+export function canEdit(role: UserRole): boolean {
+  return role === "colaborador" || role === "adm";
 }
 
 export function canEditEvent(
