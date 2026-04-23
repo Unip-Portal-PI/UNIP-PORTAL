@@ -16,10 +16,10 @@ import {
   isInscricaoEncerrada,
   canEditEvent,
   canDelete,
-  getAreaGradient,
 } from "@/src/utils/evento.helpers";
 import { isAcontecendoAgora } from "@/src/utils/evento.helpers";
 import { BadgeAcontecendoAgora } from "@/app/components/eventos/BadgeAcontecendoAgora";
+import { EventoBannerFallback } from "./BannerEventoFallback";
 
 
 
@@ -147,26 +147,7 @@ export function EventoCard({
             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          (() => {
-            const { bg, blobs } = getAreaGradient(evento.area);
-            return (
-              <div className="w-full h-40 relative overflow-hidden" style={{ background: bg }}>
-                {blobs.map((color, i) => (
-                  <div key={i} className={`absolute rounded-full blur-[28px] ${["animate-blob1", "animate-blob2", "animate-blob3"][i]}`}
-                    style={{
-                      background: color, opacity: 0.55 - i * 0.1,
-                      width: `${[140, 100, 80][i]}px`, height: `${[140, 100, 80][i]}px`,
-                      top: `${[-30, 60, 20][i]}px`, left: `${[-20, 90, 110][i]}px`
-                    }}
-                  />
-                ))}
-                <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-center leading-tight select-none"
-                  style={{ color: "rgba(255,255,255,0.12)" }}>
-                  Evento<br />AVP
-                </span>
-              </div>
-            );
-          })()
+          <EventoBannerFallback areas={evento.area} className="w-full h-40" />
         )}
 
         {!isInscrito && status === "disponivel" && (

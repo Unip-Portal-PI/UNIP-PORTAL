@@ -25,7 +25,6 @@ import {
   getStatusVaga,
   isInscricaoEncerrada,
   canDelete,
-  getAreaGradient,
 } from "@/src/utils/evento.helpers";
 import { Auth } from "@/src/service/auth.service";
 import { ModalInscricao } from "@/app/components/eventos/ModalInscricao";
@@ -36,6 +35,7 @@ import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscrito
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
 import AuthGuard from "@/src/guard/AuthGuard";
+import { EventoBannerFallback } from "@/app/components/eventos/BannerEventoFallback";
 
 function formatarLink(valor: string) {
   if (/^https?:\/\//i.test(valor)) return valor;
@@ -311,36 +311,7 @@ export default function DetalheEventoPage() {
             className="w-full h-64 object-cover rounded-2xl mb-6 shadow-sm"
           />
         ) : (
-          (() => {
-            const { bg, blobs } = getAreaGradient(evento.area);
-            return (
-              <div
-                className="w-full h-64 relative overflow-hidden rounded-2xl mb-6"
-                style={{ background: bg }}
-              >
-                {blobs.map((color, i) => (
-                  <div
-                    key={i}
-                    className={`absolute rounded-full blur-[28px] ${["animate-blob1", "animate-blob2", "animate-blob3"][i]}`}
-                    style={{
-                      background: color,
-                      opacity: 0.55 - i * 0.1,
-                      width: `${[200, 150, 120][i]}px`,
-                      height: `${[200, 150, 120][i]}px`,
-                      top: `${[-50, 80, 30][i]}px`,
-                      left: `${[-30, 120, 300][i]}px`,
-                    }}
-                  />
-                ))}
-                <span
-                  className="absolute inset-0 flex items-center justify-center text-7xl font-black text-center leading-tight select-none"
-                  style={{ color: "rgba(255,255,255,0.12)" }}
-                >
-                  Evento<br />AVP
-                </span>
-              </div>
-            );
-          })()
+          <EventoBannerFallback areas={evento.area} className="w-full h-64 rounded-2xl mb-6" />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

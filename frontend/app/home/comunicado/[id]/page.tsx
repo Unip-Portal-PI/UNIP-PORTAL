@@ -30,6 +30,7 @@ import { Auth } from "@/src/service/auth.service";
 import { ModalFormComunicado } from "@/app/components/comunicados/modal/ModalFormComunicado";
 import { ModalExcluirComunicado } from "@/app/components/comunicados/modal/ModalExcluirComunicado";
 import AuthGuard from "@/src/guard/AuthGuard";
+import { BannerComunicadosFallback } from "@/app/components/comunicados/BannerComunicadosFallback";
 
 export default function ComunicadoDetalhePage() {
   const { id } = useParams<{ id: string }>();
@@ -183,11 +184,7 @@ export default function ComunicadoDetalhePage() {
             <img src={comunicado.banner} alt={comunicado.titulo} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="w-full h-60 rounded-2xl bg-gradient-to-br from-[#FFDE00]/70 to-amber-400 flex items-center justify-center mb-6 shadow-sm">
-            <span className="text-[#252525] text-5xl font-black opacity-40 select-none text-center">
-              Comunicado<br />AVP
-            </span>
-          </div>
+          <BannerComunicadosFallback areas={comunicado.visibilidade} className="w-full h-60 rounded-2xl my-3" />
         )}
 
         {parseAssuntos(comunicado.assunto).length > 0 && (

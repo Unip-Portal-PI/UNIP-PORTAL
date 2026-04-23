@@ -30,6 +30,7 @@ export function getAreaGradient(areas: string[]) {
   return AREA_GRADIENTS[area] ?? AREA_GRADIENTS.default;
 }
 
+
 export function getStatusVaga(
   evento: Evento
 ): "disponivel" | "quase_esgotado" | "esgotado" {

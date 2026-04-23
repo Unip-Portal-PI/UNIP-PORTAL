@@ -14,6 +14,7 @@ import {
 import { Comunicado } from "@/src/types/comunicado";
 import { isComunicadoExpirado, parseAssuntos } from "@/src/utils/comunicado.helpers";
 import { renderConteudoFormatado } from "@/src/utils/comunicado.formatter";
+import { BannerComunicadosFallback } from "../BannerComunicadosFallback";
 
 interface ModalComunicadoProps {
   comunicado: Comunicado | null;
@@ -76,13 +77,15 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
           {/* Banner */}
-          {comunicado.banner && (
+          {comunicado.banner ? (
             <img
               src={comunicado.banner}
               alt={comunicado.titulo}
               className="w-full h-68 object-cover rounded-xl"
             />
-          )}
+          ) : ( 
+            <BannerComunicadosFallback areas={comunicado.visibilidade} className="w-full h-68 rounded-xl" />
+          )} 
 
           {/* Aviso: expirado */}
           {expirado && (
