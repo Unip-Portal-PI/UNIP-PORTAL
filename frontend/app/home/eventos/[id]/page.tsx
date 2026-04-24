@@ -293,6 +293,14 @@ export default function DetalheEventoPage() {
     setInscritosDoEvento((prev) => prev.filter((i) => i.alunoId !== alunoId));
   }
 
+  async function handleRemoverTodos() {
+    await EventoService.removerTodasInscricoes(eventoAtual.id);
+    // Filtrar apenas os que tinham presenca confirmada (embora o service atual remova apenas os que não tem)
+    // Para ser consistente com o estado do banco, vamos recarregar ou filtrar.
+    // O service do backend remove apenas os sem presença.
+    setInscritosDoEvento((prev) => prev.filter((i) => i.presencaConfirmada));
+  }
+
   return (
     <AuthGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -344,7 +352,7 @@ export default function DetalheEventoPage() {
                 )}
               </div>
 
-              <h1 title={eventoAtual.nome} className="text-2xl font-bold text-slate-900 dark:text-white leading-snug truncate max-w-[550px]">
+              <h1 title={eventoAtual.nome} className="text-2xl font-bold text-slate-900 dark:text-white leading-snug max-w-[550px]">
                 {eventoAtual.nome}
               </h1>
 
@@ -629,6 +637,7 @@ export default function DetalheEventoPage() {
             currentUserId={user.id}
             onFechar={() => setModalInscritos(false)}
             onRemoverAluno={handleRemoverAluno}
+            onRemoverTodos={handleRemoverTodos}
           />
         )}
 

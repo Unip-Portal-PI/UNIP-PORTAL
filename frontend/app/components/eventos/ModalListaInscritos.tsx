@@ -23,6 +23,7 @@ interface Props {
   currentUserId?: string;
   onFechar: () => void;
   onRemoverAluno?: (alunoId: string) => Promise<void>;
+  onRemoverTodos?: () => Promise<void>;
 }
 
 function formatarData(iso: string) {
@@ -33,16 +34,21 @@ function formatarData(iso: string) {
   });
 }
 
-export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno }: Props) {
+export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos }: Props) {
   const total = inscricoes.length;
   const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
   const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
+  const [confirmandoTodos, setConfirmandoTodos] = useState(false);
+  const [removendoTodos, setRemovendoTodos] = useState(false);
 
   const podeRemover =
     role === "adm" ||
     (role === "colaborador" &&
       !!currentUserId &&
       evento.colaboradores.some((c) => c.id === currentUserId));
+
+  // Apenas quem não tem presença pode ser removido
+  const temInscritosRemoviveis = inscricoes.some((i) => !i.presencaConfirmada);
 
   async function handleExportar(tipoArquivo: "excel" | "pdf") {
     if (inscricoes.length === 0) return;
@@ -62,10 +68,20 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
     }
   }
 
+  async function handleConfirmarRemoverTodos() {
+    if (!onRemoverTodos) return;
+    setRemovendoTodos(true);
+    try {
+      await onRemoverTodos();
+    } finally {
+      setRemovendoTodos(false);
+      setConfirmandoTodos(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onFechar}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
@@ -109,7 +125,18 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
               </span>
             </div>
 
-            <div className="flex flex-row items-start gap-2 self-start">
+            <div className="flex flex-row items-start gap-2 self-start flex-wrap sm:flex-nowrap">
+              {podeRemover && temInscritosRemoviveis && (
+                <button
+                  onClick={() => setConfirmandoTodos(true)}
+                  disabled={removendoTodos || loadingExport !== null}
+                  className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/40 px-4 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <IconUserMinus size={16} />
+                  Desinscrever todos
+                </button>
+              )}
+
               <button
                 onClick={() => handleExportar("excel")}
                 disabled={loadingExport !== null || inscricoes.length === 0}
@@ -176,6 +203,54 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
           )}
         </div>
       </div>
+
+      {confirmandoTodos && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setConfirmandoTodos(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <IconUserMinus size={18} className="text-red-500 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 dark:text-white text-sm">
+                  Desinscrever todos
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {inscricoes.filter(i => !i.presencaConfirmada).length} alunos serão removidos
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Tem certeza que deseja desinscrever <strong>todos</strong> os alunos deste evento? 
+              Apenas aqueles sem presença confirmada serão removidos. Todos os alunos afetados receberão uma notificação.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmandoTodos(false)}
+                disabled={removendoTodos}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarRemoverTodos}
+                disabled={removendoTodos}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-50"
+              >
+                {removendoTodos ? "Removendo..." : "Sim, desinscrever todos"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

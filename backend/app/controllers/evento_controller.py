@@ -30,7 +30,7 @@ allow_aluno = RoleChecker(["aluno"])
 @router.get("/", response_model=ScrollEventoResponse)
 def list_events(
     skip: int = Query(0, ge=0),
-    limit: int = Query(12, ge=1, le=500),
+    limit: int = Query(12, ge=1, le=10000),
     search: str | None = Query(None),
     area: str | None = Query(None),
     turno: str | None = Query(None),
@@ -140,6 +140,16 @@ def admin_remove_enrollment(
     current_user=Depends(allow_colaborador_adm),
 ):
     evento_service.admin_remove_enrollment(evento_id, aluno_id, current_user, db)
+
+
+@router.delete("/{evento_id}/enrollments", status_code=200)
+def admin_remove_all_enrollments(
+    evento_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(allow_colaborador_adm),
+):
+    count = evento_service.admin_remove_all_enrollments(evento_id, current_user, db)
+    return {"sucesso": True, "mensagem": f"{count} inscricoes removidas com sucesso."}
 
 
 @router.get("/{evento_id}/my-enrollment", response_model=InscricaoResponse | None)

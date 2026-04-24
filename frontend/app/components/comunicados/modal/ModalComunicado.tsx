@@ -52,9 +52,7 @@ export function ModalComunicado({ comunicado, onFechar }: ModalComunicadoProps) 
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onFechar();
-      }}
+
     >
       <div className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
         {/* Header */}
