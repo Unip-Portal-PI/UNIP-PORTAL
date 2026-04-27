@@ -37,8 +37,12 @@ function formatarData(iso: string) {
 }
 
 export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos, onConfirmarPresenca }: Props) {
-  const total = inscricoes.length;
-  const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
+  const sortedInscricoes = [...inscricoes].sort((a, b) =>
+    a.alunoNome.localeCompare(b.alunoNome, "pt-BR", { sensitivity: "base" })
+  );
+
+  const total = sortedInscricoes.length;
+  const confirmados = sortedInscricoes.filter((i) => i.presencaConfirmada).length;
   const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
   const [confirmandoTodos, setConfirmandoTodos] = useState(false);
   const [removendoTodos, setRemovendoTodos] = useState(false);
@@ -50,16 +54,16 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
       evento.colaboradores.some((c) => c.id === currentUserId));
 
   // Apenas quem não tem presença pode ser removido
-  const temInscritosRemoviveis = inscricoes.some((i) => !i.presencaConfirmada);
+  const temInscritosRemoviveis = sortedInscricoes.some((i) => !i.presencaConfirmada);
 
   async function handleExportar(tipoArquivo: "excel" | "pdf") {
-    if (inscricoes.length === 0) return;
+    if (sortedInscricoes.length === 0) return;
 
     try {
       setLoadingExport(tipoArquivo);
       await EventoInscricoesExportService.exportar({
         evento,
-        inscricoes,
+        inscricoes: sortedInscricoes,
         tipoArquivo,
       });
     } catch (error) {
@@ -141,7 +145,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
 
               <button
                 onClick={() => handleExportar("excel")}
-                disabled={loadingExport !== null || inscricoes.length === 0}
+                disabled={loadingExport !== null || sortedInscricoes.length === 0}
                 className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#404040] px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
               >
                 <IconFileSpreadsheet size={16} />
@@ -150,7 +154,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
 
               <button
                 onClick={() => handleExportar("pdf")}
-                disabled={loadingExport !== null || inscricoes.length === 0}
+                disabled={loadingExport !== null || sortedInscricoes.length === 0}
                 className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[#FFDE00] px-4 py-2.5 text-sm font-bold text-[#252525] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
               >
                 <IconFileTypePdf size={16} />
@@ -161,7 +165,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
         </div>
 
         <div className="overflow-auto flex-1">
-          {inscricoes.length === 0 ? (
+          {sortedInscricoes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <IconUsers size={32} className="text-slate-300 dark:text-slate-600" />
               <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -192,7 +196,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
                 </tr>
               </thead>
               <tbody>
-                {inscricoes.map((insc) => (
+                {sortedInscricoes.map((insc) => (
                   <ExpandableRow
                     key={insc.id}
                     insc={insc}
@@ -225,7 +229,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
                   Desinscrever todos
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {inscricoes.filter(i => !i.presencaConfirmada).length} alunos serão removidos
+                  {sortedInscricoes.filter(i => !i.presencaConfirmada).length} alunos serão removidos
                 </p>
               </div>
             </div>
