@@ -125,7 +125,13 @@ export default function DetalheEventoPage() {
   const [inscricaoAluno, setInscricaoAluno] = useState<Inscricao | null>(null);
   const [inscritosDoEvento, setInscritosDoEvento] = useState<Inscricao[]>([]);
   const [copiado, setCopiado] = useState(false);
+  const [, setTick] = useState(0);
   const podeEditarEvento = evento ? canEditEvent(evento, role, user.id) : false;
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   async function carregar() {
     setLoading(true);

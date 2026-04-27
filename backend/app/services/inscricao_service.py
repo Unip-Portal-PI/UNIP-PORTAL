@@ -41,7 +41,7 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
 
-    # Regra: Inscrições encerram 30 minutos antes do início do evento
+    # Regra: Inscrições encerram 30 minutos após o início do evento
     try:
         horario = evento.horario
         if isinstance(horario, str):

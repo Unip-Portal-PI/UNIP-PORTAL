@@ -1,6 +1,6 @@
 // app/components/eventos/EventoCard.tsx
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
@@ -92,6 +92,11 @@ export function EventoCard({
 }: EventoCardProps) {
   const router = useRouter();
   const podeEditarEvento = canEditEvent(evento, role, currentUserId);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const encerrado = isInscricaoEncerrada(evento);
   const vagasLivres = evento.vagas - evento.vagasOcupadas;
   const porcento = Math.min((evento.vagasOcupadas / evento.vagas) * 100, 100);
