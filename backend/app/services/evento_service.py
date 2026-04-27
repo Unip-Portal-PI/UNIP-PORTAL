@@ -214,6 +214,15 @@ def update_event(evento_id: str, data: EventoUpdate, current_user: UsuarioModel,
     if "banner_url" in update_data:
         update_data["banner_url"] = extract_file_path(update_data["banner_url"])
 
+    # Quando a data do evento muda, sincroniza data_limite_inscricao para evitar que
+    # um prazo antigo (já vencido) bloqueie inscrições no evento reagendado.
+    # Só sobrescreve se o admin não definiu explicitamente um prazo diferente do atual.
+    if "data" in update_data and update_data["data"] != evento.data:
+        nova_data = update_data["data"]
+        limite_enviado = update_data.get("data_limite_inscricao")
+        if limite_enviado is None or limite_enviado == evento.data_limite_inscricao:
+            update_data["data_limite_inscricao"] = nova_data
+
     anexos = update_data.pop("anexos", None)
     cursos_ids = update_data.pop("cursos_ids", None)
     palestrantes_ids = update_data.pop("palestrantes_ids", None)

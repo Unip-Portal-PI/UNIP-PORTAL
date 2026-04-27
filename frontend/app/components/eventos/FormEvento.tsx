@@ -644,6 +644,10 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
                 if (val < hoje) { set("data", hoje); return; }
                 if (val > dataMaxima) { set("data", dataMaxima); return; }
                 set("data", val);
+                // Sincroniza prazo de inscrição com a nova data se estava vinculado à data antiga
+                if (!form.dataLimiteInscricao || form.dataLimiteInscricao === form.data) {
+                  set("dataLimiteInscricao", val);
+                }
               }}
               className={`${inputCls} ${inputBorder(erros, "data")}`}
             />
