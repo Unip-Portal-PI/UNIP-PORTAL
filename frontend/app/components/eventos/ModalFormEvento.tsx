@@ -9,13 +9,13 @@ import { FormEvento, FormEventoRef } from "./FormEvento";
 
 interface ModalFormEventoProps {
   evento?: Evento | null;
-  // ✅ role recebido da page para controlar visibilidade de campos
   role: UserRole;
+  erroExterno?: string;
   onSalvar: (dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">) => Promise<void>;
   onFechar: () => void;
 }
 
-export function ModalFormEvento({ evento, role, onSalvar, onFechar }: ModalFormEventoProps) {
+export function ModalFormEvento({ evento, role, erroExterno, onSalvar, onFechar }: ModalFormEventoProps) {
   const isEdicao = !!evento?.id;
   const formRef = useRef<FormEventoRef>(null);
   const [loading, setLoading] = useState(false);
@@ -66,22 +66,27 @@ export function ModalFormEvento({ evento, role, onSalvar, onFechar }: ModalFormE
         </div>
 
         {/* ── Botões — fixos no rodapé ── */}
-        <div className="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-[#303030] shrink-0">
-          <button
-            type="button"
-            onClick={onFechar}
-            className="flex-1 py-3 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => formRef.current?.submit()}
-            className="flex-1 py-3 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-slate-900 text-sm font-bold transition-colors"
-          >
-            {loading ? "Salvando..." : isEdicao ? "Salvar alterações" : "Criar evento"}
-          </button>
+        <div className="flex flex-col gap-2 px-6 py-4 border-t border-slate-100 dark:border-[#303030] shrink-0">
+          {erroExterno && (
+            <p className="text-xs text-red-500 text-center">{erroExterno}</p>
+          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onFechar}
+              className="flex-1 py-3 rounded-xl border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => formRef.current?.submit()}
+              className="flex-1 py-3 rounded-xl bg-[#FFDE00] hover:bg-[#e6c800] disabled:opacity-60 text-slate-900 text-sm font-bold transition-colors"
+            >
+              {loading ? "Salvando..." : isEdicao ? "Salvar alterações" : "Criar evento"}
+            </button>
+          </div>
         </div>
 
       </div>

@@ -109,6 +109,7 @@ export default function DetalheEventoPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
 
+  const [erroSalvarEvento, setErroSalvarEvento] = useState("");
   const [modalInscricao, setModalInscricao] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
   const [modalForm, setModalForm] = useState(false);
@@ -258,9 +259,14 @@ export default function DetalheEventoPage() {
   async function handleSalvarEvento(
     dados: Omit<Evento, "id" | "criadoEm" | "vagasOcupadas">
   ) {
-    await EventoService.editar(eventoAtual.id, dados);
-    await carregar();
-    setModalForm(false);
+    try {
+      setErroSalvarEvento("");
+      await EventoService.editar(eventoAtual.id, dados);
+      await carregar();
+      setModalForm(false);
+    } catch (e) {
+      setErroSalvarEvento(e instanceof Error ? e.message : "Erro ao salvar evento.");
+    }
   }
 
   async function handleExcluir() {
@@ -621,8 +627,9 @@ export default function DetalheEventoPage() {
           <ModalFormEvento
             evento={eventoAtual}
             onSalvar={handleSalvarEvento}
+            erroExterno={erroSalvarEvento}
             role={role}
-            onFechar={() => setModalForm(false)}
+            onFechar={() => { setModalForm(false); setErroSalvarEvento(""); }}
           />
         )}
 
