@@ -662,7 +662,13 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             <input
               type="time"
               value={form.horario}
-              onChange={(e) => set("horario", e.target.value)}
+              onChange={(e) => {
+                set("horario", e.target.value);
+                // Força re-sync do prazo para manter a verificação (30 min antes) atualizada
+                if (!form.dataLimiteInscricao || form.dataLimiteInscricao === form.data) {
+                  set("dataLimiteInscricao", form.data);
+                }
+              }}
               className={`${inputCls} ${inputBorder(erros, "horario")}`}
             />
           </Campo>
