@@ -133,7 +133,7 @@ function buildEnrollmentDeadline(evento: Evento): Date | null {
   if (!eventStart) return null;
 
   
-  const defaultDeadline = new Date(eventStart.getTime() - 30 * 60 * 1000);
+  const defaultDeadline = new Date(eventStart.getTime() + 30 * 60 * 1000);
 
   const limiteDate = parseDateOnly(evento.dataLimiteInscricao);
   if (!limiteDate) return defaultDeadline;

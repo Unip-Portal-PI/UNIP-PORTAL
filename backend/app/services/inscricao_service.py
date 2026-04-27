@@ -41,7 +41,7 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
 
-    # Regra: Inscrições encerram 1 hora antes do evento
+    # Regra: Inscrições encerram 30 minutos antes do início do evento
     try:
         horario = evento.horario
         if isinstance(horario, str):
@@ -50,12 +50,12 @@ def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
             horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
 
         data_hora_evento = datetime.combine(evento.data, horario_time)
-        limite_inscricao = data_hora_evento - timedelta(hours=1)
-        
+        limite_inscricao = data_hora_evento + timedelta(minutes=30)
+
         if datetime.now() > limite_inscricao:
             raise HTTPException(
-                status_code=400, 
-                detail="As inscricoes para este evento estao encerradas (limite de 1 hora antes do inicio)."
+                status_code=400,
+                detail="As inscricoes para este evento estao encerradas (30 minutos apos o inicio)."
             )
     except (ValueError, TypeError):
         # Caso o formato do horário seja inválido, mantém a lógica legada de data

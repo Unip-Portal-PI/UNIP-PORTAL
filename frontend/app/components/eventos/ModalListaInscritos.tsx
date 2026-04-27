@@ -277,6 +277,7 @@ function ExpandableRow({
   const [confirmando, setConfirmando] = useState(false);
   const [removendo, setRemovendo] = useState(false);
   const [confirmandoPresenca, setConfirmandoPresenca] = useState(false);
+  const [pedindoConfirmacaoPresenca, setPedindoConfirmacaoPresenca] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
   const handleRowClick = useCallback(() => {
@@ -290,6 +291,11 @@ function ExpandableRow({
     setConfirmando(true);
   }
 
+  function abrirConfirmacaoPresenca(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPedindoConfirmacaoPresenca(true);
+  }
+
   async function confirmarRemocao() {
     if (!onRemover) return;
     setRemovendo(true);
@@ -301,14 +307,14 @@ function ExpandableRow({
     }
   }
 
-  async function handleConfirmarPresenca(e: React.MouseEvent) {
-    e.stopPropagation();
+  async function confirmarPresenca() {
     if (!onConfirmarPresenca) return;
     setConfirmandoPresenca(true);
     try {
       await onConfirmarPresenca(insc.qrCode);
     } finally {
       setConfirmandoPresenca(false);
+      setPedindoConfirmacaoPresenca(false);
     }
   }
 
@@ -364,7 +370,7 @@ function ExpandableRow({
             <div className="inline-flex items-center gap-1">
               {!insc.presencaConfirmada && onConfirmarPresenca && (
                 <button
-                  onClick={handleConfirmarPresenca}
+                  onClick={abrirConfirmacaoPresenca}
                   disabled={confirmandoPresenca || removendo}
                   title="Confirmar presença"
                   className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
@@ -444,6 +450,57 @@ function ExpandableRow({
                 </dd>
               </div>
             </dl>
+          </td>
+        </tr>
+      )}
+
+      {pedindoConfirmacaoPresenca && (
+        <tr>
+          <td colSpan={99}>
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+              onClick={() => setPedindoConfirmacaoPresenca(false)}
+            >
+              <div
+                className="bg-white dark:bg-[#202020] rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                    <IconUserCheck size={18} className="text-emerald-500 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white text-sm">
+                      Confirmar presença
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {insc.alunoNome}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Confirmar a presença de <strong>{insc.alunoNome}</strong> neste evento?
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPedindoConfirmacaoPresenca(false)}
+                    disabled={confirmandoPresenca}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmarPresenca}
+                    disabled={confirmandoPresenca}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                  >
+                    {confirmandoPresenca ? "Confirmando..." : "Sim, confirmar"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       )}
