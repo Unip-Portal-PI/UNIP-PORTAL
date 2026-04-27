@@ -102,7 +102,7 @@ export function ModalQRReader({
       await html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 260, height: 260 } },
-        async (decodedText) => {
+        async (decodedText: string) => {
           if (isProcessingRef.current) return;
           isProcessingRef.current = true;
 
