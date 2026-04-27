@@ -11,6 +11,7 @@ import {
   IconClock,
   IconAlertCircle,
   IconCalendarOff,
+  IconEye,
 } from "@tabler/icons-react";
 import { Inscricao, Evento } from "@/src/types/evento";
 import { EventoService } from "@/src/service/evento.service";
@@ -323,6 +324,17 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   </div>
 
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    {/* Botão Ver Evento */}
+                    {evento && (
+                      <Link
+                        href={`/home/eventos/${evento.id}`}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-[#2a2a2a] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#353535] transition-colors"
+                        title="Ver página do evento"
+                      >
+                        <IconEye size={14} /> Ver
+                      </Link>
+                    )}
+
                     {/* QR Code */}
                     <button
                       onClick={() => setQrAberto(inscricao)}

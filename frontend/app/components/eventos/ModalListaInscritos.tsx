@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   IconX,
   IconUsers,
@@ -12,6 +12,7 @@ import {
   IconFileTypePdf,
   IconUserMinus,
   IconUserCheck,
+  IconSearch,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -37,11 +38,24 @@ function formatarData(iso: string) {
 }
 
 export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos, onConfirmarPresenca }: Props) {
-  const sortedInscricoes = [...inscricoes].sort((a, b) =>
-    a.alunoNome.localeCompare(b.alunoNome, "pt-BR", { sensitivity: "base" })
-  );
+  const [busca, setBusca] = useState("");
 
-  const total = sortedInscricoes.length;
+  const sortedInscricoes = useMemo(() => {
+    return [...inscricoes]
+      .filter((i) => {
+        const termo = busca.toLowerCase();
+        return (
+          i.alunoNome.toLowerCase().includes(termo) ||
+          i.alunoMatricula.toLowerCase().includes(termo)
+        );
+      })
+      .sort((a, b) =>
+        a.alunoNome.localeCompare(b.alunoNome, "pt-BR", { sensitivity: "base" })
+      );
+  }, [inscricoes, busca]);
+
+  const total = inscricoes.length;
+  const filtrados = sortedInscricoes.length;
   const confirmados = sortedInscricoes.filter((i) => i.presencaConfirmada).length;
   const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
   const [confirmandoTodos, setConfirmandoTodos] = useState(false);
@@ -120,46 +134,62 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
             </button>
           </div>
 
-          <div className="flex flex-col items-start gap-3 inscritos:flex-row inscritos:items-center inscritos:justify-between">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-              <span>
-                <strong className="text-slate-800 dark:text-slate-200">{total}</strong> inscritos
-              </span>
-              <span>
-                <strong className="text-emerald-600 dark:text-emerald-400">{confirmados}</strong>{" "}
-                presenças confirmadas
-              </span>
+          <div className="flex flex-col items-stretch gap-4">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <IconSearch size={16} className="text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Pesquisar por nome ou matrícula..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-[#252525] border border-slate-200 dark:border-[#404040] rounded-xl text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
             </div>
 
-            <div className="flex flex-row items-start gap-2 self-start flex-wrap sm:flex-nowrap">
-              {podeRemover && temInscritosRemoviveis && (
+            <div className="flex flex-col items-start gap-3 inscritos:flex-row inscritos:items-center inscritos:justify-between">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  Mostrando <strong className="text-slate-800 dark:text-slate-200">{filtrados}</strong> de{" "}
+                  <strong className="text-slate-800 dark:text-slate-200">{total}</strong> inscritos
+                </span>
+                <span>
+                  <strong className="text-emerald-600 dark:text-emerald-400">{confirmados}</strong>{" "}
+                  presenças confirmadas
+                </span>
+              </div>
+
+              <div className="flex flex-row items-start gap-2 self-start flex-wrap sm:flex-nowrap">
+                {podeRemover && temInscritosRemoviveis && (
+                  <button
+                    onClick={() => setConfirmandoTodos(true)}
+                    disabled={removendoTodos || loadingExport !== null}
+                    className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/40 px-4 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    <IconUserMinus size={16} />
+                    Desinscrever todos
+                  </button>
+                )}
+
                 <button
-                  onClick={() => setConfirmandoTodos(true)}
-                  disabled={removendoTodos || loadingExport !== null}
-                  className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/40 px-4 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+                  onClick={() => handleExportar("excel")}
+                  disabled={loadingExport !== null || sortedInscricoes.length === 0}
+                  className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#404040] px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  <IconUserMinus size={16} />
-                  Desinscrever todos
+                  <IconFileSpreadsheet size={16} />
+                  {loadingExport === "excel" ? "Exportando Excel..." : "Exportar Excel"}
                 </button>
-              )}
 
-              <button
-                onClick={() => handleExportar("excel")}
-                disabled={loadingExport !== null || sortedInscricoes.length === 0}
-                className="inline-flex w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#404040] px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                <IconFileSpreadsheet size={16} />
-                {loadingExport === "excel" ? "Exportando Excel..." : "Exportar Excel"}
-              </button>
-
-              <button
-                onClick={() => handleExportar("pdf")}
-                disabled={loadingExport !== null || sortedInscricoes.length === 0}
-                className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[#FFDE00] px-4 py-2.5 text-sm font-bold text-[#252525] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                <IconFileTypePdf size={16} />
-                {loadingExport === "pdf" ? "Exportando PDF..." : "Exportar PDF"}
-              </button>
+                <button
+                  onClick={() => handleExportar("pdf")}
+                  disabled={loadingExport !== null || sortedInscricoes.length === 0}
+                  className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[#FFDE00] px-4 py-2.5 text-sm font-bold text-[#252525] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <IconFileTypePdf size={16} />
+                  {loadingExport === "pdf" ? "Exportando PDF..." : "Exportar PDF"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -169,7 +199,9 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <IconUsers size={32} className="text-slate-300 dark:text-slate-600" />
               <p className="text-slate-500 dark:text-slate-400 text-sm">
-                Nenhum aluno inscrito neste evento ainda.
+                {busca 
+                  ? "Nenhum aluno encontrado para esta busca." 
+                  : "Nenhum aluno inscrito neste evento ainda."}
               </p>
             </div>
           ) : (
@@ -361,15 +393,16 @@ function ExpandableRow({
 
         {podeRemover && (
           <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-            <div className="inline-flex items-center gap-1">
+            <div className="inline-flex items-center gap-2">
               {!insc.presencaConfirmada && onConfirmarPresenca && (
                 <button
                   onClick={handleConfirmarPresenca}
                   disabled={confirmandoPresenca || removendo}
-                  title="Confirmar presença"
-                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
+                  title="Confirmar presença manualmente"
+                  className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                 >
-                  <IconUserCheck size={15} />
+                  <IconUserCheck size={16} />
+                  <span>{confirmandoPresenca ? "Confirmando..." : "Confirmar"}</span>
                 </button>
               )}
               {!insc.presencaConfirmada && (
@@ -379,7 +412,7 @@ function ExpandableRow({
                   title="Remover aluno"
                   className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                 >
-                  <IconUserMinus size={15} />
+                  <IconUserMinus size={18} />
                 </button>
               )}
             </div>
