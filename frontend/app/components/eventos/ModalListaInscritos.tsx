@@ -11,6 +11,7 @@ import {
   IconFileSpreadsheet,
   IconFileTypePdf,
   IconUserMinus,
+  IconUserCheck,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -24,6 +25,7 @@ interface Props {
   onFechar: () => void;
   onRemoverAluno?: (alunoId: string) => Promise<void>;
   onRemoverTodos?: () => Promise<void>;
+  onConfirmarPresenca?: (qrCode: string) => Promise<unknown>;
 }
 
 function formatarData(iso: string) {
@@ -34,7 +36,7 @@ function formatarData(iso: string) {
   });
 }
 
-export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos }: Props) {
+export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos, onConfirmarPresenca }: Props) {
   const total = inscricoes.length;
   const confirmados = inscricoes.filter((i) => i.presencaConfirmada).length;
   const [loadingExport, setLoadingExport] = useState<"excel" | "pdf" | null>(null);
@@ -196,6 +198,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
                     insc={insc}
                     podeRemover={podeRemover}
                     onRemover={onRemoverAluno}
+                    onConfirmarPresenca={onConfirmarPresenca}
                   />
                 ))}
               </tbody>
@@ -259,14 +262,17 @@ function ExpandableRow({
   insc,
   podeRemover,
   onRemover,
+  onConfirmarPresenca,
 }: {
   insc: Inscricao;
   podeRemover?: boolean;
   onRemover?: (alunoId: string) => Promise<void>;
+  onConfirmarPresenca?: (qrCode: string) => Promise<unknown>;
 }) {
   const [expandida, setExpandida] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [removendo, setRemovendo] = useState(false);
+  const [confirmandoPresenca, setConfirmandoPresenca] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
   const handleRowClick = useCallback(() => {
@@ -288,6 +294,17 @@ function ExpandableRow({
     } finally {
       setRemovendo(false);
       setConfirmando(false);
+    }
+  }
+
+  async function handleConfirmarPresenca(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!onConfirmarPresenca) return;
+    setConfirmandoPresenca(true);
+    try {
+      await onConfirmarPresenca(insc.qrCode);
+    } finally {
+      setConfirmandoPresenca(false);
     }
   }
 
@@ -340,16 +357,28 @@ function ExpandableRow({
 
         {podeRemover && (
           <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-            {!insc.presencaConfirmada && (
-              <button
-                onClick={abrirConfirmacao}
-                disabled={removendo}
-                title="Remover aluno"
-                className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-              >
-                <IconUserMinus size={15} />
-              </button>
-            )}
+            <div className="inline-flex items-center gap-1">
+              {!insc.presencaConfirmada && onConfirmarPresenca && (
+                <button
+                  onClick={handleConfirmarPresenca}
+                  disabled={confirmandoPresenca || removendo}
+                  title="Confirmar presença"
+                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
+                >
+                  <IconUserCheck size={15} />
+                </button>
+              )}
+              {!insc.presencaConfirmada && (
+                <button
+                  onClick={abrirConfirmacao}
+                  disabled={removendo || confirmandoPresenca}
+                  title="Remover aluno"
+                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                >
+                  <IconUserMinus size={15} />
+                </button>
+              )}
+            </div>
           </td>
         )}
 

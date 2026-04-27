@@ -638,6 +638,7 @@ export default function DetalheEventoPage() {
             onFechar={() => setModalInscritos(false)}
             onRemoverAluno={handleRemoverAluno}
             onRemoverTodos={handleRemoverTodos}
+            onConfirmarPresenca={handleQRConfirmar}
           />
         )}
 
