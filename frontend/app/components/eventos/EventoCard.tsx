@@ -20,6 +20,7 @@ import {
 import { isAcontecendoAgora } from "@/src/utils/evento.helpers";
 import { BadgeAcontecendoAgora } from "@/app/components/eventos/BadgeAcontecendoAgora";
 import { EventoBannerFallback } from "./BannerEventoFallback";
+import { IconSchool } from "@tabler/icons-react";
 
 
 
@@ -215,6 +216,13 @@ export function EventoCard({
           </span>
           {acontecendoAgora && <BadgeAcontecendoAgora />}
         </div>
+
+        {evento.responsavel && (
+          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+            <IconSchool size={13} />
+            Prof. {evento.responsavel}
+          </div>
+        )}
 
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">

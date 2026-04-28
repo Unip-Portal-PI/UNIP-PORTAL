@@ -35,58 +35,60 @@ def _serialize_inscricao(insc: InscricaoModel) -> InscricaoResponse:
     )
 
 
-def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
+def enroll(id_evento: str, id_usuario: str, db: Session, is_manual: bool = False) -> InscricaoResponse:
     evento_repo = EventoRepository(db)
     evento = evento_repo.get_by_id(id_evento)
 
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
 
-    # Regra: Inscrições encerram 1h30 após o início do evento
-    try:
-        horario = evento.horario
-        if isinstance(horario, str):
-            horario_time = datetime.strptime(horario, "%H:%M").time()
-        else:
-            horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
+    if not is_manual:
+        # Regra: Inscrições encerram 1h30 após o início do evento
+        try:
+            horario = evento.horario
+            if isinstance(horario, str):
+                horario_time = datetime.strptime(horario, "%H:%M").time()
+            else:
+                horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
 
-        data_hora_evento = datetime.combine(evento.data, horario_time)
-        # Agora o limite é +90 minutos (1h30) em vez de -30 minutos
-        limite_inscricao = data_hora_evento + timedelta(minutes=90)
-        
-        if get_now_br().replace(tzinfo=None) > limite_inscricao:
-            raise HTTPException(
-                status_code=400, 
-                detail="As inscricoes para este evento estao encerradas (limite de 1h30 apos o inicio)."
-            )
-    except (ValueError, TypeError):
-        # Caso o formato do horário seja inválido, mantém a lógica legada de data
+            data_hora_evento = datetime.combine(evento.data, horario_time)
+            # Agora o limite é +90 minutos (1h30) em vez de -30 minutos
+            limite_inscricao = data_hora_evento + timedelta(minutes=90)
+            
+            if get_now_br().replace(tzinfo=None) > limite_inscricao:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="As inscricoes para este evento estao encerradas (limite de 1h30 apos o inicio)."
+                )
+        except (ValueError, TypeError):
+            # Caso o formato do horário seja inválido, mantém a lógica legada de data
+            if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
+                raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
+
         if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
             raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
-
-    if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
-        raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
 
     insc_repo = InscricaoRepository(db)
     existing = insc_repo.get_by_user_and_event(id_usuario, id_evento)
     if existing:
-        raise HTTPException(status_code=409, detail="Voce ja esta inscrito neste evento.")
+        raise HTTPException(status_code=409, detail="Este aluno ja esta inscrito neste evento.")
 
-    existing_same_day = insc_repo.get_by_user_and_event_date(
-        id_usuario=id_usuario,
-        data_evento=evento.data,
-        exclude_event_id=id_evento,
-    )
-    if existing_same_day:
-        raise HTTPException(
-            status_code=409,
-            detail="Voce nao pode se inscrever em mais de um evento por dia.",
+    if not is_manual:
+        existing_same_day = insc_repo.get_by_user_and_event_date(
+            id_usuario=id_usuario,
+            data_evento=evento.data,
+            exclude_event_id=id_evento,
         )
+        if existing_same_day:
+            raise HTTPException(
+                status_code=409,
+                detail="Este aluno ja possui inscricao em outro evento na mesma data.",
+            )
 
-    if evento.vagas is not None:
-        count = evento_repo.count_inscricoes(id_evento)
-        if count >= evento.vagas:
-            raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
+        if evento.vagas is not None:
+            count = evento_repo.count_inscricoes(id_evento)
+            if count >= evento.vagas:
+                raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
 
     inscricao = InscricaoModel(
         id_evento=id_evento,

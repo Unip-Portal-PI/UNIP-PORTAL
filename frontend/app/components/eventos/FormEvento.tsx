@@ -151,6 +151,8 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
 
     const turnoInicial = getTurnoFromHorario(initialHorario);
 
+    const isAdmin = role === "adm";
+
     // ✅ Calculado uma vez por renderização do componente
     const dataMaxima = useMemo(() => getDataMaxima(), []);
 
@@ -270,13 +272,17 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
         e.descricaoCompleta = "Descrição é obrigatória.";
       }
 
+      const isAdmin = role === "adm";
+
       if (!form.data) {
         e.data = "Data é obrigatória.";
-      } else if (form.data < hoje) {
-        e.data = "Data não pode ser retroativa.";
-      } else if (form.data > dataMaxima) {
-        // ✅ Validação de 6 meses
-        e.data = "O evento deve ser criado com no máximo 6 meses de antecedência.";
+      } else if (!isAdmin) {
+        if (form.data < hoje) {
+          e.data = "Data não pode ser retroativa.";
+        } else if (form.data > dataMaxima) {
+          // ✅ Validação de 6 meses
+          e.data = "O evento deve ser criado com no máximo 6 meses de antecedência.";
+        }
       }
 
       if (!form.horario) e.horario = "Horário é obrigatório.";
@@ -284,11 +290,13 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
 
       if (!form.dataLimiteInscricao) {
         e.dataLimiteInscricao = "Data limite é obrigatória.";
-      } else if (form.dataLimiteInscricao < hoje) {
-        e.dataLimiteInscricao = "Data limite não pode ser retroativa.";
-      } else if (form.data && form.dataLimiteInscricao > form.data) {
-        // ✅ Não pode ser POSTERIOR à data do evento (igual é permitido)
-        e.dataLimiteInscricao = "Data limite não pode ser posterior à data do evento.";
+      } else if (!isAdmin) {
+        if (form.dataLimiteInscricao < hoje) {
+          e.dataLimiteInscricao = "Data limite não pode ser retroativa.";
+        } else if (form.data && form.dataLimiteInscricao > form.data) {
+          // ✅ Não pode ser POSTERIOR à data do evento (igual é permitido)
+          e.dataLimiteInscricao = "Data limite não pode ser posterior à data do evento.";
+        }
       }
 
       if (form.vagas < 1) e.vagas = "Deve ter ao menos 1 vaga.";
@@ -643,14 +651,15 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
             <input
               type="date"
               value={form.data}
-              min={hoje}
-              max={dataMaxima}
+              min={isAdmin ? undefined : hoje}
+              max={isAdmin ? undefined : dataMaxima}
               onChange={(e) => {
                 const val = e.target.value;
                 if (!val) { set("data", ""); return; }
-                // Bloqueia digitação manual de datas fora do intervalo
-                if (val < hoje) { set("data", hoje); return; }
-                if (val > dataMaxima) { set("data", dataMaxima); return; }
+                if (!isAdmin) {
+                  if (val < hoje) { set("data", hoje); return; }
+                  if (val > dataMaxima) { set("data", dataMaxima); return; }
+                }
                 set("data", val);
               }}
               className={`${inputCls} ${inputBorder(erros, "data")}`}
@@ -719,16 +728,19 @@ export const FormEvento = forwardRef<FormEventoRef, FormEventoProps>(
               <input
                 type="date"
                 value={form.dataLimiteInscricao}
-                min={hoje}
+                min={isAdmin ? undefined : hoje}
                 // ✅ Não pode ser posterior à data do evento
-                max={form.data || dataMaxima}
+                max={isAdmin ? undefined : (form.data || dataMaxima)}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (!val) { set("dataLimiteInscricao", ""); return; }
-                  // Bloqueia digitação manual fora do intervalo
-                  if (val < hoje) { set("dataLimiteInscricao", hoje); return; }
-                  const limiteMax = form.data || dataMaxima;
-                  if (val > limiteMax) { set("dataLimiteInscricao", limiteMax); return; }
+                  
+                  if (!isAdmin) {
+                    if (val < hoje) { set("dataLimiteInscricao", hoje); return; }
+                    const limiteMax = form.data || dataMaxima;
+                    if (val > limiteMax) { set("dataLimiteInscricao", limiteMax); return; }
+                  }
+                  
                   set("dataLimiteInscricao", val);
                 }}
                 className={`${inputCls} pl-8 ${inputBorder(

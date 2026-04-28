@@ -15,6 +15,7 @@ import {
   IconCalendarOff,
   IconQrcode,
   IconEdit,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -34,8 +35,10 @@ import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscritos";
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
+import { ModalInscricaoManual } from "@/app/components/eventos/ModalInscricaoManual";
 import AuthGuard from "@/src/guard/AuthGuard";
 import { EventoBannerFallback } from "@/app/components/eventos/BannerEventoFallback";
+import { IconSchool } from "@tabler/icons-react";
 
 function formatarLink(valor: string) {
   if (/^https?:\/\//i.test(valor)) return valor;
@@ -115,6 +118,7 @@ export default function DetalheEventoPage() {
   const [modalQRAluno, setModalQRAluno] = useState(false);
   const [modalQR, setModalQR] = useState(false);
   const [modalInscritos, setModalInscritos] = useState(false);
+  const [modalInscricaoManual, setModalInscricaoManual] = useState(false);
   const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
     useState(false);
   const [mensagemEventoCancelado, setMensagemEventoCancelado] = useState("");
@@ -263,7 +267,7 @@ export default function DetalheEventoPage() {
     setMensagemEventoCancelado(response.mensagem);
   }
 
-  async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
+  async function handleConfirmarPresenca(qrCode: string): Promise<Inscricao> {
     const result = await EventoService.confirmarPresenca(eventoAtual.id, qrCode);
 
     setPresencasConfirmadas((prev) => {
@@ -278,6 +282,22 @@ export default function DetalheEventoPage() {
     );
 
     return result;
+  }
+
+  async function handleInscreverManualmente(alunoId: string) {
+    const result = await EventoService.inscreverManualmente(eventoAtual.id, alunoId);
+    
+    // 1. Adiciona o novo inscrito à lista local
+    setInscritosDoEvento((prev) => [...prev, result]);
+    
+    // 2. Atualiza a contagem de vagas localmente sem novo GET
+    setEvento((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        vagasOcupadas: prev.vagasOcupadas + 1
+      };
+    });
   }
 
   async function abrirModalQR() {
@@ -295,9 +315,6 @@ export default function DetalheEventoPage() {
 
   async function handleRemoverTodos() {
     await EventoService.removerTodasInscricoes(eventoAtual.id);
-    // Filtrar apenas os que tinham presenca confirmada (embora o service atual remova apenas os que não tem)
-    // Para ser consistente com o estado do banco, vamos recarregar ou filtrar.
-    // O service do backend remove apenas os sem presença.
     setInscritosDoEvento((prev) => prev.filter((i) => i.presencaConfirmada));
   }
 
@@ -484,6 +501,16 @@ export default function DetalheEventoPage() {
                   )}
                 </button>
 
+                {role === "adm" && (
+                  <button
+                    onClick={() => setModalInscricaoManual(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <IconUserPlus size={15} />
+                    Inscrição manual
+                  </button>
+                )}
+
                 {podeEditarEvento && (
                   <button
                     onClick={() => setModalForm(true)}
@@ -518,6 +545,23 @@ export default function DetalheEventoPage() {
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                 Informações
               </h2>
+
+              {eventoAtual.responsavel && (
+                <div className="flex items-start gap-3 text-sm">
+                  <IconSchool
+                    size={16}
+                    className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider">
+                      Responsável
+                    </p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                      Prof. {eventoAtual.responsavel}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-start gap-3 text-sm">
                 <IconCalendar
@@ -623,7 +667,7 @@ export default function DetalheEventoPage() {
         {modalQR && (
           <ModalQRReader
             eventoNome={eventoAtual.nome}
-            onLer={handleQRConfirmar}
+            onLer={handleConfirmarPresenca}
             onFechar={() => setModalQR(false)}
             presencasConfirmadas={presencasConfirmadas}
           />
@@ -638,7 +682,16 @@ export default function DetalheEventoPage() {
             onFechar={() => setModalInscritos(false)}
             onRemoverAluno={handleRemoverAluno}
             onRemoverTodos={handleRemoverTodos}
-            onConfirmarPresenca={handleQRConfirmar}
+            onConfirmarPresenca={handleConfirmarPresenca}
+          />
+        )}
+
+        {modalInscricaoManual && (
+          <ModalInscricaoManual
+            evento={eventoAtual}
+            inscricoesAtuais={inscritosDoEvento}
+            onFechar={() => setModalInscricaoManual(false)}
+            onInscrever={handleInscreverManualmente}
           />
         )}
 

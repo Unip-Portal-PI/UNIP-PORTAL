@@ -307,6 +307,12 @@ export const EventoService = {
     return data;
   },
 
+  async inscreverManualmente(eventoId: string, alunoId: string): Promise<Inscricao> {
+    const { data, ok, error } = await api.post<ApiInscricao>(`/events/${eventoId}/enrollments/${alunoId}`);
+    if (!ok || !data) throw new Error(error || "Falha ao realizar inscrição manual");
+    return mapInscricao(data);
+  },
+
   async getMeusEventosCriados(): Promise<Evento[]> {
     const { data, ok, error } = await api.get<ApiEvento[]>("/events/mine/created");
     if (!ok || !data) throw new Error(error || "Falha ao buscar meus eventos");
