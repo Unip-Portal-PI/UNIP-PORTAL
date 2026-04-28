@@ -185,7 +185,7 @@ export const EventoService = {
   },
 
   async getAll(): Promise<Evento[]> {
-    const { data, ok, error } = await api.get<ApiScrollResponse>("/events/?skip=0&limit=500");
+    const { data, ok, error } = await api.get<ApiScrollResponse>("/events/?skip=0&limit=500&include_past=true");
     if (!ok || !data) throw new Error(error || "Falha ao buscar eventos");
     return data.items.map(mapEvento);
   },

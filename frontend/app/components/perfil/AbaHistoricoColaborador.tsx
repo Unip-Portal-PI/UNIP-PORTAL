@@ -13,6 +13,7 @@ import {
   IconFileTypePdf,
   IconChevronLeft,
   IconChevronRight,
+  IconSearch,
 } from "@tabler/icons-react";
 import { AuditExportService } from "@/src/service/auditExport.service";
 import { Evento, Inscricao } from "@/src/types/evento";
@@ -70,6 +71,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
   const [expandidoEventoId, setExpandidoEventoId] = useState<string | null>(null);
   const [exportandoEventos, setExportandoEventos] = useState(false);
   const [exportandoComunicados, setExportandoComunicados] = useState(false);
+  const [searchEvento, setSearchEvento] = useState("");
 
   // Paginação Eventos
   const [paginaEventos, setPaginaEventos] = useState(1);
@@ -152,8 +154,14 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
     carregar();
   }, [matricula]);
 
-  const totalPaginasEventos = Math.ceil(eventos.length / itensPorPagina);
-  const eventosExibidos = eventos.slice(
+  const eventosFiltrados = searchEvento.trim()
+    ? eventos.filter(({ evento }) =>
+        evento.nome.toLowerCase().includes(searchEvento.toLowerCase().trim())
+      )
+    : eventos;
+
+  const totalPaginasEventos = Math.ceil(eventosFiltrados.length / itensPorPagina);
+  const eventosExibidos = eventosFiltrados.slice(
     (paginaEventos - 1) * itensPorPagina,
     paginaEventos * itensPorPagina
   );
@@ -203,7 +211,7 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
             />
           }
           titulo="Eventos"
-          contagem={eventos.length}
+          contagem={eventosFiltrados.length}
           acoes={
             isAdmin ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -226,7 +234,18 @@ export function AbaHistoricoColaborador({ matricula }: Props) {
           }
         />
 
-        {eventos.length === 0 ? (
+        <div className="relative mb-3">
+          <IconSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Pesquisar evento..."
+            value={searchEvento}
+            onChange={(e) => { setSearchEvento(e.target.value); setPaginaEventos(1); }}
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#404040] bg-white dark:bg-[#202020] text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+          />
+        </div>
+
+        {eventosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2 bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030]">
             <IconCalendarOff
               size={24}

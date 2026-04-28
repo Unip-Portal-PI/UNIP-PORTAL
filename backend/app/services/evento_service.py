@@ -121,6 +121,7 @@ def list_events_scroll(
     sort: str,
     role: str,
     db: Session,
+    include_past: bool = False,
 ) -> ScrollEventoResponse:
     repo = EventoRepository(db)
     items, total = repo.list_scroll(
@@ -132,6 +133,7 @@ def list_events_scroll(
         data_filtro=data_filtro,
         sort=sort,
         role=role,
+        include_past=include_past and role == "adm",
     )
     serialized = [_serialize_evento(e, repo.count_inscricoes(e.id_evento)) for e in items]
     return ScrollEventoResponse(

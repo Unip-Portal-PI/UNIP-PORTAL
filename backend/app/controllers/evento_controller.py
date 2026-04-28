@@ -36,6 +36,7 @@ def list_events(
     turno: str | None = Query(None),
     data: date | None = Query(None),
     sort: str = Query("proximos"),
+    include_past: bool = Query(False),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -50,6 +51,7 @@ def list_events(
         sort=sort,
         role=role,
         db=db,
+        include_past=include_past,
     )
 
 

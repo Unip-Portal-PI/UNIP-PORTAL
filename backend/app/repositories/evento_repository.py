@@ -1,5 +1,5 @@
 import json
-from datetime import date as date_type
+from datetime import date as date_type, datetime, timezone, timedelta
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -35,13 +35,17 @@ class EventoRepository:
         data_filtro: date_type | None = None,
         sort: str = "proximos",
         role: str = "aluno",
+        include_past: bool = False,
     ) -> tuple[list[EventoModel], int]:
-        hoje = date_type.today()
+        _BR_TZ = timezone(timedelta(hours=-3))  # UTC-3 (Fortaleza/São Paulo)
+        hoje = datetime.now(_BR_TZ).date()
 
         filters = [
             EventoModel.cancelado.is_(False),
-            EventoModel.data >= hoje,
         ]
+
+        if not include_past:
+            filters.append(EventoModel.data >= hoje)
 
         if role == "aluno":
             filters.append(EventoModel.visibilidade == "publica")
