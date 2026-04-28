@@ -36,11 +36,8 @@ class EventoRepository:
         sort: str = "proximos",
         role: str = "aluno",
     ) -> tuple[list[EventoModel], int]:
-        hoje = date_type.today()
-
         filters = [
             EventoModel.cancelado.is_(False),
-            EventoModel.data >= hoje,
         ]
 
         if role == "aluno":
