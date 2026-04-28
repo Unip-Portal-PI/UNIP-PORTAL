@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
-
+from datetime import datetime
 from sqlalchemy import Column, Date, DateTime, ForeignKey, String, text
 from sqlalchemy.orm import relationship
-
 from app.core.database import Base
+from app.core.datetime_utils import get_now_br
 
 
 class EventoCancelamentoAvisoModel(Base):
@@ -15,7 +14,7 @@ class EventoCancelamentoAvisoModel(Base):
     evento_nome = Column(String(200), nullable=False)
     evento_data = Column(Date, nullable=False)
     tipo = Column(String(20), nullable=False, default="cancelamento", server_default=text("'cancelamento'"))
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    criado_em = Column(DateTime, default=get_now_br, nullable=False)
     visualizado_em = Column(DateTime, nullable=True)
 
     usuario = relationship("UsuarioModel", lazy="joined")

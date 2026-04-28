@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
-
+from datetime import datetime
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, JSON, String, Text, text
 from sqlalchemy.orm import relationship
-
 from app.core.database import Base
+from app.core.datetime_utils import get_now_br
 
 
 class ComunicadoModel(Base):
@@ -20,11 +19,11 @@ class ComunicadoModel(Base):
     data_validade = Column(Date, nullable=True)
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=False)
     removido = Column(Boolean, default=False, nullable=False)
-    data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    data_criacao = Column(DateTime, default=get_now_br, nullable=False)
     data_atualizacao = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=get_now_br,
+        onupdate=get_now_br,
         nullable=False,
     )
 

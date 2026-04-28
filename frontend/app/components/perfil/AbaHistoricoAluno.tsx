@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   IconCalendar,
   IconQrcode,
@@ -10,6 +11,7 @@ import {
   IconClock,
   IconAlertCircle,
   IconCalendarOff,
+  IconEye,
 } from "@tabler/icons-react";
 import { Inscricao, Evento } from "@/src/types/evento";
 import { EventoService } from "@/src/service/evento.service";
@@ -146,12 +148,12 @@ export function AbaHistoricoAluno({ matricula }: Props) {
           evento: eventos[index] ?? null,
         }));
 
-        // Ordena por data de inscrição mais recente
-        lista.sort(
-          (a, b) =>
-            new Date(b.inscricao.dataInscricao).getTime() -
-            new Date(a.inscricao.dataInscricao).getTime()
-        );
+        // Ordena por data do evento mais recente
+        lista.sort((a, b) => {
+          const dateA = a.evento ? new Date(a.evento.data).getTime() : 0;
+          const dateB = b.evento ? new Date(b.evento.data).getTime() : 0;
+          return dateB - dateA;
+        });
 
         setItens(lista);
       } catch {
@@ -243,28 +245,57 @@ export function AbaHistoricoAluno({ matricula }: Props) {
             >
               <div className="flex items-start gap-4 flex-wrap md:flex-nowrap">
                 {/* Ícone */}
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    confirmado
-                      ? "bg-emerald-100 dark:bg-emerald-900/30"
-                      : "bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10"
-                  }`}
-                >
-                  <IconCalendar
-                    size={20}
-                    className={
+                {evento ? (
+                  <Link href={`/home/eventos/${evento.id}`}>
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 hover:scale-105 transition-transform ${
+                        confirmado
+                          ? "bg-emerald-100 dark:bg-emerald-900/30"
+                          : "bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10"
+                      }`}
+                    >
+                      <IconCalendar
+                        size={20}
+                        className={
+                          confirmado
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-amber-600 dark:text-[#FFDE00]"
+                        }
+                      />
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                       confirmado
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-amber-600 dark:text-[#FFDE00]"
-                    }
-                  />
-                </div>
+                        ? "bg-emerald-100 dark:bg-emerald-900/30"
+                        : "bg-[#FFDE00]/15 dark:bg-[#FFDE00]/10"
+                    }`}
+                  >
+                    <IconCalendar
+                      size={20}
+                      className={
+                        confirmado
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-amber-600 dark:text-[#FFDE00]"
+                      }
+                    />
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 sm:line-clamp-1" title={evento?.nome ?? "Evento removido"}>
-                    {evento?.nome ?? "Evento removido"}
-                  </p>
+                  {evento ? (
+                    <Link href={`/home/eventos/${evento.id}`}>
+                      <p className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 sm:line-clamp-1 hover:underline decoration-[#FFDE00] underline-offset-4" title={evento.nome}>
+                        {evento.nome}
+                      </p>
+                    </Link>
+                  ) : (
+                    <p className="font-semibold text-slate-400 dark:text-slate-500 text-sm leading-snug line-clamp-2 sm:line-clamp-1" title="Evento removido">
+                      Evento removido
+                    </p>
+                  )}
                   <div className="flex items-center gap-x-3 gap-y-1 mt-1 flex-wrap">
                     <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <IconCalendar size={11} /> {dataEvento}
@@ -293,6 +324,17 @@ export function AbaHistoricoAluno({ matricula }: Props) {
                   </div>
 
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    {/* Botão Ver Evento */}
+                    {evento && (
+                      <Link
+                        href={`/home/eventos/${evento.id}`}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-[#2a2a2a] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#353535] transition-colors"
+                        title="Ver página do evento"
+                      >
+                        <IconEye size={14} /> Ver
+                      </Link>
+                    )}
+
                     {/* QR Code */}
                     <button
                       onClick={() => setQrAberto(inscricao)}

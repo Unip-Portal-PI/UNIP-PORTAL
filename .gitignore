@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
+.gemini
+analise
+test_logs
+testes
 # dependencies
 frontend/node_modules
 frontend/.pnp
