@@ -1,7 +1,8 @@
 from sqlalchemy import Column, String, Boolean, Date, DateTime, ForeignKey, Text, text
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime
 from app.core.database import Base
+from app.core.datetime_utils import get_now_br
 
 
 class UsuarioModel(Base):
@@ -23,8 +24,8 @@ class UsuarioModel(Base):
     otp_expires_at = Column(DateTime, nullable=True)
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
     deleted_at = Column(DateTime, nullable=True)
-    data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    data_criacao = Column(DateTime, default=get_now_br, nullable=False)
+    data_atualizacao = Column(DateTime, default=get_now_br, onupdate=get_now_br, nullable=False)
 
     nivel_acesso = relationship("NivelAcessoModel", lazy="joined")
     curso = relationship("CursoModel", lazy="joined")

@@ -132,20 +132,20 @@ function buildEnrollmentDeadline(evento: Evento): Date | null {
   const eventStart = buildEventStartDateTime(evento);
   if (!eventStart) return null;
 
-  
-  const defaultDeadline = new Date(eventStart.getTime() - 30 * 60 * 1000);
+  // Regra padrão: 1 hora e 30 minutos DEPOIS do início
+  const defaultDeadline = new Date(eventStart.getTime() + 90 * 60 * 1000);
 
   const limiteDate = parseDateOnly(evento.dataLimiteInscricao);
   if (!limiteDate) return defaultDeadline;
 
   const eventDate = parseDateOnly(evento.data);
 
-  
+  // Se a data limite for o próprio dia do evento ou posterior, usa a regra de 1h30min após o início
   if (eventDate && limiteDate.getTime() >= eventDate.getTime()) {
     return defaultDeadline;
   }
 
-  // Se for uma data anterior, encerra no final desse dia anterior
+  // Se for uma data anterior, encerra no final desse dia anterior (23:59:59)
   return new Date(
     limiteDate.getFullYear(),
     limiteDate.getMonth(),
@@ -217,7 +217,7 @@ export function isAcontecendoAgora(evento: Evento): boolean {
     0
   );
 
-  const fim = new Date(inicio.getTime() + 30 * 60 * 1000); // +30min após início
+  const fim = new Date(inicio.getTime() + 90 * 60 * 1000); // +90min (1h30) após início
 
   return agora >= inicio && agora <= fim;
 }

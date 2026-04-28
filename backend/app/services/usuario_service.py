@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
-
+from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
+from app.core.datetime_utils import get_now_br
 from app.core.security import hash_password, verify_password
 from app.models.nivel_acesso import NivelAcessoModel
 from app.models.usuario import UsuarioModel
@@ -255,7 +254,7 @@ def delete_user(user_id: str, current_user: UsuarioModel, db: Session) -> Mensag
     if user.nivel_acesso.nome_perfil == "adm":
         raise HTTPException(status_code=400, detail="Nao e permitido excluir administradores.")
 
-    user.deleted_at = datetime.now(timezone.utc)
+    user.deleted_at = get_now_br()
     user.ativo = False
     repo.update(user)
     return MensagemResponse(sucesso=True, mensagem="Usuario excluido com sucesso.")

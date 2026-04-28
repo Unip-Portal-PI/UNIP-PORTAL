@@ -46,6 +46,8 @@ def _build_usuario_resumo(user: UsuarioModel) -> UsuarioResumo:
     )
 
 
+from app.core.datetime_utils import get_now_br
+
 def _consume_cancelled_events(user_id: str, db: Session) -> list[EventoCanceladoResumo]:
     avisos = (
         db.query(EventoCancelamentoAvisoModel)
@@ -60,7 +62,7 @@ def _consume_cancelled_events(user_id: str, db: Session) -> list[EventoCancelado
     if not avisos:
         return []
 
-    visualizado_em = datetime.now(timezone.utc)
+    visualizado_em = get_now_br()
     eventos_cancelados = []
 
     for aviso in avisos:
@@ -183,7 +185,7 @@ def request_reset(matricula: str, email: str, db: Session) -> MensagemResponse:
 
     otp = generate_otp()
     user.otp_code = hash_password(otp)
-    user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRATION_MINUTES)
+    user.otp_expires_at = get_now_br() + timedelta(minutes=settings.OTP_EXPIRATION_MINUTES)
     repo.update(user)
     logger.info("request_reset_otp_saved user_id=%s email=%s", user.id_usuario, user.email)
 
@@ -228,11 +230,11 @@ def validate_otp(email: str, codigo: str, db: Session) -> ResetValidarResponse:
 
     if user.otp_expires_at:
         expires_at = user.otp_expires_at
-        now_utc = datetime.now(timezone.utc)
+        now_br = get_now_br()
         if expires_at.tzinfo is None:
-            now_ref = now_utc.replace(tzinfo=None)
+            now_ref = now_br.replace(tzinfo=None)
         else:
-            now_ref = now_utc
+            now_ref = now_br
 
         if expires_at < now_ref:
             raise HTTPException(status_code=400, detail="Codigo expirado. Solicite um novo.")

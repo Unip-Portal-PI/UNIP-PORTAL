@@ -1,8 +1,9 @@
 from sqlalchemy import Column, String, Integer, Date, DateTime, Time, Enum, ForeignKey, Boolean, JSON, text
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime
 from app.core.database import Base
 from app.core.enums import Turno, TipoInscricao, Visibilidade
+from app.core.datetime_utils import get_now_br
 
 
 
@@ -50,8 +51,8 @@ class EventoModel(Base):
     responsavel = Column(String(200), nullable=True)
     cancelado = Column(Boolean, nullable=False, default=False, server_default=text("0"))
     id_criador = Column(String(36), ForeignKey("usuario.id_usuario"), nullable=True)
-    data_criacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    data_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    data_criacao = Column(DateTime, default=get_now_br, nullable=False)
+    data_atualizacao = Column(DateTime, default=get_now_br, onupdate=get_now_br, nullable=False)
 
     cursos = relationship("CursoModel", secondary="evento_curso", lazy="joined")
     palestrantes = relationship("PalestranteModel", secondary="evento_palestrante", lazy="joined")
