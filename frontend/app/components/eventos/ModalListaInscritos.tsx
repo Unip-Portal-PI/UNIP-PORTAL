@@ -13,6 +13,7 @@ import {
   IconUserMinus,
   IconUserCheck,
   IconSearch,
+  IconQrcode,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -27,6 +28,7 @@ interface Props {
   onRemoverAluno?: (alunoId: string) => Promise<void>;
   onRemoverTodos?: () => Promise<void>;
   onConfirmarPresenca?: (qrCode: string) => Promise<unknown>;
+  onRegenerarQR?: (inscricaoId: string) => Promise<void>;
 }
 
 function formatarData(iso: string) {
@@ -37,7 +39,7 @@ function formatarData(iso: string) {
   });
 }
 
-export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos, onConfirmarPresenca }: Props) {
+export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, onFechar, onRemoverAluno, onRemoverTodos, onConfirmarPresenca, onRegenerarQR }: Props) {
   const [busca, setBusca] = useState("");
 
   const sortedInscricoes = useMemo(() => {
@@ -235,6 +237,7 @@ export function ModalListaInscritos({ evento, inscricoes, role, currentUserId, o
                     podeRemover={podeRemover}
                     onRemover={onRemoverAluno}
                     onConfirmarPresenca={onConfirmarPresenca}
+                    onRegenerarQR={onRegenerarQR}
                   />
                 ))}
               </tbody>
@@ -299,16 +302,19 @@ function ExpandableRow({
   podeRemover,
   onRemover,
   onConfirmarPresenca,
+  onRegenerarQR,
 }: {
   insc: Inscricao;
   podeRemover?: boolean;
   onRemover?: (alunoId: string) => Promise<void>;
   onConfirmarPresenca?: (qrCode: string) => Promise<unknown>;
+  onRegenerarQR?: (inscricaoId: string) => Promise<void>;
 }) {
   const [expandida, setExpandida] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [removendo, setRemovendo] = useState(false);
   const [confirmandoPresenca, setConfirmandoPresenca] = useState(false);
+  const [regenerandoQR, setRegenerandoQR] = useState(false);
   const dataFormatada = formatarData(insc.dataInscricao);
 
   const handleRowClick = useCallback(() => {
@@ -341,6 +347,17 @@ function ExpandableRow({
       await onConfirmarPresenca(insc.qrCode);
     } finally {
       setConfirmandoPresenca(false);
+    }
+  }
+
+  async function handleRegenerarQR(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!onRegenerarQR) return;
+    setRegenerandoQR(true);
+    try {
+      await onRegenerarQR(insc.id);
+    } finally {
+      setRegenerandoQR(false);
     }
   }
 
@@ -393,26 +410,40 @@ function ExpandableRow({
 
         {podeRemover && (
           <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-            <div className="inline-flex items-center gap-2">
+            <div className="flex items-center justify-end gap-1.5">
+              {/* No Desktop mostra tudo, mas compacto */}
+              {!insc.presencaConfirmada && onRegenerarQR && (
+                <button
+                  onClick={handleRegenerarQR}
+                  disabled={regenerandoQR || confirmandoPresenca || removendo}
+                  title="Regenerar QR Code"
+                  className="hidden lg:inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-blue-200 dark:border-blue-900/40 text-blue-600 dark:text-blue-400 text-[10px] font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50"
+                >
+                  <IconQrcode size={14} className={regenerandoQR ? "animate-spin" : ""} />
+                  <span className="hidden xl:inline">{regenerandoQR ? "Gerando..." : "Regerar QR"}</span>
+                </button>
+              )}
+
               {!insc.presencaConfirmada && onConfirmarPresenca && (
                 <button
                   onClick={handleConfirmarPresenca}
-                  disabled={confirmandoPresenca || removendo}
+                  disabled={confirmandoPresenca || removendo || regenerandoQR}
                   title="Confirmar presença manualmente"
-                  className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
                 >
-                  <IconUserCheck size={16} />
-                  <span>{confirmandoPresenca ? "Confirmando..." : "Confirmar"}</span>
+                  <IconUserCheck size={14} />
+                  <span className="hidden sm:inline">{confirmandoPresenca ? "..." : "Confirmar"}</span>
                 </button>
               )}
+
               {!insc.presencaConfirmada && (
                 <button
                   onClick={abrirConfirmacao}
-                  disabled={removendo || confirmandoPresenca}
+                  disabled={removendo || confirmandoPresenca || regenerandoQR}
                   title="Remover aluno"
-                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                  className="hidden lg:inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                 >
-                  <IconUserMinus size={18} />
+                  <IconUserMinus size={16} />
                 </button>
               )}
             </div>
@@ -431,52 +462,78 @@ function ExpandableRow({
 
       {expandida && (
         <tr className="lg:hidden bg-slate-50 dark:bg-[#1e1e1e] border-b border-slate-100 dark:border-[#2a2a2a]">
-          <td colSpan={3} className="px-4 py-3">
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-              <div className="sm:hidden">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Matrícula
-                </dt>
-                <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5 font-mono">
-                  {insc.alunoMatricula}
-                </dd>
-              </div>
+          <td colSpan={podeRemover ? 4 : 3} className="px-4 py-4">
+            <div className="flex flex-col gap-4">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div className="sm:hidden">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Matrícula
+                  </dt>
+                  <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5 font-mono">
+                    {insc.alunoMatricula}
+                  </dd>
+                </div>
 
-              <div className="md:hidden">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Área
-                </dt>
-                <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5">
-                  {insc.alunoArea}
-                </dd>
-              </div>
+                <div className="md:hidden">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Área
+                  </dt>
+                  <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5">
+                    {insc.alunoArea}
+                  </dd>
+                </div>
 
-              <div>
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Inscrito em
-                </dt>
-                <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5">
-                  {dataFormatada}
-                </dd>
-              </div>
+                <div>
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Inscrito em
+                  </dt>
+                  <dd className="text-sm text-slate-700 dark:text-slate-300 mt-0.5">
+                    {dataFormatada}
+                  </dd>
+                </div>
 
-              <div>
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Presença
-                </dt>
-                <dd className="text-sm mt-0.5">
-                  {insc.presencaConfirmada ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
-                      <IconCircleCheck size={14} /> Confirmada
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 text-xs">
-                      <IconClock size={14} /> Pendente
-                    </span>
+                <div>
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Presença
+                  </dt>
+                  <dd className="text-sm mt-0.5">
+                    {insc.presencaConfirmada ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                        <IconCircleCheck size={14} /> Confirmada
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 text-xs">
+                        <IconClock size={14} /> Pendente
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+
+              {/* Ações Mobile Expandidas */}
+              {podeRemover && !insc.presencaConfirmada && (
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-[#2a2a2a]">
+                  {onRegenerarQR && (
+                    <button
+                      onClick={handleRegenerarQR}
+                      disabled={regenerandoQR || confirmandoPresenca || removendo}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-900/40 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50"
+                    >
+                      <IconQrcode size={16} className={regenerandoQR ? "animate-spin" : ""} />
+                      <span>{regenerandoQR ? "Gerando..." : "Regerar QR"}</span>
+                    </button>
                   )}
-                </dd>
-              </div>
-            </dl>
+                  <button
+                    onClick={abrirConfirmacao}
+                    disabled={removendo || confirmandoPresenca || regenerandoQR}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                  >
+                    <IconUserMinus size={16} />
+                    <span>Remover</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </td>
         </tr>
       )}

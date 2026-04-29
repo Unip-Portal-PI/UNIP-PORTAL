@@ -1,5 +1,7 @@
+import uuid
 from datetime import date, datetime, timedelta
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from jose import jwt
 
@@ -35,71 +37,78 @@ def _serialize_inscricao(insc: InscricaoModel) -> InscricaoResponse:
     )
 
 
-def enroll(id_evento: str, id_usuario: str, db: Session) -> InscricaoResponse:
+def enroll(id_evento: str, id_usuario: str, db: Session, is_manual: bool = False) -> InscricaoResponse:
     evento_repo = EventoRepository(db)
     evento = evento_repo.get_by_id(id_evento)
 
     if not evento:
         raise HTTPException(status_code=404, detail="Evento nao encontrado.")
 
-    # Regra: Inscrições encerram 1h30 após o início do evento
-    try:
-        horario = evento.horario
-        if isinstance(horario, str):
-            horario_time = datetime.strptime(horario, "%H:%M").time()
-        else:
-            horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
+    if not is_manual:
+        # Regra: Inscrições encerram 1h30 após o início do evento
+        try:
+            horario = evento.horario
+            if isinstance(horario, str):
+                horario_time = datetime.strptime(horario, "%H:%M").time()
+            else:
+                horario_time = horario or datetime.strptime("00:00", "%H:%M").time()
 
-        data_hora_evento = datetime.combine(evento.data, horario_time)
-        # Agora o limite é +90 minutos (1h30) em vez de -30 minutos
-        limite_inscricao = data_hora_evento + timedelta(minutes=90)
-        
-        if get_now_br().replace(tzinfo=None) > limite_inscricao:
-            raise HTTPException(
-                status_code=400, 
-                detail="As inscricoes para este evento estao encerradas (limite de 1h30 apos o inicio)."
-            )
-    except (ValueError, TypeError):
-        # Caso o formato do horário seja inválido, mantém a lógica legada de data
+            data_hora_evento = datetime.combine(evento.data, horario_time)
+            # Agora o limite é +90 minutos (1h30) em vez de -30 minutos
+            limite_inscricao = data_hora_evento + timedelta(minutes=90)
+            
+            if get_now_br().replace(tzinfo=None) > limite_inscricao:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="As inscricoes para este evento estao encerradas (limite de 1h30 apos o inicio)."
+                )
+        except (ValueError, TypeError):
+            # Caso o formato do horário seja inválido, mantém a lógica legada de data
+            if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
+                raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
+
         if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
             raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
-
-    if evento.data_limite_inscricao and date.today() > evento.data_limite_inscricao:
-        raise HTTPException(status_code=400, detail="Prazo de inscricao encerrado.")
 
     insc_repo = InscricaoRepository(db)
     existing = insc_repo.get_by_user_and_event(id_usuario, id_evento)
     if existing:
-        raise HTTPException(status_code=409, detail="Voce ja esta inscrito neste evento.")
+        raise HTTPException(status_code=409, detail="Este aluno ja esta inscrito neste evento.")
 
-    existing_same_day = insc_repo.get_by_user_and_event_date(
-        id_usuario=id_usuario,
-        data_evento=evento.data,
-        exclude_event_id=id_evento,
-    )
-    if existing_same_day:
-        raise HTTPException(
-            status_code=409,
-            detail="Voce nao pode se inscrever em mais de um evento por dia.",
+    if not is_manual:
+        existing_same_day = insc_repo.get_by_user_and_event_date(
+            id_usuario=id_usuario,
+            data_evento=evento.data,
+            exclude_event_id=id_evento,
         )
+        if existing_same_day:
+            raise HTTPException(
+                status_code=409,
+                detail="Este aluno ja possui inscricao em outro evento na mesma data.",
+            )
 
-    if evento.vagas is not None:
-        count = evento_repo.count_inscricoes(id_evento)
-        if count >= evento.vagas:
-            raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
+        if evento.vagas is not None:
+            count = evento_repo.count_inscricoes(id_evento)
+            if count >= evento.vagas:
+                raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
 
+    inscricao_id = str(uuid.uuid4())
     inscricao = InscricaoModel(
+        id_inscricao=inscricao_id,
         id_evento=id_evento,
         id_usuario=id_usuario,
+        qr_code_usuario=_build_qr_code_payload(
+            id_evento=id_evento,
+            id_usuario=id_usuario,
+            id_inscricao=inscricao_id,
+        ),
     )
 
-    inscricao = insc_repo.create(inscricao)
-    inscricao.qr_code_usuario = _build_qr_code_payload(
-        id_evento=id_evento,
-        id_usuario=id_usuario,
-        id_inscricao=inscricao.id_inscricao,
-    )
-    inscricao = insc_repo.update(inscricao)
+    try:
+        inscricao = insc_repo.create(inscricao)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Voce ja esta inscrito neste evento.")
 
     inscricao = insc_repo.get_by_user_and_event(id_usuario, id_evento)
     return _serialize_inscricao(inscricao)
@@ -117,6 +126,23 @@ def list_enrollments(id_evento: str, db: Session) -> list[InscricaoResponse]:
     repo = InscricaoRepository(db)
     inscricoes = repo.list_by_event(id_evento)
     return [_serialize_inscricao(i) for i in inscricoes]
+
+
+def regenerate_qr_code(id_inscricao: str, db: Session) -> InscricaoResponse:
+    repo = InscricaoRepository(db)
+    inscricao = repo.db.query(InscricaoModel).filter(InscricaoModel.id_inscricao == id_inscricao).first()
+    
+    if not inscricao:
+        raise HTTPException(status_code=404, detail="Inscricao nao encontrada.")
+    
+    inscricao.qr_code_usuario = _build_qr_code_payload(
+        id_evento=inscricao.id_evento,
+        id_usuario=inscricao.id_usuario,
+        id_inscricao=inscricao.id_inscricao,
+    )
+    
+    repo.update(inscricao)
+    return _serialize_inscricao(inscricao)
 
 
 def list_my_enrollments(id_usuario: str, db: Session) -> list[InscricaoResponse]:

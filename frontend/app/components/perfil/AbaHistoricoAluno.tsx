@@ -64,15 +64,16 @@ function ModalQR({
         </div>
 
         <div className="flex flex-col items-center gap-4 p-6">
-          <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrCode)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrCode)}`}
               alt="QR Code"
-              width={180}
-              height={180}
-              className="rounded"
+              width={280}
+              height={280}
+              className="rounded-lg"
             />
           </div>
+
 
           <div className="relative flex items-center justify-center w-full min-w-0">
             <button
