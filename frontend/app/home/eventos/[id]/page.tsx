@@ -318,7 +318,15 @@ export default function DetalheEventoPage() {
     setInscritosDoEvento((prev) => prev.filter((i) => i.presencaConfirmada));
   }
 
+  async function handleRegenerarQR(inscricaoId: string) {
+    const result = await EventoService.regenerarQRCode(inscricaoId);
+    setInscritosDoEvento((prev) =>
+      prev.map((i) => (i.id === inscricaoId ? result : i))
+    );
+  }
+
   return (
+
     <AuthGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
@@ -683,6 +691,7 @@ export default function DetalheEventoPage() {
             onRemoverAluno={handleRemoverAluno}
             onRemoverTodos={handleRemoverTodos}
             onConfirmarPresenca={handleConfirmarPresenca}
+            onRegenerarQR={handleRegenerarQR}
           />
         )}
 
@@ -718,14 +727,19 @@ export default function DetalheEventoPage() {
             onClick={() => setModalQRAluno(false)}
           >
             <div
-              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6 flex flex-col items-center gap-4 shadow-2xl w-72"
+              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-8 flex flex-col items-center gap-6 shadow-2xl w-[350px]"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                Seu QR Code de presença
-              </p>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                  Seu QR Code de presença
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+                  Apresente no check-in
+                </p>
+              </div>
 
-              <div className="relative w-[200px] h-[200px] shadow rounded-md bg-white flex items-center justify-center">
+              <div className="relative w-[280px] h-[280px] shadow-sm rounded-xl bg-white flex items-center justify-center p-2 border border-slate-100">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <svg
                     className="animate-spin w-10 h-10 text-slate-300"
@@ -749,13 +763,13 @@ export default function DetalheEventoPage() {
                 </div>
 
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
                     inscricaoAluno.qrCode
                   )}`}
                   alt="QR Code"
-                  width={180}
-                  height={180}
-                  className="rounded-md opacity-0 transition-opacity duration-300"
+                  width={280}
+                  height={280}
+                  className="rounded-lg opacity-0 transition-opacity duration-300"
                   onLoad={(e) => {
                     (
                       e.target as HTMLImageElement

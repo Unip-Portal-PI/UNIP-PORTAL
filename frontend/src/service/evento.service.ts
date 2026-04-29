@@ -326,4 +326,10 @@ export const EventoService = {
     }
     return mapInscricao(data.inscricao);
   },
-};
+
+  async regenerarQRCode(inscricaoId: string): Promise<Inscricao> {
+    const { data, ok, error } = await api.post<ApiInscricao>(`/enrollments/${inscricaoId}/regenerate-qr`);
+    if (!ok || !data) throw new Error(error || "Falha ao regenerar QR Code");
+    return mapInscricao(data);
+  },
+  };

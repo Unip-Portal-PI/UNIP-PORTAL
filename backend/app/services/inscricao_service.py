@@ -121,6 +121,23 @@ def list_enrollments(id_evento: str, db: Session) -> list[InscricaoResponse]:
     return [_serialize_inscricao(i) for i in inscricoes]
 
 
+def regenerate_qr_code(id_inscricao: str, db: Session) -> InscricaoResponse:
+    repo = InscricaoRepository(db)
+    inscricao = repo.db.query(InscricaoModel).filter(InscricaoModel.id_inscricao == id_inscricao).first()
+    
+    if not inscricao:
+        raise HTTPException(status_code=404, detail="Inscricao nao encontrada.")
+    
+    inscricao.qr_code_usuario = _build_qr_code_payload(
+        id_evento=inscricao.id_evento,
+        id_usuario=inscricao.id_usuario,
+        id_inscricao=inscricao.id_inscricao,
+    )
+    
+    repo.update(inscricao)
+    return _serialize_inscricao(inscricao)
+
+
 def list_my_enrollments(id_usuario: str, db: Session) -> list[InscricaoResponse]:
     repo = InscricaoRepository(db)
     inscricoes = repo.list_by_user(id_usuario)

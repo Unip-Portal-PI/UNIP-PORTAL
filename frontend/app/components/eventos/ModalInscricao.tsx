@@ -47,18 +47,18 @@ export function ModalInscricao({ evento, user, onConfirmar, onFechar }: ModalIns
     }
 
     return (
-      <div className="flex flex-col items-center gap-2 min-w-0">
-        <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-200">
+      <div className="flex flex-col items-center gap-3 min-w-0">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${seed}`}
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${seed}`}
             alt="QR Code"
-            width={160}
-            height={160}
-            className="rounded"
+            width={280}
+            height={280}
+            className="rounded-lg"
           />
         </div>
 
-        <div className="relative flex items-center justify-center w-[160px] min-w-0">
+        <div className="relative flex items-center justify-center w-[280px] min-w-0">
           <button
             onClick={handleCopiar}
             className="group flex items-center gap-1.5 cursor-pointer min-w-0 max-w-full"
