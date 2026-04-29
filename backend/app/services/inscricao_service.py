@@ -1,5 +1,7 @@
+import uuid
 from datetime import date, datetime, timedelta
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from jose import jwt
 
@@ -90,18 +92,23 @@ def enroll(id_evento: str, id_usuario: str, db: Session, is_manual: bool = False
             if count >= evento.vagas:
                 raise HTTPException(status_code=409, detail="Nao ha vagas disponiveis.")
 
+    inscricao_id = str(uuid.uuid4())
     inscricao = InscricaoModel(
+        id_inscricao=inscricao_id,
         id_evento=id_evento,
         id_usuario=id_usuario,
+        qr_code_usuario=_build_qr_code_payload(
+            id_evento=id_evento,
+            id_usuario=id_usuario,
+            id_inscricao=inscricao_id,
+        ),
     )
 
-    inscricao = insc_repo.create(inscricao)
-    inscricao.qr_code_usuario = _build_qr_code_payload(
-        id_evento=id_evento,
-        id_usuario=id_usuario,
-        id_inscricao=inscricao.id_inscricao,
-    )
-    inscricao = insc_repo.update(inscricao)
+    try:
+        inscricao = insc_repo.create(inscricao)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Voce ja esta inscrito neste evento.")
 
     inscricao = insc_repo.get_by_user_and_event(id_usuario, id_evento)
     return _serialize_inscricao(inscricao)
