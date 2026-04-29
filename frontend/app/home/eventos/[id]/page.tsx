@@ -15,6 +15,7 @@ import {
   IconCalendarOff,
   IconQrcode,
   IconEdit,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import { Evento, Inscricao } from "@/src/types/evento";
 import { UserRole } from "@/src/types/user";
@@ -34,8 +35,10 @@ import { ModalQRReader } from "@/app/components/eventos/ModalQRReader";
 import { ModalListaInscritos } from "@/app/components/eventos/ModalListaInscritos";
 import { ModalDesinscricaoSucesso } from "@/app/components/eventos/ModalDesinscricaoSucesso";
 import { ModalEventoCancelado } from "@/app/components/eventos/ModalEventoCancelado";
+import { ModalInscricaoManual } from "@/app/components/eventos/ModalInscricaoManual";
 import AuthGuard from "@/src/guard/AuthGuard";
 import { EventoBannerFallback } from "@/app/components/eventos/BannerEventoFallback";
+import { IconSchool } from "@tabler/icons-react";
 
 function formatarLink(valor: string) {
   if (/^https?:\/\//i.test(valor)) return valor;
@@ -115,6 +118,7 @@ export default function DetalheEventoPage() {
   const [modalQRAluno, setModalQRAluno] = useState(false);
   const [modalQR, setModalQR] = useState(false);
   const [modalInscritos, setModalInscritos] = useState(false);
+  const [modalInscricaoManual, setModalInscricaoManual] = useState(false);
   const [modalDesinscricaoSucesso, setModalDesinscricaoSucesso] =
     useState(false);
   const [mensagemEventoCancelado, setMensagemEventoCancelado] = useState("");
@@ -263,7 +267,7 @@ export default function DetalheEventoPage() {
     setMensagemEventoCancelado(response.mensagem);
   }
 
-  async function handleQRConfirmar(qrCode: string): Promise<Inscricao> {
+  async function handleConfirmarPresenca(qrCode: string): Promise<Inscricao> {
     const result = await EventoService.confirmarPresenca(eventoAtual.id, qrCode);
 
     setPresencasConfirmadas((prev) => {
@@ -278,6 +282,22 @@ export default function DetalheEventoPage() {
     );
 
     return result;
+  }
+
+  async function handleInscreverManualmente(alunoId: string) {
+    const result = await EventoService.inscreverManualmente(eventoAtual.id, alunoId);
+    
+    // 1. Adiciona o novo inscrito à lista local
+    setInscritosDoEvento((prev) => [...prev, result]);
+    
+    // 2. Atualiza a contagem de vagas localmente sem novo GET
+    setEvento((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        vagasOcupadas: prev.vagasOcupadas + 1
+      };
+    });
   }
 
   async function abrirModalQR() {
@@ -295,13 +315,18 @@ export default function DetalheEventoPage() {
 
   async function handleRemoverTodos() {
     await EventoService.removerTodasInscricoes(eventoAtual.id);
-    // Filtrar apenas os que tinham presenca confirmada (embora o service atual remova apenas os que não tem)
-    // Para ser consistente com o estado do banco, vamos recarregar ou filtrar.
-    // O service do backend remove apenas os sem presença.
     setInscritosDoEvento((prev) => prev.filter((i) => i.presencaConfirmada));
   }
 
+  async function handleRegenerarQR(inscricaoId: string) {
+    const result = await EventoService.regenerarQRCode(inscricaoId);
+    setInscritosDoEvento((prev) =>
+      prev.map((i) => (i.id === inscricaoId ? result : i))
+    );
+  }
+
   return (
+
     <AuthGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
@@ -484,6 +509,16 @@ export default function DetalheEventoPage() {
                   )}
                 </button>
 
+                {role === "adm" && (
+                  <button
+                    onClick={() => setModalInscricaoManual(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-md border-2 border-slate-200 dark:border-[#404040] text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <IconUserPlus size={15} />
+                    Inscrição manual
+                  </button>
+                )}
+
                 {podeEditarEvento && (
                   <button
                     onClick={() => setModalForm(true)}
@@ -518,6 +553,23 @@ export default function DetalheEventoPage() {
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                 Informações
               </h2>
+
+              {eventoAtual.responsavel && (
+                <div className="flex items-start gap-3 text-sm">
+                  <IconSchool
+                    size={16}
+                    className="text-[#e6c800] dark:text-[#FFDE00] mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider">
+                      Responsável
+                    </p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                      Prof. {eventoAtual.responsavel}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-start gap-3 text-sm">
                 <IconCalendar
@@ -623,7 +675,7 @@ export default function DetalheEventoPage() {
         {modalQR && (
           <ModalQRReader
             eventoNome={eventoAtual.nome}
-            onLer={handleQRConfirmar}
+            onLer={handleConfirmarPresenca}
             onFechar={() => setModalQR(false)}
             presencasConfirmadas={presencasConfirmadas}
           />
@@ -638,7 +690,17 @@ export default function DetalheEventoPage() {
             onFechar={() => setModalInscritos(false)}
             onRemoverAluno={handleRemoverAluno}
             onRemoverTodos={handleRemoverTodos}
-            onConfirmarPresenca={handleQRConfirmar}
+            onConfirmarPresenca={handleConfirmarPresenca}
+            onRegenerarQR={handleRegenerarQR}
+          />
+        )}
+
+        {modalInscricaoManual && (
+          <ModalInscricaoManual
+            evento={eventoAtual}
+            inscricoesAtuais={inscritosDoEvento}
+            onFechar={() => setModalInscricaoManual(false)}
+            onInscrever={handleInscreverManualmente}
           />
         )}
 
@@ -665,14 +727,19 @@ export default function DetalheEventoPage() {
             onClick={() => setModalQRAluno(false)}
           >
             <div
-              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-6 flex flex-col items-center gap-4 shadow-2xl w-72"
+              className="bg-white dark:bg-[#202020] rounded-2xl border border-slate-100 dark:border-[#303030] p-8 flex flex-col items-center gap-6 shadow-2xl w-[350px]"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                Seu QR Code de presença
-              </p>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                  Seu QR Code de presença
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+                  Apresente no check-in
+                </p>
+              </div>
 
-              <div className="relative w-[200px] h-[200px] shadow rounded-md bg-white flex items-center justify-center">
+              <div className="relative w-[280px] h-[280px] shadow-sm rounded-xl bg-white flex items-center justify-center p-2 border border-slate-100">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <svg
                     className="animate-spin w-10 h-10 text-slate-300"
@@ -696,13 +763,13 @@ export default function DetalheEventoPage() {
                 </div>
 
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
                     inscricaoAluno.qrCode
                   )}`}
                   alt="QR Code"
-                  width={180}
-                  height={180}
-                  className="rounded-md opacity-0 transition-opacity duration-300"
+                  width={280}
+                  height={280}
+                  className="rounded-lg opacity-0 transition-opacity duration-300"
                   onLoad={(e) => {
                     (
                       e.target as HTMLImageElement
